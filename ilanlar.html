@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İlanlar — Satılık & Kiralık | EmlakAI</title>
+  <meta name="description" content="Satılık ve kiralık daire, villa, arsa, dükkan ilanları. AI fiyat etiketi ve akıllı filtrelerle arayın.">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body data-page="ilanlar">
+  <header class="site-header">
+    <div class="container header-in">
+      <a class="logo" href="index.html"><span class="logo-mark">🏠</span>Emlak<span class="ai">AI</span></a>
+      <nav class="main-nav" id="mainNav">
+        <a href="index.html">Ana Sayfa</a>
+        <a href="ilanlar.html" class="active">İlanlar</a>
+        <a href="degerleme.html">AI Değerleme</a>
+        <a href="asistan.html">AI Asistan</a>
+        <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
+        <a href="ilan-ver.html" class="cta">+ Ücretsiz İlan Ver</a>
+      </nav>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-head">
+      <h1>İlanlar</h1>
+      <p>Tüm ilanlar yapay zekâ fiyat analiziyle etiketlenir. Soldaki filtrelerle daraltın ya da ana sayfadan doğal dille arayın.</p>
+    </div>
+
+    <div class="container">
+      <div class="ai-note" id="aiNote" style="display:none"></div>
+    </div>
+
+    <div class="container listing-layout">
+      <aside class="filters">
+        <h3>Filtreler <button class="btn ghost sm" id="clearBtn" type="button">Temizle</button></h3>
+        <div><label for="fCat">Kategori</label>
+          <select id="fCat"><option value="">Tümü</option><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option></select>
+        </div>
+        <div><label for="fCity">Şehir</label><select id="fCity"></select></div>
+        <div><label for="fDistrict">İlçe</label><select id="fDistrict"></select></div>
+        <div><label for="fKind">Tür</label><select id="fKind"></select></div>
+        <div><label for="fRooms">Oda Sayısı</label>
+          <select id="fRooms"><option value="">Tümü</option><option>1+0</option><option>1+1</option><option>2+1</option><option>3+1</option><option>4+1</option><option>5+2</option></select>
+        </div>
+        <div><label>Fiyat Aralığı (₺)</label>
+          <div class="row2">
+            <input id="fMin" type="number" min="0" placeholder="Min">
+            <input id="fMax" type="number" min="0" placeholder="Max">
+          </div>
+        </div>
+        <button class="btn" id="applyBtn" type="button">Uygula</button>
+      </aside>
+
+      <div>
+        <div class="toolbar">
+          <span class="count" id="count">—</span>
+          <div>
+            <label for="fSort" style="display:inline;margin-right:6px">Sırala:</label>
+            <select id="fSort">
+              <option value="new">En Yeni</option>
+              <option value="ai">🤖 AI Fırsat Skoru</option>
+              <option value="price-asc">Fiyat (Artan)</option>
+              <option value="price-desc">Fiyat (Azalan)</option>
+              <option value="m2">Alan (m²)</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır, yatırım tavsiyesi değildir. · <a data-c-tel href="#">—</a> · <a data-c-mail href="#">—</a></div>
+    </div>
+  </footer>
+
+  <a class="fab" href="asistan.html">🤖 AI Asistan</a>
+  <script src="assets/config.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/ai.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

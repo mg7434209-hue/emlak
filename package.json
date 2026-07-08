@@ -1,0 +1,14 @@
+{
+  "name": "emlakai",
+  "version": "1.0.0",
+  "description": "EmlakAI — yapay zekâ destekli emlak ilan platformu (statik) — Railway/Node ile sunum",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

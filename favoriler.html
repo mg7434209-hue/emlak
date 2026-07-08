@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Favorilerim & Karşılaştırma | EmlakAI</title>
+  <meta name="description" content="Favori ilanlarınız ve yan yana AI karşılaştırma tablosu.">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body data-page="favoriler">
+  <header class="site-header">
+    <div class="container header-in">
+      <a class="logo" href="index.html"><span class="logo-mark">🏠</span>Emlak<span class="ai">AI</span></a>
+      <nav class="main-nav" id="mainNav">
+        <a href="index.html">Ana Sayfa</a>
+        <a href="ilanlar.html">İlanlar</a>
+        <a href="degerleme.html">AI Değerleme</a>
+        <a href="asistan.html">AI Asistan</a>
+        <a href="favoriler.html" class="active" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
+        <a href="ilan-ver.html" class="cta">+ Ücretsiz İlan Ver</a>
+      </nav>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-head">
+      <h1>❤️ Favorilerim</h1>
+      <p>Beğendiğiniz ilanlar bu cihazda saklanır. İki ve üzeri favoride otomatik karşılaştırma tablosu açılır.</p>
+    </div>
+
+    <div class="container section" style="padding-top:18px">
+      <div class="grid" id="favGrid"></div>
+
+      <div id="compareWrap" style="display:none;margin-top:34px">
+        <div class="section-head"><div><h2>⚖️ AI Karşılaştırma</h2><p>İlk 4 favoriniz yan yana (₺/m² ve AI fiyat etiketiyle)</p></div></div>
+        <div class="detail-card" style="overflow-x:auto;margin-top:0">
+          <table class="spec-table" id="compareTable"></table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="copyright">© 2026 EmlakAI · <a data-c-tel href="#">—</a> · <a data-c-mail href="#">—</a></div>
+    </div>
+  </footer>
+
+  <a class="fab" href="asistan.html">🤖 AI Asistan</a>
+  <script src="assets/config.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/ai.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

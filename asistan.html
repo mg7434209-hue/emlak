@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Asistan EVA — Doğal Dille Emlak Arama | EmlakAI</title>
+  <meta name="description" content="EVA ile sohbet edin: doğal dille ilan arayın, değerleme isteyin, kredi taksiti hesaplatın.">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body data-page="asistan">
+  <header class="site-header">
+    <div class="container header-in">
+      <a class="logo" href="index.html"><span class="logo-mark">🏠</span>Emlak<span class="ai">AI</span></a>
+      <nav class="main-nav" id="mainNav">
+        <a href="index.html">Ana Sayfa</a>
+        <a href="ilanlar.html">İlanlar</a>
+        <a href="degerleme.html">AI Değerleme</a>
+        <a href="asistan.html" class="active">AI Asistan</a>
+        <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
+        <a href="ilan-ver.html" class="cta">+ Ücretsiz İlan Ver</a>
+      </nav>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-head" style="text-align:center">
+      <h1>🤖 AI Asistan — EVA</h1>
+      <p style="margin-inline:auto">Doğal dille yazın: ilan arasın, değer tahmin etsin, kredi hesaplasın. Sorularınız cihazınızda işlenir; hiçbir yere gönderilmez.</p>
+    </div>
+
+    <div class="container section" style="padding-top:14px">
+      <div class="chat-wrap">
+        <div class="chat-box" id="chatBox"></div>
+        <div class="chat-input">
+          <input id="chatText" type="text" placeholder='örn. "Alanya kiralık 2+1, 30 bin altı"' autocomplete="off">
+          <button class="btn" id="chatSend">Gönder</button>
+        </div>
+        <p style="margin-top:12px">
+          <span class="chip" data-ask>Manavgat'ta 5 milyon altı satılık villa</span>
+          <span class="chip" data-ask>Kadıköy'de kiralık 1+1</span>
+          <span class="chip" data-ask>3 milyon kredi taksiti</span>
+          <span class="chip" data-ask>değerleme</span>
+          <span class="chip" data-ask>ilan nasıl verilir?</span>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="copyright">© 2026 EmlakAI — EVA'nın yanıtları bilgi amaçlıdır. · <a data-c-tel href="#">—</a> · <a data-c-mail href="#">—</a></div>
+    </div>
+  </footer>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/ai.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

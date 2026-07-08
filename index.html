@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmlakAI — Yapay Zekâ Destekli Emlak Platformu | Satılık & Kiralık İlanlar</title>
+  <meta name="description" content="Türkiye'nin yapay zekâ destekli emlak platformu. Doğal dille arayın, AI fiyat analizini görün, ücretsiz değerleme yapın. Satılık ve kiralık daire, villa, arsa ilanları.">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body data-page="index">
+  <header class="site-header">
+    <div class="container header-in">
+      <a class="logo" href="index.html"><span class="logo-mark">🏠</span>Emlak<span class="ai">AI</span></a>
+      <nav class="main-nav" id="mainNav">
+        <a href="index.html" class="active">Ana Sayfa</a>
+        <a href="ilanlar.html">İlanlar</a>
+        <a href="degerleme.html">AI Değerleme</a>
+        <a href="asistan.html">AI Asistan</a>
+        <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
+        <a href="ilan-ver.html" class="cta">+ Ücretsiz İlan Ver</a>
+      </nav>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Hayalinizdeki evi<br><span class="grad">yapay zekâ ile</span> bulun</h1>
+        <p class="sub">Sahibinden ve emlak ofislerinden binlerce ilan. Doğal dille arayın; EmlakAI sizin için filtrelesin, fiyatları analiz etsin, fırsatları işaretlesin.</p>
+
+        <div class="ai-search reveal">
+          <div class="tabs">
+            <button class="tab-btn active" data-cat="satilik">Satılık</button>
+            <button class="tab-btn" data-cat="kiralik">Kiralık</button>
+          </div>
+          <div class="row">
+            <input id="aiQuery" type="text" placeholder='🤖 Doğal dille yazın: "Antalya Konyaaltı deniz manzaralı 3+1, 10 milyon altı"' autocomplete="off">
+            <button class="btn" id="aiSearchBtn">AI ile Ara</button>
+          </div>
+          <div class="ai-hint">Örnekler:
+            <span class="chip">Manavgat'ta 5 milyon altı satılık villa</span>
+            <span class="chip">İzmir'de kiralık 1+1 daire</span>
+            <span class="chip">Kadıköy'de havuzlu 3+1</span>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat reveal"><b id="statCount">—</b><span>Aktif İlan</span></div>
+          <div class="stat reveal"><b id="statCity">—</b><span>Şehir</span></div>
+          <div class="stat reveal"><b id="statDeals">—</b><span>AI Fırsat İlanı</span></div>
+          <div class="stat reveal"><b>%92</b><span>Değerleme Güveni</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <div><h2>Kategoriler</h2><p>Ne aradığınızı biliyorsanız buradan başlayın</p></div>
+        </div>
+        <div class="cat-grid">
+          <a class="cat reveal" href="ilanlar.html?category=satilik&kind=daire"><span class="ico">🏢</span>Satılık Daire<small data-cat-count="satilik:daire"></small></a>
+          <a class="cat reveal" href="ilanlar.html?category=kiralik&kind=daire"><span class="ico">🔑</span>Kiralık Daire<small data-cat-count="kiralik:daire"></small></a>
+          <a class="cat reveal" href="ilanlar.html?kind=villa"><span class="ico">🏡</span>Villa<small data-cat-count=":villa"></small></a>
+          <a class="cat reveal" href="ilanlar.html?kind=arsa"><span class="ico">🌳</span>Arsa<small data-cat-count=":arsa"></small></a>
+          <a class="cat reveal" href="ilanlar.html?kind=dukkan"><span class="ico">🏪</span>Dükkan<small data-cat-count=":dukkan"></small></a>
+          <a class="cat reveal" href="ilanlar.html?kind=ofis"><span class="ico">🏛️</span>Ofis<small data-cat-count=":ofis"></small></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="section-head">
+          <div><h2>🔥 AI Fırsat İlanları</h2><p>Yapay zekâ, piyasa değerinin belirgin altında fiyatlanan ilanları otomatik işaretler</p></div>
+          <a class="btn ghost sm" href="ilanlar.html">Tümünü Gör</a>
+        </div>
+        <div class="grid" id="dealGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="section-head">
+          <div><h2>🆕 En Yeni İlanlar</h2><p>Platforma en son eklenen ilanlar</p></div>
+          <a class="btn ghost sm" href="ilanlar.html">Tümünü Gör</a>
+        </div>
+        <div class="grid" id="newGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" style="background:var(--surface-2)">
+      <div class="container">
+        <div class="section-head"><div><h2>🤖 Yapay Zekâ Neler Yapıyor?</h2><p>EmlakAI'yi sıradan ilan sitelerinden ayıran özellikler</p></div></div>
+        <div class="feature-grid">
+          <div class="feature reveal"><div class="ico">💬</div><h3>Doğal Dil Arama</h3><p>"Manavgat'ta 5 milyon altı havuzlu villa" yazın; AI cümlenizi anlayıp filtrelere dönüştürsün.</p></div>
+          <div class="feature reveal"><div class="ico">🏷️</div><h3>Akıllı Fiyat Etiketi</h3><p>Her ilan bölge piyasasıyla kıyaslanır: Fırsat, Piyasa Uygunu ya da Piyasa Üstü olarak işaretlenir.</p></div>
+          <div class="feature reveal"><div class="ico">📊</div><h3>Anında Değerleme</h3><p>Konum ve özellikleri girin; saniyeler içinde tahmini değer bandı ve etki faktörlerini görün.</p></div>
+          <div class="feature reveal"><div class="ico">✍️</div><h3>AI İlan Yazarı</h3><p>İlan verirken başlık ve açıklamayı yapay zekâ sizin yerinize yazsın, fiyat önerisi sunsun.</p></div>
+          <div class="feature reveal"><div class="ico">🧭</div><h3>Benzer İlan Önerisi</h3><p>Baktığınız ilana özellik benzerliğiyle en yakın alternatifler otomatik listelenir.</p></div>
+          <div class="feature reveal"><div class="ico">🏦</div><h3>Kredi & Trend Analizi</h3><p>Taksit hesabı ve ilçe bazlı 12 aylık fiyat eğilimi grafikleri her ilan sayfasında.</p></div>
+        </div>
+        <p style="text-align:center;margin-top:26px"><a class="btn" href="asistan.html">💬 AI Asistan ile Konuş</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <h4>Emlak<span style="color:var(--primary)">AI</span></h4>
+          <p>Türkiye'nin yapay zekâ destekli emlak platformu. İlanlar tahmini AI analizleriyle sunulur; kesin bilgi için satıcıyla görüşün.</p>
+        </div>
+        <div>
+          <h4>Keşfet</h4>
+          <a href="ilanlar.html?category=satilik">Satılık İlanlar</a>
+          <a href="ilanlar.html?category=kiralik">Kiralık İlanlar</a>
+          <a href="degerleme.html">AI Değerleme</a>
+          <a href="asistan.html">AI Asistan</a>
+        </div>
+        <div>
+          <h4>Hesabım</h4>
+          <a href="ilan-ver.html">Ücretsiz İlan Ver</a>
+          <a href="favoriler.html">Favorilerim</a>
+        </div>
+        <div>
+          <h4>İletişim</h4>
+          <a data-c-tel href="#">—</a>
+          <a data-c-mail href="#">—</a>
+          <p data-c-addr></p>
+        </div>
+      </div>
+      <div class="copyright">© 2026 EmlakAI — Tüm hakları saklıdır. AI analizleri bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
+    </div>
+  </footer>
+
+  <a class="fab" href="asistan.html">🤖 AI Asistan</a>
+  <script src="assets/config.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/ai.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

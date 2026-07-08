@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ücretsiz İlan Ver — AI Destekli | EmlakAI</title>
+  <meta name="description" content="Dakikalar içinde ücretsiz ilan verin. Yapay zekâ başlık ve açıklamanızı yazsın, fiyat önerisi sunsun.">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body data-page="ilan-ver">
+  <header class="site-header">
+    <div class="container header-in">
+      <a class="logo" href="index.html"><span class="logo-mark">🏠</span>Emlak<span class="ai">AI</span></a>
+      <nav class="main-nav" id="mainNav">
+        <a href="index.html">Ana Sayfa</a>
+        <a href="ilanlar.html">İlanlar</a>
+        <a href="degerleme.html">AI Değerleme</a>
+        <a href="asistan.html">AI Asistan</a>
+        <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
+        <a href="ilan-ver.html" class="cta active">+ Ücretsiz İlan Ver</a>
+      </nav>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-head">
+      <h1>✍️ AI Destekli İlan Ver</h1>
+      <p>Bilgileri girin; yapay zekâ fiyat önersin, başlık ve açıklamanızı yazsın. İlanınız anında yayına alınır (bu tarayıcıda saklanır).</p>
+    </div>
+
+    <div class="container section" style="padding-top:18px">
+      <div class="form-card">
+        <div class="form-grid">
+          <div><label for="pCat">Kategori</label>
+            <select id="pCat"><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option></select>
+          </div>
+          <div><label for="pKind">Tür</label><select id="pKind"></select></div>
+          <div><label for="pCity">Şehir</label><select id="pCity"></select></div>
+          <div><label for="pDistrict">İlçe</label><select id="pDistrict"></select></div>
+          <div><label for="pM2">Alan (m²)</label><input id="pM2" type="number" min="10" placeholder="örn. 120"></div>
+          <div><label for="pRooms">Oda Sayısı</label>
+            <select id="pRooms"><option value="">Belirtme</option><option>1+0</option><option>1+1</option><option>2+1</option><option>3+1</option><option>4+1</option><option>5+2</option></select>
+          </div>
+          <div><label for="pAge">Bina Yaşı</label><input id="pAge" type="number" min="0" max="100" placeholder="örn. 5"></div>
+          <div><label for="pPrice">Fiyat (₺)</label><input id="pPrice" type="number" min="0" placeholder="Boş bırakın, AI önersin"></div>
+          <div class="full"><label>Özellikler</label><div class="check-grid" id="featBoxes"></div></div>
+          <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn warn" id="suggestBtn" type="button">🤖 AI Fiyat Önerisi Al</button>
+            <button class="btn ghost" id="writeBtn" type="button">✍️ Başlık & Açıklamayı AI Yazsın</button>
+          </div>
+          <div class="full notice" id="suggestOut">İpucu: Önce konum ve m² girin, sonra AI araçlarını kullanın.</div>
+          <div class="full"><label for="pTitle">İlan Başlığı</label><input id="pTitle" type="text" placeholder="AI ile otomatik doldurulabilir"></div>
+          <div class="full"><label for="pDesc">İlan Açıklaması</label><textarea id="pDesc" rows="6" placeholder="AI ile otomatik doldurulabilir"></textarea></div>
+          <div class="full"><button class="btn" id="publishBtn" type="button" style="width:100%;padding:14px">🚀 İlanı Yayınla</button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır. · <a data-c-tel href="#">—</a> · <a data-c-mail href="#">—</a></div>
+    </div>
+  </footer>
+
+  <a class="fab" href="asistan.html">🤖 AI Asistan</a>
+  <script src="assets/config.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/ai.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /ilan.html
+Disallow: /favoriler.html
