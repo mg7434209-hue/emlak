@@ -228,6 +228,47 @@
       .map((r) => r.x);
   }
 
+  // ── Öne çıkan öncelikli sıralama ────────────────────────────────────────
+  // Öne çıkarılmış ilanlar, mevcut sıra korunarak listenin başına alınır.
+  function rank(list) {
+    const feat = list.filter((l) => l.featured);
+    return feat.concat(list.filter((l) => !l.featured));
+  }
+
+  // ── AI Görünürlük Skoru ─────────────────────────────────────────────────
+  // İlanın hem site içi AI aramada hem arama motorlarında ne kadar güçlü
+  // göründüğünü puanlar; eksikler için somut ipuçları üretir.
+  function visibilityScore(l) {
+    const V = C.visibility, W = V.weights;
+    let score = 0;
+    const tips = [];
+
+    if ((l.title || "").length >= V.minTitleLen) score += W.title;
+    else tips.push(`Başlığı en az ${V.minTitleLen} karaktere çıkarın; konum + oda + tür geçsin (ör. "Manavgat 3+1 Deniz Manzaralı Satılık Daire").`);
+
+    if ((l.desc || "").length >= V.minDescLen) score += W.desc;
+    else tips.push(`Açıklamayı en az ${V.minDescLen} karaktere çıkarın — "AI Yazsın" düğmesi bunu sizin için yapar.`);
+
+    if ((l.features || []).length >= V.minFeatures) score += W.features;
+    else tips.push(`En az ${V.minFeatures} özellik işaretleyin; özellikler doğal dil aramada eşleşme sağlar.`);
+
+    if ((l.photos || []).length >= 1) score += W.photos;
+    else tips.push("En az 1 fotoğraf ekleyin — fotoğraflı ilanlar belirgin şekilde daha çok tıklanır.");
+
+    const est = estimate(l);
+    if (est && l.price) {
+      const ratio = l.price / est.mid;
+      if (ratio <= 1 + C.valuation.fairBand) score += W.priceFair;
+      else tips.push(`Fiyat, AI tahmininin %${Math.round((ratio - 1) * 100)} üzerinde — piyasa bandına (${fmtNum(est.low)}–${fmtNum(est.high)} ₺) çekmek "Fırsat/Uygun" etiketi kazandırır.`);
+    } else if (!l.price) tips.push("Fiyat girin ya da AI önerisini kullanın.");
+
+    const hasSpecs = l.m2 && (l.kind === "arsa" || (l.rooms && l.age != null));
+    if (hasSpecs) score += W.specs;
+    else tips.push("m², oda sayısı ve bina yaşını eksiksiz doldurun; filtreli aramalarda görünürlüğü artırır.");
+
+    return { score: Math.min(100, Math.round(score)), tips };
+  }
+
   // ── Kredi hesabı (anüite) ───────────────────────────────────────────────
   function mortgage(principal, monthlyRatePct, months) {
     const r = monthlyRatePct / 100;
@@ -311,7 +352,7 @@
       if (results.length) break;
       if (g[k] != null) { delete g[k]; relaxed.push(label); results = applyFilters(EMLAK.data.all(), g); }
     }
-    results = results.slice(0, C.assistant.maxResults);
+    results = rank(results).slice(0, C.assistant.maxResults);
     if (results.length && !relaxed.length) {
       return {
         reply: `Aramanızı analiz ettim${critParts.length ? " (" + critParts.join(", ") + ")" : ""} ve ${results.length} uygun ilan buldum:`,
@@ -338,5 +379,5 @@
     return p.toString();
   }
 
-  EMLAK.ai = { parseQuery, applyFilters, estimate, priceBadge, describe, similar, mortgage, trend, chat, filtersToQS, fmtNum };
+  EMLAK.ai = { parseQuery, applyFilters, estimate, priceBadge, describe, similar, mortgage, trend, chat, filtersToQS, fmtNum, rank, visibilityScore };
 })();

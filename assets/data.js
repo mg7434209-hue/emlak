@@ -122,6 +122,8 @@
       seller: pick(SELLERS),
       date: new Date(2026, 5, ri(1, 30), ri(8, 21)).toISOString(),
       views: ri(40, 4200),
+      featured: rand() < 0.14, // öne çıkarılmış ilanlar (AI arama sonuçlarında önceliklenir)
+      photos: [],
       desc: null, // detay sayfasında AI tarafından üretilir
     });
   }

@@ -1,0 +1,32 @@
+# EmlakAI
+
+> Türkiye'nin yapay zekâ destekli emlak platformu. Satılık/kiralık konut, iş yeri ve arsa ilanları; tamamı
+> istemci tarafında çalışan yapay zekâ araçları: doğal dil arama, anında
+> değerleme, fiyat-piyasa analizi, ilan yazarı ve EVA sohbet asistanı.
+
+## Önemli sayfalar
+
+- [Ana sayfa](https://mg7434209-hue.github.io/emlak/): AI destekli ilan arama
+- [İlanlar](https://mg7434209-hue.github.io/emlak/ilanlar.html): filtreli satılık/kiralık ilan listesi
+- [Bölge fiyatları](https://mg7434209-hue.github.io/emlak/bolge-fiyatlari.html): il/ilçe bazlı güncel konut m² fiyat tabloları (2026-07)
+- [AI Değerleme](https://mg7434209-hue.github.io/emlak/degerleme.html): ücretsiz anında gayrimenkul değerleme
+- [Rehber](https://mg7434209-hue.github.io/emlak/rehber.html): ev alma-satma ve kredi SSS/rehberi
+- [AI Asistan](https://mg7434209-hue.github.io/emlak/asistan.html): doğal dille emlak sorularına yanıt
+
+## Bölge fiyat özeti (2026-07, satılık konut)
+
+- İstanbul: ortalama 79.625 TL/m² — en pahalı Beşiktaş (125.000 TL/m²), en uygun Esenyurt (27.000 TL/m²)
+- Ankara: ortalama 30.600 TL/m² — en pahalı Çankaya (45.000 TL/m²), en uygun Mamak (22.000 TL/m²)
+- İzmir: ortalama 57.667 TL/m² — en pahalı Çeşme (95.000 TL/m²), en uygun Buca (33.000 TL/m²)
+- Antalya: ortalama 50.571 TL/m² — en pahalı Konyaaltı (68.000 TL/m²), en uygun Kepez (30.000 TL/m²)
+- Bursa: ortalama 33.000 TL/m² — en pahalı Mudanya (44.000 TL/m²), en uygun Yıldırım (22.000 TL/m²)
+
+Aylık kira tahmini = satış değerinin ~%0.42'i.
+
+## İletişim
+
+- Telefon/WhatsApp: 0543 743 42 09
+- E-posta: gesmarketim@gmail.com
+
+Not: Veriler bölgesel piyasa ortalamasıdır; bilgi amaçlıdır, yatırım tavsiyesi
+değildir. Kesin değerleme için yerinde ekspertiz gerekir.

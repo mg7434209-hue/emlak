@@ -47,6 +47,12 @@
   const GLYPHS = {
     daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", dukkan: "🏪", ofis: "🏛️", arsa: "🌳",
   };
+  function thumbHTML(l, big) {
+    if (l.photos && l.photos.length) {
+      return `<img src="${l.photos[0]}" alt="${esc(l.title)}" style="width:100%;height:100%;object-fit:cover">`;
+    }
+    return thumbSVG(l, big);
+  }
   function thumbSVG(l, big) {
     const [c1, c2] = PALETTES[l.kind] || PALETTES.daire;
     const g = GLYPHS[l.kind] || "🏠";
@@ -78,8 +84,9 @@
     meta.push(fmt(l.m2) + " m²");
     if (l.age != null && l.kind !== "arsa") meta.push(l.age === 0 ? "Sıfır" : l.age + " yaş");
     return `<article class="card reveal">
-      <div class="thumb">${thumbSVG(l)}
-        ${b ? `<span class="badge ${b.cls}">${b.label}${b.pct ? " (%" + b.pct + ")" : ""}</span>` : ""}
+      <div class="thumb">${thumbHTML(l)}
+        ${l.featured ? `<span class="badge badge-feat">${C.featured.label}</span>` : ""}
+        ${b ? `<span class="badge ${b.cls}" ${l.featured ? 'style="top:40px"' : ""}>${b.label}${b.pct ? " (%" + b.pct + ")" : ""}</span>` : ""}
         <span class="badge badge-cat">${l.category === "satilik" ? "Satılık" : "Kiralık"}</span>
         <button class="fav-btn" data-fav="${l.id}" title="Favorilere ekle" style="z-index:3">${isFav ? "❤️" : "🤍"}</button>
       </div>
@@ -126,7 +133,37 @@
     $$("[data-c-tel]").forEach((a) => { a.href = "tel:" + C.company.phone.intl; a.textContent = C.company.phone.display; });
     $$("[data-c-mail]").forEach((a) => { a.href = "mailto:" + C.company.email; a.textContent = C.company.email; });
     $$("[data-c-addr]").forEach((el) => { el.textContent = C.company.address; });
+    injectSiteJsonLd();
     observeReveals(document);
+  }
+
+  // ── SEO: JSON-LD yapılandırılmış veri (config'ten üretilir) ─────────────
+  function addJsonLd(obj) {
+    const s = document.createElement("script");
+    s.type = "application/ld+json";
+    s.textContent = JSON.stringify(obj);
+    document.head.appendChild(s);
+  }
+  function injectSiteJsonLd() {
+    const url = C.seo.siteUrl;
+    addJsonLd({
+      "@context": "https://schema.org", "@type": "Organization",
+      name: C.brand.name, legalName: C.company.title, url,
+      logo: url + C.seo.ogImage, email: C.company.email,
+      telephone: C.company.phone.intl,
+      address: { "@type": "PostalAddress", streetAddress: C.company.address, addressCountry: "TR" },
+      sameAs: C.seo.sameAs,
+    });
+    addJsonLd({
+      "@context": "https://schema.org", "@type": "WebSite",
+      name: C.brand.name, url, inLanguage: "tr",
+      description: C.brand.tagline,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: { "@type": "EntryPoint", urlTemplate: url + "/ilanlar.html?q={search_term_string}" },
+        "query-input": "required name=search_term_string",
+      },
+    });
   }
   function observeReveals(root) {
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.08 });
@@ -188,7 +225,8 @@
     const deals = all.map((l) => ({ l, b: AI.priceBadge(l) })).filter((x) => x.b && x.b.key === "firsat");
     $("#statDeals").textContent = deals.length;
 
-    // AI fırsatları + yeni ilanlar
+    // Öne çıkanlar + AI fırsatları + yeni ilanlar
+    renderCards($("#featGrid"), all.filter((l) => l.featured).slice(0, 4));
     renderCards($("#dealGrid"), deals.sort((a, b) => b.b.pct - a.b.pct).slice(0, 8).map((x) => x.l));
     renderCards($("#newGrid"), all.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8));
 
@@ -207,6 +245,14 @@
     if (qs.get("min")) f.minPrice = +qs.get("min");
     if (qs.get("max")) f.maxPrice = +qs.get("max");
     const rawQ = qs.get("q");
+    // Yalnızca ?q= ile gelinirse (arama motoru SearchAction / dış bağlantı)
+    // doğal dil sorgusunu ayrıştırıp filtrelere dönüştür; açık paramlar önceliklidir.
+    if (rawQ) {
+      const parsed = AI.parseQuery(rawQ);
+      ["category", "kind", "city", "district", "rooms", "feature", "minPrice", "maxPrice"].forEach((k) => {
+        if (f[k] == null && parsed[k] != null) f[k] = parsed[k];
+      });
+    }
 
     // Filtre alanlarını doldur
     fillCitySelect($("#fCity"), true);
@@ -249,7 +295,10 @@
         list = list.map((l) => ({ l, b: AI.priceBadge(l) }))
           .sort((a, b) => (b.b && b.b.key === "firsat" ? b.b.pct : -(b.b ? b.b.pct : 0)) - (a.b && a.b.key === "firsat" ? a.b.pct : -(a.b ? a.b.pct : 0)))
           .map((x) => x.l);
-      } else list.sort((a, b) => new Date(b.date) - new Date(a.date));
+      } else {
+        list.sort((a, b) => new Date(b.date) - new Date(a.date));
+        list = AI.rank(list); // öne çıkan ilanlar varsayılan sıralamada önce gelir
+      }
       $("#count").textContent = fmt(list.length) + " ilan bulundu";
       renderCards($("#grid"), list);
     }
@@ -270,6 +319,40 @@
       return;
     }
     document.title = l.title + " — " + C.brand.name;
+    // Dinamik SEO: description, canonical ve ilan JSON-LD'si
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const descText = `${l.title} — ${fmt(l.price)} ₺${l.category === "kiralik" ? "/ay" : ""}, ${fmt(l.m2)} m²${l.rooms ? ", " + l.rooms : ""}, ${l.city}/${l.district}. AI değerleme ve fiyat analiziyle.`;
+    if (metaDesc) metaDesc.setAttribute("content", descText);
+    let canon = document.querySelector('link[rel="canonical"]');
+    if (!canon) { canon = document.createElement("link"); canon.rel = "canonical"; document.head.appendChild(canon); }
+    canon.href = C.seo.siteUrl + "/ilan.html?id=" + l.id;
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": l.category === "kiralik" ? "RealEstateListing" : "RealEstateListing",
+      name: l.title, url: canon.href, description: descText,
+      datePosted: l.date,
+      offers: { "@type": "Offer", price: l.price, priceCurrency: "TRY", availability: "https://schema.org/InStock" },
+      address: { "@type": "PostalAddress", addressLocality: l.district, addressRegion: l.city, addressCountry: "TR" },
+      floorSize: { "@type": "QuantitativeValue", value: l.m2, unitCode: "MTK" },
+      numberOfRooms: l.rooms || undefined,
+      image: (l.photos && l.photos[0]) || C.seo.siteUrl + C.seo.ogImage,
+    });
+    document.head.appendChild(ld);
+    const ldBc = document.createElement("script");
+    ldBc.type = "application/ld+json";
+    ldBc.textContent = JSON.stringify({
+      "@context": "https://schema.org", "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Ana Sayfa", item: C.seo.siteUrl + "/" },
+        { "@type": "ListItem", position: 2, name: "İlanlar", item: C.seo.siteUrl + "/ilanlar.html" },
+        { "@type": "ListItem", position: 3, name: l.city, item: C.seo.siteUrl + "/ilanlar.html?city=" + encodeURIComponent(l.city) },
+        { "@type": "ListItem", position: 4, name: l.title, item: canon.href },
+      ],
+    });
+    document.head.appendChild(ldBc);
+
     const est = AI.estimate(l);
     const b = AI.priceBadge(l);
     const desc = l.desc || AI.describe(l);
@@ -295,7 +378,8 @@
       </div>
       <div class="detail-layout container">
         <div>
-          <div class="gallery">${thumbSVG(l, true)}</div>
+          <div class="gallery" id="galleryMain">${thumbHTML(l, true)}</div>
+          ${(l.photos || []).length > 1 ? `<div class="photo-strip">${l.photos.map((p, i) => `<img src="${p}" data-photo="${i}" alt="Fotoğraf ${i + 1}" class="${i === 0 ? "sel" : ""}">`).join("")}</div>` : ""}
           <div class="detail-card">
             <h2>🤖 Yapay Zekâ Açıklaması</h2>
             <p>${esc(desc)}</p>
@@ -316,6 +400,7 @@
         </div>
         <aside class="side-card">
           <div class="price">${fmtPrice(l)}</div>
+          ${l.featured ? `<span class="chip" style="border-color:var(--accent);color:var(--accent);font-weight:700">${C.featured.label} İlan</span>` : ""}
           ${b ? `<span class="chip" style="border-color:currentColor;color:${b.key === "firsat" ? "var(--deal)" : b.key === "ustu" ? "var(--over)" : "var(--fair)"}">${b.label}${b.pct ? " — piyasadan %" + b.pct + (b.key === "firsat" ? " ucuz" : " pahalı") : ""}</span>` : ""}
           ${est ? `<div class="est-box">
               <b>🤖 AI Değerleme</b><br>
@@ -344,6 +429,11 @@
     tel.textContent = "📞 " + C.company.phone.display;
     sparkline($("#trendChart"), AI.trend(l.city, l.district), l.city + " / " + l.district);
     renderCards($("#similarGrid"), AI.similar(l, D.all(), 4));
+    $$(".photo-strip img", root).forEach((im) => im.addEventListener("click", () => {
+      $("#galleryMain").innerHTML = `<img src="${l.photos[+im.dataset.photo]}" alt="${esc(l.title)}" style="width:100%;display:block">`;
+      $$(".photo-strip img", root).forEach((x) => x.classList.remove("sel"));
+      im.classList.add("sel");
+    }));
     const favBtn = $(".side-card [data-fav]", root);
     favBtn.addEventListener("click", () => {
       favBtn.textContent = toggleFav(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle";
@@ -360,6 +450,33 @@
     $("#featBoxes").innerHTML = Object.keys(C.valuation.features)
       .map((f) => `<label><input type="checkbox" value="${esc(f)}"> ${esc(f)}</label>`).join("");
 
+    // Fotoğraf yükleme: canvas ile küçültülüp base64 olarak ilana gömülür
+    const photos = [];
+    $("#pPhotos").addEventListener("change", (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5 - photos.length);
+      files.forEach((file) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, 900 / img.width);
+          const cv = document.createElement("canvas");
+          cv.width = Math.round(img.width * scale);
+          cv.height = Math.round(img.height * scale);
+          cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+          photos.push(cv.toDataURL("image/jpeg", 0.8));
+          URL.revokeObjectURL(img.src);
+          renderPhotoPreview();
+        };
+        img.src = URL.createObjectURL(file);
+      });
+      e.target.value = "";
+    });
+    function renderPhotoPreview() {
+      $("#photoPreview").innerHTML = photos.map((p, i) =>
+        `<span style="position:relative;display:inline-block"><img src="${p}" alt="Fotoğraf ${i + 1}" style="width:90px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+         <button type="button" data-rm="${i}" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:20px;height:20px;font-size:11px;line-height:1">✕</button></span>`).join("");
+      $$("#photoPreview [data-rm]").forEach((b) => b.addEventListener("click", () => { photos.splice(+b.dataset.rm, 1); renderPhotoPreview(); }));
+    }
+
     function collect() {
       const kind = $("#pKind").value;
       const kindLabel = (D.kinds.find((k) => k.kind === kind) || {}).label || kind;
@@ -373,9 +490,27 @@
         heating: kind === "arsa" ? null : "Kombi (Doğalgaz)",
         features: $$("#featBoxes input:checked").map((i) => i.value),
         price: +$("#pPrice").value || 0,
+        title: $("#pTitle").value.trim(),
+        desc: $("#pDesc").value.trim(),
+        photos: photos.slice(),
+        featured: $("#pFeatured").checked,
         seller: { name: "Sahibinden", type: "sahibinden" },
       };
     }
+
+    // AI Görünürlük Skoru: ilan yayına girmeden önce güçlü/zayıf yönleri gösterir
+    $("#scoreBtn").addEventListener("click", () => {
+      const l = collect();
+      const err = validate(l);
+      const out = $("#scoreOut");
+      out.style.display = "block";
+      if (err) { out.innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
+      const v = AI.visibilityScore(l);
+      const color = v.score >= 80 ? "var(--deal)" : v.score >= 50 ? "var(--accent)" : "var(--over)";
+      out.innerHTML = `<b>📈 AI Görünürlük Skoru: <span style="color:${color};font-size:1.3rem">${v.score}/100</span></b>
+        <div style="height:10px;border-radius:999px;background:var(--surface-2);margin:8px 0"><div style="height:100%;width:${v.score}%;border-radius:999px;background:${color}"></div></div>
+        ${v.tips.length ? "<b>Skoru yükseltmek için:</b><ul style='margin:6px 0 0 18px'>" + v.tips.map((t) => `<li>${esc(t)}</li>`).join("") + "</ul>" : "Harika! İlanınız AI aramada ve arama motorlarında güçlü görünecek. 🎉"}`;
+    });
     function validate(l) {
       if (!l.district) return "Lütfen ilçe seçin.";
       if (!l.m2 || l.m2 < 10) return "Geçerli bir m² girin.";
@@ -411,8 +546,8 @@
       const err = validate(l) || (!l.price ? "Fiyat girin ya da AI önerisini kullanın." : null);
       if (err) { $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
       const catLabel = l.category === "satilik" ? "Satılık" : "Kiralık";
-      l.title = $("#pTitle").value.trim() || `${l.district} ${l.rooms ? l.rooms + " " : ""}${catLabel} ${l.kindLabel}`;
-      l.desc = $("#pDesc").value.trim() || null;
+      l.title = l.title || `${l.district} ${l.rooms ? l.rooms + " " : ""}${catLabel} ${l.kindLabel}`;
+      l.desc = l.desc || null;
       const saved = D.saveUserListing(l);
       location.href = "ilan.html?id=" + saved.id;
     });

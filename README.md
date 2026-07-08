@@ -17,6 +17,20 @@ JS; bağımlılık yok, API anahtarı yok, çevrimdışı bile çalışır.
 | **Fiyat trendi** | İlçe bazlı 12 aylık ₺/m² eğilim grafiği |
 | **Kredi hesaplayıcı** | Anüite formülüyle taksit/toplam faiz |
 | **Karşılaştırma** | Favorilerdeki ilanlar yan yana, ₺/m² ve AI etiketiyle |
+| **⭐ Öne çıkarma** | Öne çıkarılan ilanlar AI arama ve listelerde önceliklenir |
+| **AI Görünürlük Skoru** | Yayın öncesi ilan kalitesi 100 üzerinden puanlanır + ipuçları |
+
+## 🔍 SEO & AI Görünürlüğü (AEO)
+
+- `sitemap.xml`, `robots.txt` (GPTBot/ClaudeBot/PerplexityBot açık), `llms.txt`
+- Statik **Bölge Fiyatları** sayfası: AI motorlarının alıntılayabileceği il/ilçe m² fiyat tabloları
+- **Rehber/SSS** sayfası: `FAQPage` JSON-LD ile soru-cevap içeriği
+- JSON-LD: `Organization`, `WebSite`+`SearchAction`, `RealEstateListing` (ilan detayında dinamik), `Dataset`, `BreadcrumbList`
+- Tüm sayfalarda canonical + Open Graph/Twitter kartları + OG görseli
+- `ilanlar.html?q=<doğal dil sorgu>` doğrudan çalışır (SearchAction hedefi)
+
+Bunların çoğu `node build-seo.js` ile `assets/config.js`'ten üretilir —
+alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalıştırılır.
 
 ## Sayfalar
 

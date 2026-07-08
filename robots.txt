@@ -1,4 +1,28 @@
+# EmlakAI — klasik arama motorları ve AI tarayıcıları için
 User-agent: *
 Allow: /
-Disallow: /ilan.html
 Disallow: /favoriler.html
+
+# AI arama/asistan tarayıcıları açıkça hoş karşılanır (AEO)
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://mg7434209-hue.github.io/emlak/sitemap.xml

@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EmlakAI — Yapay Zekâ Destekli Emlak Platformu | Satılık & Kiralık İlanlar</title>
   <meta name="description" content="Türkiye'nin yapay zekâ destekli emlak platformu. Doğal dille arayın, AI fiyat analizini görün, ücretsiz değerleme yapın. Satılık ve kiralık daire, villa, arsa ilanları.">
+  <link rel="canonical" href="https://mg7434209-hue.github.io/emlak/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="EmlakAI">
+  <meta property="og:title" content="EmlakAI — Yapay Zekâ Destekli Emlak Platformu | Satılık & Kiralık İlanlar">
+  <meta property="og:description" content="Türkiye'nin yapay zekâ destekli emlak platformu. Doğal dille arayın, AI fiyat analizini görün, ücretsiz değerleme yapın. Satılık ve kiralık daire, villa, arsa ilanları.">
+  <meta property="og:url" content="https://mg7434209-hue.github.io/emlak/">
+  <meta property="og:image" content="https://mg7434209-hue.github.io/emlak/assets/img/og.png">
+  <meta property="og:locale" content="tr_TR">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
@@ -15,10 +24,12 @@
       <nav class="main-nav" id="mainNav">
         <a href="index.html" class="active">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>
+        <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
         <a href="degerleme.html">AI Değerleme</a>
         <a href="asistan.html">AI Asistan</a>
+        <a href="rehber.html">Rehber</a>
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
-        <a href="ilan-ver.html" class="cta">+ Ücretsiz İlan Ver</a>
+        <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
       </nav>
       <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
       <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
@@ -75,6 +86,16 @@
     <section class="section" style="padding-top:0">
       <div class="container">
         <div class="section-head">
+          <div><h2>⭐ Öne Çıkan İlanlar</h2><p>Vitrindeki ilanlar — AI aramada ve listelerde önceliklenir</p></div>
+          <a class="btn ghost sm" href="ilan-ver.html">Siz de Öne Çıkarın</a>
+        </div>
+        <div class="grid" id="featGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="section-head">
           <div><h2>🔥 AI Fırsat İlanları</h2><p>Yapay zekâ, piyasa değerinin belirgin altında fiyatlanan ilanları otomatik işaretler</p></div>
           <a class="btn ghost sm" href="ilanlar.html">Tümünü Gör</a>
         </div>
@@ -121,6 +142,7 @@
           <a href="ilanlar.html?category=kiralik">Kiralık İlanlar</a>
           <a href="degerleme.html">AI Değerleme</a>
           <a href="asistan.html">AI Asistan</a>
+        <a href="rehber.html">Rehber</a>
         </div>
         <div>
           <h4>Hesabım</h4>

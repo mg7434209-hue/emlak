@@ -17,6 +17,26 @@ EMLAK.config = {
     address: "Örnek Mah. 1551 Sok. No:10/1, Manavgat / Antalya",
   },
 
+  // ── SEO / AEO — canonical, sitemap, JSON-LD ve llms.txt buradan üretilir ─
+  // Özel alan adı alınınca yalnızca siteUrl'i güncelle ve `npm run build` çalıştır.
+  seo: {
+    siteUrl: "https://mg7434209-hue.github.io/emlak",
+    ogImage: "/assets/img/og.png",
+    locale: "tr_TR",
+    sameAs: [], // sosyal medya profilleri eklendikçe buraya
+    dataDate: "2026-07", // piyasa verisinin referans dönemi (llms.txt + Dataset)
+  },
+
+  // ── İlan öne çıkarma & AI görünürlük skoru ──────────────────────────────
+  featured: { label: "⭐ Öne Çıkan" },
+  visibility: {
+    // AI Görünürlük Skoru ağırlıkları (toplam 100)
+    weights: { title: 10, desc: 20, features: 15, photos: 20, priceFair: 20, specs: 15 },
+    minDescLen: 180,  // iyi açıklama için alt sınır (karakter)
+    minFeatures: 4,   // iyi özellik sayısı
+    minTitleLen: 20,  // iyi başlık uzunluğu
+  },
+
   // ── Piyasa verisi: il → ilçe → ortalama satılık ₺/m² (konut) ─────────────
   // Kira ₺/m²/ay = satılık m² fiyatı × rentYieldMonthly
   market: {
