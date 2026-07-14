@@ -67,7 +67,7 @@ function chrome(body, { title, desc, canonical, jsonld }) {
   <main>${body}</main>
   <footer class="site-footer">
     <div class="container">
-      <div class="copyright">© 2026 ${esc(C.brand.name)} — Veriler ${C.seo.dataDate} dönemi piyasa ortalamalarıdır; bilgi amaçlıdır, yatırım tavsiyesi değildir. · <a data-c-tel href="#">—</a> · <a data-c-mail href="#">—</a></div>
+      <div class="copyright">© 2026 ${esc(C.brand.name)} — Veriler ${C.seo.dataDate} dönemi piyasa ortalamalarıdır; bilgi amaçlıdır, yatırım tavsiyesi değildir. · <a data-c-tel href="#">—</a> · <a data-c-mail href="#">—</a> · <a href="kvkk.html">KVKK</a> · <a href="cerez-politikasi.html">Çerez Politikası</a></div>
     </div>
   </footer>
   <a class="fab" href="asistan.html">🤖 AI Asistan</a>

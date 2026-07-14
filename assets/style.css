@@ -323,4 +323,33 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
 
 .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.5s, transform 0.5s; }
 .reveal.in { opacity: 1; transform: none; }
+
+/* ── Çerez onay banner'ı (KVKK) — mobil öncelikli ───── */
+.cc-banner { position: fixed; left: 0; right: 0; bottom: 0; z-index: 200; padding: 0 14px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+.cc-inner { max-width: 860px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 10px; }
+.cc-text b { display: block; margin-bottom: 4px; color: var(--text); }
+.cc-text p { margin: 0; font-size: 0.86rem; color: var(--muted); line-height: 1.55; }
+.cc-text a { color: var(--primary); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.cc-prefs summary { cursor: pointer; font-weight: 700; font-size: 0.88rem; color: var(--primary);
+  min-height: 44px; display: flex; align-items: center; width: max-content; }
+.cc-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin: 8px 0;
+  font-size: 0.88rem; font-weight: 600; color: var(--text); cursor: pointer; }
+.cc-opt em { font-style: normal; font-size: 0.76rem; color: var(--deal); font-weight: 800; }
+.cc-opt input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); flex: 0 0 auto; }
+.cc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cc-btn { min-height: 44px; padding: 10px 18px; border-radius: 999px; font: inherit; font-weight: 700;
+  font-size: 0.88rem; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text); flex: 1; }
+.cc-btn.cc-accept { background: var(--primary); border-color: var(--primary); color: #fff; }
+.cc-btn.cc-save { width: 100%; }
+@media (min-width: 761px) {
+  .cc-inner { flex-direction: row; align-items: center; }
+  .cc-text { flex: 1; }
+  .cc-prefs .cc-opt, .cc-prefs .cc-save { max-width: 280px; }
+  .cc-actions, .cc-btn { flex: 0 0 auto; }
+}
 .notice { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; color: var(--muted); }

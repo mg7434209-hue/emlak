@@ -133,8 +133,70 @@
     $$("[data-c-tel]").forEach((a) => { a.href = "tel:" + C.company.phone.intl; a.textContent = C.company.phone.display; });
     $$("[data-c-mail]").forEach((a) => { a.href = "mailto:" + C.company.email; a.textContent = C.company.email; });
     $$("[data-c-addr]").forEach((el) => { el.textContent = C.company.address; });
+    $$("[data-c-title]").forEach((el) => { el.textContent = C.company.title; });
     injectSiteJsonLd();
+    initConsent();
     observeReveals(document);
+  }
+
+  // ── Çerez onayı (KVKK) — mobil uyumlu banner ────────────────────────────
+  const consentKey = "emlakai.consent.v1";
+  const consentTtl = 1000 * 60 * 60 * 24 * 180; // 6 ay
+  function getConsent() {
+    try {
+      const d = JSON.parse(localStorage.getItem(consentKey) || "null");
+      if (!d || typeof d.ts !== "number") return null;
+      if (Date.now() - d.ts > consentTtl) { localStorage.removeItem(consentKey); return null; }
+      return d;
+    } catch (e) { return null; }
+  }
+  function showConsentBanner(current) {
+    if ($(".cc-banner")) return;
+    const el = document.createElement("div");
+    el.className = "cc-banner";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", "Çerez tercihleri");
+    el.innerHTML = `
+      <div class="cc-inner">
+        <div class="cc-text"><b>🍪 Çerezler Hakkında</b>
+          <p>EmlakAI üçüncü taraf çerezi kullanmaz; tema ve favoriler gibi zorunlu kayıtlar cihazınızda
+          tutulur (KVKK m.5/2-c — onay gerekmez). Analitik kayıtlar yalnızca onayınızla çalışır.
+          <a href="cerez-politikasi.html">Çerez Politikası</a> · <a href="kvkk.html">Aydınlatma Metni</a></p>
+        </div>
+        <details class="cc-prefs"><summary>Tercihler</summary>
+          <div class="cc-opt"><span>Zorunlu kayıtlar</span><em>Her zaman aktif</em></div>
+          <label class="cc-opt"><span>Analitik çerezler</span><input type="checkbox" class="cc-analytics"${current && !current.analytics ? "" : " checked"}></label>
+          <button type="button" class="cc-btn cc-save">Seçimi Kaydet</button>
+        </details>
+        <div class="cc-actions">
+          <button type="button" class="cc-btn cc-reject">Reddet</button>
+          <button type="button" class="cc-btn cc-accept">Tümünü Kabul Et</button>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    const apply = (analytics) => {
+      try { localStorage.setItem(consentKey, JSON.stringify({ necessary: true, analytics: !!analytics, ts: Date.now() })); } catch (e) {}
+      el.remove();
+    };
+    $(".cc-accept", el).addEventListener("click", () => apply(true));
+    $(".cc-reject", el).addEventListener("click", () => apply(false));
+    $(".cc-save", el).addEventListener("click", () => apply($(".cc-analytics", el).checked));
+  }
+  function initConsent() {
+    if (!getConsent()) showConsentBanner(null);
+    // Footer'a yasal linkler + "Çerez Tercihleri" (onay her zaman geri çekilebilir)
+    const cp = $(".copyright");
+    if (cp) {
+      if (!$('a[href="kvkk.html"]', cp)) {
+        const k = document.createElement("a"); k.href = "kvkk.html"; k.textContent = "KVKK";
+        const c = document.createElement("a"); c.href = "cerez-politikasi.html"; c.textContent = "Çerez Politikası";
+        cp.append(" · ", k, " · ", c);
+      }
+      const a = document.createElement("a");
+      a.href = "#"; a.textContent = "Çerez Tercihleri";
+      a.addEventListener("click", (ev) => { ev.preventDefault(); showConsentBanner(getConsent()); });
+      cp.append(" · ", a);
+    }
   }
 
   // ── SEO: JSON-LD yapılandırılmış veri (config'ten üretilir) ─────────────
