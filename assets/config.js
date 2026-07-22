@@ -27,15 +27,8 @@ EMLAK.config = {
     dataDate: "2026-07", // piyasa verisinin referans dönemi (llms.txt + Dataset)
   },
 
-  // ── İlan öne çıkarma & AI görünürlük skoru ──────────────────────────────
+  // ── İlan öne çıkarma ────────────────────────────────────────────────────
   featured: { label: "⭐ Öne Çıkan" },
-  visibility: {
-    // AI Görünürlük Skoru ağırlıkları (toplam 100)
-    weights: { title: 10, desc: 20, features: 15, photos: 20, priceFair: 20, specs: 15 },
-    minDescLen: 180,  // iyi açıklama için alt sınır (karakter)
-    minFeatures: 4,   // iyi özellik sayısı
-    minTitleLen: 20,  // iyi başlık uzunluğu
-  },
 
   // ── Piyasa verisi: il → ilçe → ortalama satılık ₺/m² (konut) ─────────────
   // Kira ₺/m²/ay = satılık m² fiyatı × rentYieldMonthly

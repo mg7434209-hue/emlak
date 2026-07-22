@@ -24,10 +24,7 @@
       <nav class="main-nav" id="mainNav">
         <a href="index.html">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>
-        <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
-        <a href="degerleme.html" class="active">AI Değerleme</a>
-        <a href="asistan.html">AI Asistan</a>
-        <a href="rehber.html">Rehber</a>
+        <a href="degerleme.html" class="active">Değerleme</a>
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
       </nav>
@@ -38,8 +35,8 @@
 
   <main>
     <div class="container page-head">
-      <h1>📊 AI Değerleme</h1>
-      <p>Gayrimenkulünüzün özelliklerini girin; yapay zekâ bölge piyasa verisi ve özellik katsayılarıyla tahmini değer bandını hesaplasın, hangi faktörün değeri nasıl etkilediğini göstersin.</p>
+      <h1>AI Değerleme</h1>
+      <p>Gayrimenkulünüzün özelliklerini girin; bölge piyasa verisiyle tahmini değer bandını anında görün.</p>
     </div>
 
     <div class="container section" style="padding-top:18px">
@@ -57,14 +54,14 @@
           </div>
           <div><label for="vAge">Bina Yaşı</label><input id="vAge" type="number" min="0" max="100" value="0"></div>
           <div class="full"><label>Özellikler</label><div class="check-grid" id="vFeatBoxes"></div></div>
-          <div class="full"><button class="btn" id="vBtn" type="button" style="width:100%;padding:14px">🤖 Değeri Hesapla</button></div>
+          <div class="full"><button class="btn" id="vBtn" type="button" style="width:100%;padding:14px">Değeri Hesapla</button></div>
         </div>
       </div>
       <div class="result-panel" id="vResult" style="display:none"></div>
     </div>
 
     <div class="container section" id="kredi" style="padding-top:0">
-      <div class="section-head"><div><h2>🏦 Konut Kredisi Hesaplayıcı</h2><p>Tahmini aylık taksitinizi hesaplayın</p></div></div>
+      <div class="section-head"><div><h2>Konut Kredisi Hesaplayıcı</h2><p>Tahmini aylık taksitinizi hesaplayın</p></div></div>
       <div class="form-card">
         <div class="form-grid">
           <div><label for="kAmount">Kredi Tutarı (₺)</label><input id="kAmount" type="number" min="0" placeholder="örn. 3000000"></div>
@@ -81,7 +78,14 @@
 
   <footer class="site-footer">
     <div class="container">
-      <div class="copyright">© 2026 EmlakAI — Değerleme sonuçları tahminidir; resmi ekspertiz yerine geçmez. · <a data-c-mail href="#">—</a></div>
+      <div class="footer-links">
+        <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
+        <a href="rehber.html">Rehber</a>
+        <a href="asistan.html">AI Asistan</a>
+        <a data-c-tel href="#">—</a>
+        <a data-c-mail href="#">—</a>
+      </div>
+      <div class="copyright">© 2026 EmlakAI — Değerleme sonuçları tahminidir; resmi ekspertiz yerine geçmez.</div>
     </div>
   </footer>
 

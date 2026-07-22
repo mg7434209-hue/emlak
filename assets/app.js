@@ -219,16 +219,10 @@
     $("#aiQuery").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
     $$(".ai-hint .chip").forEach((ch) => ch.addEventListener("click", () => { $("#aiQuery").value = ch.textContent; doSearch(); }));
 
-    // İstatistikler
-    $("#statCount").textContent = fmt(all.length);
-    $("#statCity").textContent = D.cities.length;
+    // Fırsat + yeni ilanlar
     const deals = all.map((l) => ({ l, b: AI.priceBadge(l) })).filter((x) => x.b && x.b.key === "firsat");
-    $("#statDeals").textContent = deals.length;
-
-    // Öne çıkanlar + AI fırsatları + yeni ilanlar
-    renderCards($("#featGrid"), all.filter((l) => l.featured).slice(0, 4));
-    renderCards($("#dealGrid"), deals.sort((a, b) => b.b.pct - a.b.pct).slice(0, 8).map((x) => x.l));
-    renderCards($("#newGrid"), all.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8));
+    renderCards($("#dealGrid"), deals.sort((a, b) => b.b.pct - a.b.pct).slice(0, 4).map((x) => x.l));
+    renderCards($("#newGrid"), AI.rank(all.slice().sort((a, b) => new Date(b.date) - new Date(a.date))).slice(0, 8));
 
     // Kategori sayıları
     $$("[data-cat-count]").forEach((el) => {
@@ -381,7 +375,7 @@
           <div class="gallery" id="galleryMain">${thumbHTML(l, true)}</div>
           ${(l.photos || []).length > 1 ? `<div class="photo-strip">${l.photos.map((p, i) => `<img src="${p}" data-photo="${i}" alt="Fotoğraf ${i + 1}" class="${i === 0 ? "sel" : ""}">`).join("")}</div>` : ""}
           <div class="detail-card">
-            <h2>🤖 Yapay Zekâ Açıklaması</h2>
+            <h2>Açıklama</h2>
             <p>${esc(desc)}</p>
           </div>
           <div class="detail-card">
@@ -390,11 +384,11 @@
             ${(l.features || []).length ? `<div class="tags" style="margin-top:14px">${l.features.map((f) => `<span class="chip">✓ ${esc(f)}</span>`).join("")}</div>` : ""}
           </div>
           <div class="detail-card">
-            <h2>📈 ${esc(l.district)} Fiyat Eğilimi (AI)</h2>
+            <h2>${esc(l.district)} Fiyat Eğilimi</h2>
             <div id="trendChart"></div>
           </div>
           <div class="detail-card">
-            <h2>Benzer İlanlar (AI Önerisi)</h2>
+            <h2>Benzer İlanlar</h2>
             <div class="grid" id="similarGrid"></div>
           </div>
         </div>
@@ -498,19 +492,6 @@
       };
     }
 
-    // AI Görünürlük Skoru: ilan yayına girmeden önce güçlü/zayıf yönleri gösterir
-    $("#scoreBtn").addEventListener("click", () => {
-      const l = collect();
-      const err = validate(l);
-      const out = $("#scoreOut");
-      out.style.display = "block";
-      if (err) { out.innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
-      const v = AI.visibilityScore(l);
-      const color = v.score >= 80 ? "var(--deal)" : v.score >= 50 ? "var(--accent)" : "var(--over)";
-      out.innerHTML = `<b>📈 AI Görünürlük Skoru: <span style="color:${color};font-size:1.3rem">${v.score}/100</span></b>
-        <div style="height:10px;border-radius:999px;background:var(--surface-2);margin:8px 0"><div style="height:100%;width:${v.score}%;border-radius:999px;background:${color}"></div></div>
-        ${v.tips.length ? "<b>Skoru yükseltmek için:</b><ul style='margin:6px 0 0 18px'>" + v.tips.map((t) => `<li>${esc(t)}</li>`).join("") + "</ul>" : "Harika! İlanınız AI aramada ve arama motorlarında güçlü görünecek. 🎉"}`;
-    });
     function validate(l) {
       if (!l.district) return "Lütfen ilçe seçin.";
       if (!l.m2 || l.m2 < 10) return "Geçerli bir m² girin.";

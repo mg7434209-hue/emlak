@@ -53,10 +53,7 @@ function chrome(body, { title, desc, canonical, jsonld }) {
       <nav class="main-nav" id="mainNav">
         <a href="index.html">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>
-        <a href="bolge-fiyatlari.html" class="active">Bölge Fiyatları</a>
-        <a href="degerleme.html">AI Değerleme</a>
-        <a href="asistan.html">AI Asistan</a>
-        <a href="rehber.html">Rehber</a>
+        <a href="degerleme.html">Değerleme</a>
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
       </nav>
@@ -67,7 +64,13 @@ function chrome(body, { title, desc, canonical, jsonld }) {
   <main>${body}</main>
   <footer class="site-footer">
     <div class="container">
-      <div class="copyright">© 2026 ${esc(C.brand.name)} — Veriler ${C.seo.dataDate} dönemi piyasa ortalamalarıdır; bilgi amaçlıdır, yatırım tavsiyesi değildir. · <a data-c-tel href="#">—</a> · <a data-c-mail href="#">—</a></div>
+      <div class="footer-links">
+        <a href="rehber.html">Rehber</a>
+        <a href="asistan.html">AI Asistan</a>
+        <a data-c-tel href="#">—</a>
+        <a data-c-mail href="#">—</a>
+      </div>
+      <div class="copyright">© 2026 ${esc(C.brand.name)} — Veriler ${C.seo.dataDate} dönemi piyasa ortalamalarıdır; bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
     </div>
   </footer>
   <a class="fab" href="asistan.html">🤖 AI Asistan</a>

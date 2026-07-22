@@ -18,7 +18,6 @@ JS; bağımlılık yok, API anahtarı yok, çevrimdışı bile çalışır.
 | **Kredi hesaplayıcı** | Anüite formülüyle taksit/toplam faiz |
 | **Karşılaştırma** | Favorilerdeki ilanlar yan yana, ₺/m² ve AI etiketiyle |
 | **⭐ Öne çıkarma** | Öne çıkarılan ilanlar AI arama ve listelerde önceliklenir |
-| **AI Görünürlük Skoru** | Yayın öncesi ilan kalitesi 100 üzerinden puanlanır + ipuçları |
 
 ## 🔍 SEO & AI Görünürlüğü (AEO)
 

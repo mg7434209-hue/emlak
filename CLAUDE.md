@@ -9,17 +9,19 @@ Node statik sunucu (`server.js`, Railway uyumlu). Sunucu tarafı yok; tüm AI
 özellikleri istemcide çalışır (çevrimdışı dâhil).
 
 Sayfalar (kök dizinde):
-`index.html` (AI arama + öne çıkanlar + fırsatlar) · `ilanlar.html` (filtreli
-liste; `?q=` doğal dil sorgusunu da ayrıştırır) · `ilan.html?id=` (detay: AI
-açıklama, değerleme bandı, trend, benzer ilanlar, kredi; dinamik canonical +
-RealEstateListing JSON-LD) · `ilan-ver.html` (AI fiyat önerisi + AI başlık/
-açıklama yazarı + fotoğraf + ⭐ öne çıkarma + AI Görünürlük Skoru) ·
+`index.html` (AI arama + kategoriler + fırsat/yeni ilanlar) · `ilanlar.html`
+(filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır) · `ilan.html?id=`
+(detay: açıklama, değerleme bandı, trend, benzer ilanlar, kredi; dinamik
+canonical + RealEstateListing JSON-LD) · `ilan-ver.html` (AI fiyat önerisi +
+AI başlık/açıklama yazarı + fotoğraf + ⭐ öne çıkarma) ·
 `degerleme.html` (AI değerleme + kredi) · `asistan.html` (EVA) ·
 `rehber.html` (SSS/rehber, FAQPage JSON-LD — elle yazılır) ·
 `bolge-fiyatlari.html` (ÜRETİLİR, elle düzenlenmez) · `favoriler.html` ·
 `404.html`.
-Nav menü: Ana Sayfa · İlanlar · Bölge Fiyatları · AI Değerleme · AI Asistan ·
-Rehber · Favoriler · İlan Ver — yeni sayfa eklenince TÜM sayfalarda güncelle.
+Nav menü SADE tutulur (5 öğe): Ana Sayfa · İlanlar · Değerleme · Favoriler ·
+İlan Ver. İkincil sayfalar (Bölge Fiyatları · Rehber · AI Asistan) footer'daki
+`.footer-links` bloğundadır; asistana ayrıca her sayfadaki FAB düğmesi götürür.
+Nav/footer değişince TÜM sayfalarda + `build-seo.js` iskeletinde güncelle.
 
 ## SEO / AEO — `build-seo.js`
 `bolge-fiyatlari.html`, `sitemap.xml`, `robots.txt`, `llms.txt` bu betikle
@@ -42,7 +44,7 @@ varsayılanları YALNIZCA burada. Sayfalara/JS'e sayı gömme; değişiklik = co
 - `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery),
   değerleme (estimate), fiyat etiketi (priceBadge), açıklama üretimi (describe),
   benzer ilan (similar), sohbet (chat), kredi (mortgage), trend serisi (trend),
-  öne çıkan sıralama (rank), AI Görünürlük Skoru (visibilityScore).
+  öne çıkan sıralama (rank).
 - `assets/app.js`    — arayüz; sayfa yönlendirmesi `<body data-page="...">`.
 - `assets/style.css` — tasarım sistemi (CSS değişkenleri, açık/koyu tema).
 - Görseller: dış görsel YOK; kartlar `thumbSVG()` ile üretilen SVG yer tutucu

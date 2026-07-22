@@ -24,10 +24,7 @@
       <nav class="main-nav" id="mainNav">
         <a href="index.html">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>
-        <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
-        <a href="degerleme.html">AI Değerleme</a>
-        <a href="asistan.html">AI Asistan</a>
-        <a href="rehber.html">Rehber</a>
+        <a href="degerleme.html">Değerleme</a>
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta active">+ İlan Ver</a>
       </nav>
@@ -38,8 +35,8 @@
 
   <main>
     <div class="container page-head">
-      <h1>✍️ AI Destekli İlan Ver</h1>
-      <p>Bilgileri girin; yapay zekâ fiyat önersin, başlık ve açıklamanızı yazsın. İlanınız anında yayına alınır (bu tarayıcıda saklanır).</p>
+      <h1>İlan Ver</h1>
+      <p>Bilgileri girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. İlanınız anında yayına alınır (bu tarayıcıda saklanır).</p>
     </div>
 
     <div class="container section" style="padding-top:18px">
@@ -64,18 +61,16 @@
             <div id="photoPreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
           </div>
           <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn warn" id="suggestBtn" type="button">🤖 AI Fiyat Önerisi Al</button>
-            <button class="btn ghost" id="writeBtn" type="button">✍️ Başlık & Açıklamayı AI Yazsın</button>
-            <button class="btn ghost" id="scoreBtn" type="button">📈 AI Görünürlük Skoru</button>
+            <button class="btn warn" id="suggestBtn" type="button">AI Fiyat Önerisi Al</button>
+            <button class="btn ghost" id="writeBtn" type="button">Başlık & Açıklamayı AI Yazsın</button>
           </div>
-          <div class="full notice" id="suggestOut">İpucu: Önce konum ve m² girin, sonra AI araçlarını kullanın. Yayınlamadan önce <b>AI Görünürlük Skoru</b>'nu kontrol edin — skoru yüksek ilanlar AI aramada ve arama motorlarında öne çıkar.</div>
-          <div class="full notice" id="scoreOut" style="display:none"></div>
+          <div class="full notice" id="suggestOut">İpucu: Önce konum ve m² girin, sonra AI butonlarını kullanın.</div>
           <div class="full"><label for="pTitle">İlan Başlığı</label><input id="pTitle" type="text" placeholder="AI ile otomatik doldurulabilir"></div>
           <div class="full"><label for="pDesc">İlan Açıklaması</label><textarea id="pDesc" rows="6" placeholder="AI ile otomatik doldurulabilir"></textarea></div>
           <div class="full"><label style="display:flex;align-items:center;gap:10px;font-size:1rem;color:var(--text)">
-            <input id="pFeatured" type="checkbox" style="width:auto"> ⭐ <b>İlanımı öne çıkar</b> — AI arama sonuçlarında ve listelerde önceliklenir
+            <input id="pFeatured" type="checkbox" style="width:auto"> ⭐ <b>İlanımı öne çıkar</b> — listelerde önce gösterilir
           </label></div>
-          <div class="full"><button class="btn" id="publishBtn" type="button" style="width:100%;padding:14px">🚀 İlanı Yayınla</button></div>
+          <div class="full"><button class="btn" id="publishBtn" type="button" style="width:100%;padding:14px">İlanı Yayınla</button></div>
         </div>
       </div>
     </div>
@@ -83,7 +78,14 @@
 
   <footer class="site-footer">
     <div class="container">
-      <div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır. · <a data-c-tel href="#">—</a> · <a data-c-mail href="#">—</a></div>
+      <div class="footer-links">
+        <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
+        <a href="rehber.html">Rehber</a>
+        <a href="asistan.html">AI Asistan</a>
+        <a data-c-tel href="#">—</a>
+        <a data-c-mail href="#">—</a>
+      </div>
+      <div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
     </div>
   </footer>
 
