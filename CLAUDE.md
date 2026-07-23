@@ -3,18 +3,22 @@
 > Repo kök dizinindedir; Claude Code her oturum başında otomatik okur.
 
 ## Proje
-EmlakAI: sahibinden.com / emlakjet mantığında, **yapay zekâ destekli emlak ilan
-platformu**. Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, bağımlılıksız
-Node statik sunucu (`server.js`, Railway uyumlu). Sunucu tarafı yok; tüm AI
-özellikleri istemcide çalışır (çevrimdışı dâhil).
+EmlakAI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
+(`segment: "emlak"`) + araç (`segment: "vasita"`), her ikisi satılık/kiralık.
+Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, bağımlılıksız Node statik
+sunucu (`server.js`, Railway uyumlu). Sunucu tarafı yok; tüm AI özellikleri
+istemcide çalışır (çevrimdışı dâhil). Tasarım ilkesi: **Google sadeliği** —
+ana sayfa yalnızca logo + tek arama kutusu + segment seçimi + 4 hızlı bağlantı.
 
 Sayfalar (kök dizinde):
-`index.html` (AI arama + kategoriler + fırsat/yeni ilanlar) · `ilanlar.html`
-(filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır) · `ilan.html?id=`
-(detay: açıklama, değerleme bandı, trend, benzer ilanlar, kredi; dinamik
-canonical + RealEstateListing JSON-LD) · `ilan-ver.html` (AI fiyat önerisi +
-AI başlık/açıklama yazarı + fotoğraf + ⭐ öne çıkarma) ·
-`degerleme.html` (AI değerleme + kredi) · `asistan.html` (EVA) ·
+`index.html` (Google tarzı merkez arama; kart/vitrin YOK) · `ilanlar.html`
+(segment seçicili filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır;
+araçta marka/model/yıl/km/yakıt/vites filtreleri) · `ilan.html?id=`
+(detay: açıklama, değerleme bandı, trend (yalnız emlak), benzer ilanlar,
+konut/taşıt kredisi; dinamik canonical + JSON-LD) · `ilan-ver.html` (segment
+seçimli form; AI fiyat önerisi + AI başlık/açıklama yazarı + fotoğraf +
+⭐ öne çıkarma) ·
+`degerleme.html` (AI değerleme: taşınmaz + araç, kredi) · `asistan.html` (EVA) ·
 `rehber.html` (SSS/rehber, FAQPage JSON-LD — elle yazılır) ·
 `bolge-fiyatlari.html` (ÜRETİLİR, elle düzenlenmez) · `favoriler.html` ·
 `404.html`.
@@ -34,17 +38,21 @@ Organization + WebSite(SearchAction) `app.js`'ten enjekte edilir; FAQPage
 `assets/img/og.png` (1200×630).
 
 ## TEK DOĞRU KAYNAK — `assets/config.js`
-Marka, iletişim, şehir/ilçe m² piyasa fiyatları, değerleme katsayıları, kredi
-varsayılanları YALNIZCA burada. Sayfalara/JS'e sayı gömme; değişiklik = config.
+Marka, iletişim, şehir/ilçe m² piyasa fiyatları, araç marka/model taban
+fiyatları ve amortisman eğrisi (`config.vehicles`), değerleme katsayıları,
+kredi varsayılanları (konut + taşıt) YALNIZCA burada. Sayfalara/JS'e sayı
+gömme; değişiklik = config.
 
 ## Dosya mimarisi
 - `assets/config.js` — konfig (yukarıda).
-- `assets/data.js`   — deterministik örnek ilan üreteci (~72 ilan, sabit seed)
-  + localStorage kullanıcı ilanları (`EMLAK.data`).
-- `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery),
-  değerleme (estimate), fiyat etiketi (priceBadge), açıklama üretimi (describe),
-  benzer ilan (similar), sohbet (chat), kredi (mortgage), trend serisi (trend),
-  öne çıkan sıralama (rank).
+- `assets/data.js`   — deterministik örnek ilan üreteci (~72 emlak + ~36 araç,
+  sabit seed) + localStorage kullanıcı ilanları (`EMLAK.data`; `brands`,
+  `modelsOf` araç yardımcıları).
+- `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery —
+  marka/model/yıl/km/yakıt/vites dâhil), değerleme (estimate; `segment:
+  "vasita"` ise araç dalı), fiyat etiketi (priceBadge), açıklama üretimi
+  (describe), benzer ilan (similar), sohbet (chat), kredi (mortgage), trend
+  serisi (trend — yalnız emlak), öne çıkan sıralama (rank).
 - `assets/app.js`    — arayüz; sayfa yönlendirmesi `<body data-page="...">`.
 - `assets/style.css` — tasarım sistemi (CSS değişkenleri, açık/koyu tema).
 - Görseller: dış görsel YOK; kartlar `thumbSVG()` ile üretilen SVG yer tutucu

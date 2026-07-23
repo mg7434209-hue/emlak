@@ -30,6 +30,7 @@
 
   // ── Doğal dil arama ─────────────────────────────────────────────────────
   // ör: "antalya manavgat'ta deniz manzaralı 3+1 satılık daire 5 milyon altı"
+  // ör: "2020 üstü dizel otomatik toyota corolla 100 bin km altı"
   function parseQuery(text) {
     const q = strip(text);
     const f = { text };
@@ -38,10 +39,34 @@
     if (/satilik|satin|almak/.test(q)) f.category = "satilik";
 
     const kinds = { daire: "daire", rezidans: "residence", residence: "residence", villa: "villa", mustakil: "mustakil", dukkan: "dukkan", "is yeri": "dukkan", isyeri: "dukkan", ofis: "ofis", arsa: "arsa", tarla: "arsa" };
-    for (const k in kinds) if (q.includes(k)) { f.kind = kinds[k]; break; }
+    for (const k in kinds) if (q.includes(k)) { f.kind = kinds[k]; f.segment = "emlak"; break; }
+
+    // Araç segmenti: genel kelimeler + marka/model adları
+    if (/\barac\b|araba|otomobil|vasita|oto\b|rent a car/.test(q)) f.segment = "vasita";
+    for (const brand of Object.keys(C.vehicles.brands)) {
+      if (q.includes(strip(brand))) { f.segment = "vasita"; f.brand = brand; }
+      for (const model of Object.keys(C.vehicles.brands[brand])) {
+        if (q.includes(strip(model))) { f.segment = "vasita"; f.brand = brand; f.model = model; }
+      }
+    }
+    if (f.segment === "vasita") {
+      const ym = q.match(/(20\d\d)\s*(?:ustu|uzeri|sonrasi|ve ustu|model ustu)/);
+      if (ym) f.minYear = parseInt(ym[1], 10);
+      const ym2 = q.match(/(20\d\d)\s*model/);
+      if (!f.minYear && ym2) f.minYear = parseInt(ym2[1], 10);
+      const kmM = q.match(/(\d+(?:[.,]\d+)?)\s*(bin)?\s*km\s*(?:alti|altinda|asagi|kadar)/);
+      if (kmM) f.maxKm = Math.round(parseFloat(kmM[1].replace(",", ".")) * (kmM[2] ? 1000 : 1));
+      if (/dizel/.test(q)) f.fuel = "Dizel";
+      else if (/hibrit/.test(q)) f.fuel = "Hibrit";
+      else if (/elektrik/.test(q)) f.fuel = "Elektrik";
+      else if (/lpg/.test(q)) f.fuel = "LPG & Benzin";
+      else if (/benzin/.test(q)) f.fuel = "Benzin";
+      if (/otomatik/.test(q)) f.gear = "Otomatik";
+      else if (/manuel|duz vites/.test(q)) f.gear = "Manuel";
+    }
 
     const rm = q.match(/(\d)\s*\+\s*(\d)/);
-    if (rm) f.rooms = rm[1] + "+" + rm[2];
+    if (rm && f.segment !== "vasita") { f.rooms = rm[1] + "+" + rm[2]; f.segment = "emlak"; }
 
     // Şehir / ilçe eşleşmesi (config'teki gerçek adlardan)
     for (const city of Object.keys(C.market.cities)) {
@@ -79,6 +104,8 @@
 
   function applyFilters(listings, f) {
     return listings.filter((l) => {
+      const seg = l.segment || "emlak";
+      if (f.segment && seg !== f.segment) return false;
       if (f.category && l.category !== f.category) return false;
       if (f.kind && l.kind !== f.kind) return false;
       if (f.city && l.city !== f.city) return false;
@@ -86,10 +113,17 @@
       if (f.rooms && l.rooms !== f.rooms) return false;
       if (f.minPrice && l.price < f.minPrice) return false;
       if (f.maxPrice && l.price > f.maxPrice) return false;
-      if (f.minM2 && l.m2 < f.minM2) return false;
-      if (f.maxM2 && l.m2 > f.maxM2) return false;
+      if (f.minM2 && !(l.m2 >= f.minM2)) return false;
+      if (f.maxM2 && !(l.m2 <= f.maxM2)) return false;
       if (f.maxAge != null && (l.age == null || l.age > f.maxAge)) return false;
       if (f.feature && !(l.features || []).includes(f.feature)) return false;
+      // Araç filtreleri
+      if (f.brand && l.brand !== f.brand) return false;
+      if (f.model && l.model !== f.model) return false;
+      if (f.minYear && !(l.year >= f.minYear)) return false;
+      if (f.maxKm != null && !(l.km <= f.maxKm)) return false;
+      if (f.fuel && l.fuel !== f.fuel) return false;
+      if (f.gear && l.gear !== f.gear) return false;
       return true;
     });
   }
@@ -100,8 +134,53 @@
     return C.valuation.age[C.valuation.age.length - 1][1];
   }
 
-  /** p: {city, district, kind, m2, rooms, age, floorPos, features[], category} */
+  /** Araç değerleme — p: {brand, model, year, km, fuel, gear, category} */
+  function estimateVehicle(p) {
+    const VC = C.vehicles;
+    const base = VC.brands[p.brand] && VC.brands[p.brand][p.model];
+    if (!base) return null;
+    const age = Math.max(0, 2026 - (p.year || 2026));
+    const factors = [];
+    let value = base;
+    factors.push({ label: `${p.brand} ${p.model} sıfır km liste fiyatı`, effect: base, unit: "₺" });
+
+    let af = VC.ageCurve[VC.ageCurve.length - 1][1];
+    for (const [max, f] of VC.ageCurve) if (age <= max) { af = f; break; }
+    value *= af;
+    factors.push({ label: `Model yılı (${p.year} — ${age} yaş)`, effect: pct(af) });
+
+    const km = p.km || 0;
+    const kmDelta = (km - age * VC.kmNormPerYear) / 10000;
+    const kmPct = Math.max(-VC.kmEffectCapPct, Math.min(VC.kmEffectCapPct, -kmDelta * VC.kmEffectPer10k));
+    if (Math.round(kmPct)) {
+      value *= 1 + kmPct / 100;
+      factors.push({ label: `Kilometre (${fmtNum(km)} km)`, effect: (kmPct >= 0 ? "+" : "") + Math.round(kmPct) + "%" });
+    }
+    if (p.fuel && VC.fuelFactor[p.fuel]) {
+      value *= VC.fuelFactor[p.fuel];
+      factors.push({ label: `Yakıt (${p.fuel})`, effect: pct(VC.fuelFactor[p.fuel]) });
+    }
+    if (p.gear && VC.gearFactor[p.gear]) {
+      value *= VC.gearFactor[p.gear];
+      factors.push({ label: `Vites (${p.gear})`, effect: pct(VC.gearFactor[p.gear]) });
+    }
+    let mid = value;
+    if (p.category === "kiralik") mid *= VC.rentDailyFactor;
+    const band = C.valuation.confidence;
+    return {
+      mid: Math.round(mid),
+      low: Math.round(mid * (1 - band)),
+      high: Math.round(mid * (1 + band)),
+      perM2: null,
+      factors,
+      confidence: Math.round((1 - band) * 100),
+    };
+  }
+
+  /** p: {city, district, kind, m2, rooms, age, floorPos, features[], category} — emlak
+   *  ya da {segment:"vasita", brand, model, year, km, fuel, gear, category} — araç */
   function estimate(p) {
+    if (p.segment === "vasita") return estimateVehicle(p);
     const V = C.valuation;
     const cityData = C.market.cities[p.city];
     if (!cityData) return null;
@@ -165,6 +244,20 @@
   function describe(l) {
     const s = [];
     const catLabel = l.category === "satilik" ? "satılık" : "kiralık";
+    if (l.segment === "vasita") {
+      s.push(`${l.year} model ${l.brand} ${l.model}, ${l.city} / ${l.district} konumunda ${catLabel}.`);
+      s.push(`${fmtNum(l.km)} km'de, ${(l.fuel || "").toLocaleLowerCase("tr-TR")} yakıtlı ve ${(l.gear || "").toLocaleLowerCase("tr-TR")} vitestir.`);
+      const est = estimate(l);
+      if (est) {
+        const b = priceBadge(l);
+        if (b && b.key === "firsat") s.push(`Yapay zekâ analizine göre fiyat, piyasa değerinin yaklaşık %${b.pct} altındadır.`);
+        else if (b && b.key === "uygun") s.push("Yapay zekâ analizine göre fiyat, piyasa değeriyle uyumludur.");
+      }
+      s.push(l.category === "kiralik"
+        ? "Günlük kiralama koşulları ve müsaitlik için iletişime geçin."
+        : "Ekspertiz ve yerinde görme randevusu için iletişime geçin.");
+      return s.join(" ");
+    }
     const openers = [
       `${l.city} ${l.district} bölgesinde, konum avantajıyla öne çıkan ${catLabel} ${l.kindLabel.toLocaleLowerCase("tr-TR")}.`,
       `${l.district}'${suffix(l.district)} merkezi konumda, yatırım değeri yüksek ${catLabel} ${l.kindLabel.toLocaleLowerCase("tr-TR")}.`,
@@ -209,18 +302,26 @@
   // ── Benzer ilan önerisi (özellik vektörü benzerliği) ────────────────────
   function similar(l, all, n) {
     n = n || 4;
+    const seg = l.segment || "emlak";
     return all
-      .filter((x) => x.id !== l.id && x.category === l.category)
+      .filter((x) => x.id !== l.id && x.category === l.category && (x.segment || "emlak") === seg)
       .map((x) => {
         let score = 0;
-        if (x.city === l.city) score += 3;
-        if (x.district === l.district) score += 3;
-        if (x.kind === l.kind) score += 3;
-        if (x.rooms && x.rooms === l.rooms) score += 2;
         score += 2 * (1 - Math.min(1, Math.abs(x.price - l.price) / Math.max(l.price, 1)));
-        score += 1 * (1 - Math.min(1, Math.abs(x.m2 - l.m2) / Math.max(l.m2, 1)));
-        const common = (x.features || []).filter((f) => (l.features || []).includes(f)).length;
-        score += common * 0.5;
+        if (seg === "vasita") {
+          if (x.brand === l.brand) score += 3;
+          if (x.model === l.model) score += 3;
+          score += 2 * (1 - Math.min(1, Math.abs((x.year || 0) - (l.year || 0)) / 10));
+          if (x.city === l.city) score += 1;
+        } else {
+          if (x.city === l.city) score += 3;
+          if (x.district === l.district) score += 3;
+          if (x.kind === l.kind) score += 3;
+          if (x.rooms && x.rooms === l.rooms) score += 2;
+          score += 1 * (1 - Math.min(1, Math.abs(x.m2 - l.m2) / Math.max(l.m2, 1)));
+          const common = (x.features || []).filter((f) => (l.features || []).includes(f)).length;
+          score += common * 0.5;
+        }
         return { x, score };
       })
       .sort((a, b) => b.score - a.score)
@@ -268,7 +369,7 @@
     const name = C.assistant.name;
 
     if (/^(merhaba|selam|gunaydin|iyi (gunler|aksamlar)|hey|hi)\b/.test(q)) {
-      return { reply: `Merhaba! Ben ${name}, EmlakAI'nin yapay zekâ asistanıyım. 🏡 Size nasıl yardımcı olabilirim? Örneğin: "Antalya'da 3 milyon altı satılık 2+1 daire" yazabilir, "değerleme" veya "kredi hesabı" isteyebilirsiniz.` };
+      return { reply: `Merhaba! Ben ${name}, ${C.brand.name}'nin yapay zekâ asistanıyım. Size nasıl yardımcı olabilirim? Örneğin: "Antalya'da 3 milyon altı satılık 2+1 daire" ya da "2021 üstü otomatik Corolla" yazabilir, "değerleme" veya "kredi hesabı" isteyebilirsiniz.` };
     }
     if (/tesekkur|sagol|eyvallah/.test(q)) {
       return { reply: "Rica ederim! Başka bir konuda yardımcı olmamı isterseniz buradayım. 😊" };
@@ -298,13 +399,14 @@
 
     // Varsayılan niyet: ilan arama
     const f = parseQuery(text);
-    const hasCriteria = ["category", "kind", "city", "district", "rooms", "minPrice", "maxPrice", "minM2", "maxAge", "feature"]
+    const hasCriteria = ["category", "kind", "city", "district", "rooms", "minPrice", "maxPrice", "minM2", "maxAge", "feature", "segment", "brand", "model", "minYear", "maxKm", "fuel", "gear"]
       .some((k) => f[k] != null);
     if (!hasCriteria) {
-      return { reply: `Sizi tam anlayamadım. 🤔 Şunları deneyebilirsiniz:\n• "İzmir'de kiralık 1+1 daire"\n• "Manavgat'ta 5 milyon altı villa"\n• "değerleme" veya "kredi hesabı"` };
+      return { reply: `Sizi tam anlayamadım. 🤔 Şunları deneyebilirsiniz:\n• "İzmir'de kiralık 1+1 daire"\n• "2020 üstü dizel Toyota Corolla"\n• "değerleme" veya "kredi hesabı"` };
     }
     const critParts = [];
     if (f.city) critParts.push(f.city + (f.district ? " / " + f.district : ""));
+    if (f.brand) critParts.push(f.brand + (f.model ? " " + f.model : ""));
     if (f.rooms) critParts.push(f.rooms);
     if (f.kind) critParts.push(f.kind);
     if (f.maxPrice) critParts.push(fmtNum(f.maxPrice) + " ₺ altı");
@@ -313,7 +415,7 @@
     const g = Object.assign({}, f);
     let results = applyFilters(EMLAK.data.all(), g);
     const relaxed = [];
-    const relaxOrder = [["rooms", "oda sayısı"], ["maxPrice", "fiyat üst sınırı"], ["minPrice", "fiyat alt sınırı"], ["kind", "gayrimenkul türü"], ["district", "ilçe"]];
+    const relaxOrder = [["rooms", "oda sayısı"], ["maxPrice", "fiyat üst sınırı"], ["minPrice", "fiyat alt sınırı"], ["model", "model"], ["maxKm", "km sınırı"], ["minYear", "model yılı"], ["kind", "gayrimenkul türü"], ["district", "ilçe"]];
     for (const [k, label] of relaxOrder) {
       if (results.length) break;
       if (g[k] != null) { delete g[k]; relaxed.push(label); results = applyFilters(EMLAK.data.all(), g); }
@@ -338,9 +440,11 @@
 
   function filtersToQS(f) {
     const p = new URLSearchParams();
-    ["category", "kind", "city", "district", "rooms"].forEach((k) => { if (f[k]) p.set(k, f[k]); });
+    ["segment", "category", "kind", "city", "district", "rooms", "brand", "model", "fuel", "gear"].forEach((k) => { if (f[k]) p.set(k, f[k]); });
     if (f.minPrice) p.set("min", f.minPrice);
     if (f.maxPrice) p.set("max", f.maxPrice);
+    if (f.minYear) p.set("minYear", f.minYear);
+    if (f.maxKm != null) p.set("maxKm", f.maxKm);
     if (f.feature) p.set("feature", f.feature);
     return p.toString();
   }

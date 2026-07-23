@@ -1,16 +1,17 @@
-# 🏠 EmlakAI — Yapay Zekâ Destekli Emlak Platformu
+# 🏠 EmlakAI — AI Destekli Taşınmaz & Araç İlan Platformu
 
-Sahibinden.com / Emlakjet mantığında, **tamamı istemci tarafında çalışan yapay
-zekâ özellikleriyle** donatılmış emlak ilan platformu. Saf HTML + CSS + Vanilla
-JS; bağımlılık yok, API anahtarı yok, çevrimdışı bile çalışır.
+**Google sadeliğinde** tasarlanmış, iki segmentli (taşınmaz + araç,
+satılık/kiralık) ilan platformu. Tamamı istemci tarafında çalışan yapay zekâ
+özellikleri; saf HTML + CSS + Vanilla JS, bağımlılık yok, API anahtarı yok,
+çevrimdışı bile çalışır.
 
 ## 🤖 AI Özellikleri
 
 | Özellik | Açıklama |
 |---|---|
-| **Doğal dil arama** | "Manavgat'ta 5 milyon altı havuzlu villa" → otomatik filtre |
-| **Akıllı fiyat etiketi** | Her ilan bölge piyasasıyla kıyaslanır: 🟢 Fırsat / ⚪ Piyasa Uygunu / 🔴 Piyasa Üstü |
-| **Anında değerleme** | Konum + özellik → değer bandı, ₺/m², etki faktörleri dökümü |
+| **Doğal dil arama** | "Manavgat'ta 5 milyon altı havuzlu villa" ya da "2020 üstü dizel Corolla" → otomatik filtre |
+| **Akıllı fiyat etiketi** | Her ilan piyasayla kıyaslanır: 🟢 Fırsat / ⚪ Piyasa Uygunu / 🔴 Piyasa Üstü |
+| **Anında değerleme** | Taşınmaz: konum + özellik → ₺ bandı · Araç: marka/model/yıl/km → ₺ bandı |
 | **AI ilan yazarı** | İlan verirken başlık & açıklama otomatik yazılır, fiyat önerilir |
 | **Benzer ilan önerisi** | Özellik vektörü benzerliğiyle en yakın 4 alternatif |
 | **EVA sohbet asistanı** | Niyet tabanlı asistan: arama, değerleme, kredi hesabı |
@@ -33,11 +34,11 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 
 ## Sayfalar
 
-- `index.html` — AI arama, fırsat ilanları, kategoriler
-- `ilanlar.html` — filtreli/sıralanabilir liste (AI fırsat skoru sıralaması dâhil)
-- `ilan.html?id=…` — detay: AI açıklama, değerleme bandı, trend, benzerler, kredi
-- `ilan-ver.html` — AI destekli ücretsiz ilan verme (localStorage'a kaydeder)
-- `degerleme.html` — değerleme sihirbazı + kredi hesaplayıcı
+- `index.html` — Google tarzı merkez arama (segment seçimi + tek kutu)
+- `ilanlar.html` — segment seçicili filtreli liste (araçta marka/model/yıl/km/yakıt/vites)
+- `ilan.html?id=…` — detay: AI açıklama, değerleme bandı, trend, benzerler, konut/taşıt kredisi
+- `ilan-ver.html` — AI destekli ücretsiz ilan verme, taşınmaz + araç (localStorage'a kaydeder)
+- `degerleme.html` — taşınmaz + araç değerleme sihirbazı + kredi hesaplayıcı
 - `asistan.html` — EVA sohbet asistanı
 - `favoriler.html` — favoriler + karşılaştırma tablosu
 

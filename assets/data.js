@@ -1,6 +1,7 @@
 /**
  * EmlakAI — örnek ilan veri seti
- * Deterministik üreteç: her yüklemede aynı ~72 ilan üretilir (seed sabit).
+ * Deterministik üreteç: her yüklemede aynı ilanlar üretilir (seed sabit).
+ * İki segment: taşınmaz (emlak, ~72 ilan) + araç (vasita, ~36 ilan).
  * Kullanıcı ilanları localStorage'da tutulur ve bu listeye eklenir.
  */
 (function () {
@@ -112,6 +113,7 @@
 
     listings.push({
       id: "EA" + (id++),
+      segment: "emlak",
       title, category, kind: k.kind, kindLabel: k.label,
       city, district,
       price, m2, rooms, bath, age,
@@ -125,6 +127,66 @@
       featured: rand() < 0.14, // öne çıkarılmış ilanlar (AI arama sonuçlarında önceliklenir)
       photos: [],
       desc: null, // detay sayfasında AI tarafından üretilir
+    });
+  }
+
+  // ── Araç ilanları (vasita segmenti) ────────────────────────────────────
+  const VC = C.vehicles;
+  const SELLERS_V = [
+    { name: "Sahibinden", type: "sahibinden" },
+    { name: "Oto Galeri Merkez", type: "ofis" },
+    { name: "Akdeniz Oto", type: "ofis" },
+    { name: "Sahibinden", type: "sahibinden" },
+    { name: "Prestij Motors", type: "ofis" },
+  ];
+  function vAgeFactor(age) {
+    for (const [max, f] of VC.ageCurve) if (age <= max) return f;
+    return VC.ageCurve[VC.ageCurve.length - 1][1];
+  }
+  const brandNames = Object.keys(VC.brands);
+  const nowYear = 2026;
+  for (let n = 0; n < 36; n++) {
+    const brand = brandNames[n % brandNames.length];
+    const models = Object.keys(VC.brands[brand]);
+    const model = pick(models);
+    const base = VC.brands[brand][model];
+    const category = rand() < 0.72 ? "satilik" : "kiralik";
+    const age = category === "kiralik" ? ri(0, 3) : ri(0, 12);
+    const year = nowYear - age;
+    const km = Math.max(0, Math.round((age * VC.kmNormPerYear * (0.5 + rand())) / 1000) * 1000);
+    const fuel = brand === "Tesla" ? "Elektrik" : pick(VC.fuels.filter((f) => f !== "Elektrik"));
+    const gear = brand === "Tesla" || rand() < 0.62 ? "Otomatik" : "Manuel";
+
+    // Değer: sıfır fiyat × yaş eğrisi × km sapması × yakıt × vites × gürültü
+    let value = base * vAgeFactor(age) * (VC.fuelFactor[fuel] || 1) * (VC.gearFactor[gear] || 1);
+    const kmDelta = (km - age * VC.kmNormPerYear) / 10000;
+    const kmPct = Math.max(-VC.kmEffectCapPct, Math.min(VC.kmEffectCapPct, -kmDelta * VC.kmEffectPer10k));
+    value *= 1 + kmPct / 100;
+    value *= 0.84 + rand() * 0.32; // piyasa gürültüsü
+
+    const city = cityNames[n % cityNames.length];
+    const district = pick(Object.keys(C.market.cities[city].districts));
+    const price = category === "kiralik"
+      ? Math.round((value * VC.rentDailyFactor) / 50) * 50
+      : Math.round(value / 25000) * 25000;
+    const catLabel = category === "satilik" ? "Satılık" : "Kiralık";
+
+    listings.push({
+      id: "VA" + (id++),
+      segment: "vasita",
+      title: `${year} ${brand} ${model} ${catLabel}`,
+      category, kind: "otomobil", kindLabel: "Otomobil",
+      brand, model, year, km, fuel, gear,
+      city, district, price,
+      m2: null, rooms: null, bath: null, age, floor: null, totalFloors: null,
+      floorPos: null, floorLabel: null, heating: null,
+      features: [],
+      seller: pick(SELLERS_V),
+      date: new Date(2026, 5, ri(1, 30), ri(8, 21)).toISOString(),
+      views: ri(40, 4200),
+      featured: rand() < 0.14,
+      photos: [],
+      desc: null,
     });
   }
 
@@ -152,5 +214,7 @@
     cities: cityNames,
     districtsOf: (city) => (C.market.cities[city] ? Object.keys(C.market.cities[city].districts) : []),
     kinds: KINDS.map((k) => ({ kind: k.kind, label: k.label })),
+    brands: brandNames,
+    modelsOf: (brand) => (VC.brands[brand] ? Object.keys(VC.brands[brand]) : []),
   };
 })();

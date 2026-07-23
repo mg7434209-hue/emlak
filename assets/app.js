@@ -8,7 +8,8 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const fmt = AI.fmtNum;
-  const fmtPrice = (l) => fmt(l.price) + " ₺" + (l.category === "kiralik" ? "/ay" : "");
+  const priceSuffix = (l) => (l.category === "kiralik" ? (l.segment === "vasita" ? "/gün" : "/ay") : "");
+  const fmtPrice = (l) => fmt(l.price) + " ₺" + priceSuffix(l);
 
   // ── Tema ────────────────────────────────────────────────────────────────
   const themeKey = "emlakai.theme";
@@ -43,9 +44,11 @@
     daire: ["#2456d8", "#4d8bf5"], residence: ["#5b2ac9", "#9b6bff"],
     villa: ["#0c8a54", "#3cc98a"], mustakil: ["#b06b12", "#e8a94b"],
     dukkan: ["#b3266b", "#ef6aa8"], ofis: ["#0e7d93", "#3fb9cf"], arsa: ["#557a1f", "#93bf4e"],
+    otomobil: ["#37415e", "#5f6f9e"],
   };
   const GLYPHS = {
     daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", dukkan: "🏪", ofis: "🏛️", arsa: "🌳",
+    otomobil: "🚗",
   };
   function thumbHTML(l, big) {
     if (l.photos && l.photos.length) {
@@ -56,6 +59,7 @@
   function thumbSVG(l, big) {
     const [c1, c2] = PALETTES[l.kind] || PALETTES.daire;
     const g = GLYPHS[l.kind] || "🏠";
+    const label = l.segment === "vasita" ? `${l.brand} ${l.model}` : `${l.kindLabel} · ${l.district}`;
     const seed = l.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
     const h = big ? 420 : 300;
     // arka plana ilana özgü "şehir silüeti" çubukları
@@ -70,7 +74,7 @@
         <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
       <rect width="480" height="${h}" fill="url(#g${seed})"/>${bars}
       <text x="240" y="${h / 2 + 6}" font-size="${big ? 84 : 64}" text-anchor="middle" dominant-baseline="middle">${g}</text>
-      <text x="240" y="${h - 22}" font-size="17" font-weight="700" text-anchor="middle" fill="rgba(255,255,255,0.92)" font-family="system-ui">${esc(l.kindLabel)} · ${esc(l.district)}</text>
+      <text x="240" y="${h - 22}" font-size="17" font-weight="700" text-anchor="middle" fill="rgba(255,255,255,0.92)" font-family="system-ui">${esc(label)}</text>
     </svg>`;
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
@@ -80,9 +84,13 @@
     const b = AI.priceBadge(l);
     const isFav = favs().includes(l.id);
     const meta = [];
-    if (l.rooms) meta.push(l.rooms);
-    meta.push(fmt(l.m2) + " m²");
-    if (l.age != null && l.kind !== "arsa") meta.push(l.age === 0 ? "Sıfır" : l.age + " yaş");
+    if (l.segment === "vasita") {
+      meta.push(l.year, fmt(l.km) + " km", l.fuel, l.gear);
+    } else {
+      if (l.rooms) meta.push(l.rooms);
+      meta.push(fmt(l.m2) + " m²");
+      if (l.age != null && l.kind !== "arsa") meta.push(l.age === 0 ? "Sıfır" : l.age + " yaş");
+    }
     return `<article class="card reveal">
       <div class="thumb">${thumbHTML(l)}
         ${l.featured ? `<span class="badge badge-feat">${C.featured.label}</span>` : ""}
@@ -199,59 +207,67 @@
 
   // ═════════════════════════ SAYFALAR ═════════════════════════
 
-  // ── Ana sayfa ───────────────────────────────────────────────────────────
+  // ── Ana sayfa (Google sadeliği: logo + tek arama kutusu) ───────────────
   function pageIndex() {
-    const all = D.all();
-    // AI arama kutusu
-    let cat = "satilik";
-    $$(".ai-search .tab-btn").forEach((b) => b.addEventListener("click", () => {
-      $$(".ai-search .tab-btn").forEach((x) => x.classList.remove("active"));
+    let seg = "emlak";
+    const PH = {
+      emlak: 'Örn. "Manavgat\'ta 5 milyon altı satılık villa" ya da "İzmir\'de kiralık 1+1"',
+      vasita: 'Örn. "2020 üstü dizel otomatik Corolla" ya da "kiralık araç Antalya"',
+    };
+    const input = $("#aiQuery");
+    input.placeholder = PH.emlak;
+    $$("#segTabs .tab-btn").forEach((b) => b.addEventListener("click", () => {
+      $$("#segTabs .tab-btn").forEach((x) => x.classList.remove("active"));
       b.classList.add("active");
-      cat = b.dataset.cat;
+      seg = b.dataset.seg;
+      input.placeholder = PH[seg];
+      input.focus();
     }));
     const doSearch = () => {
-      const text = $("#aiQuery").value.trim();
+      const text = input.value.trim();
       const f = text ? AI.parseQuery(text) : {};
-      if (!f.category && cat) f.category = cat;
+      if (!f.segment) f.segment = seg;
       location.href = "ilanlar.html?" + AI.filtersToQS(f) + (text ? "&q=" + encodeURIComponent(text) : "");
     };
     $("#aiSearchBtn").addEventListener("click", doSearch);
-    $("#aiQuery").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
-    $$(".ai-hint .chip").forEach((ch) => ch.addEventListener("click", () => { $("#aiQuery").value = ch.textContent; doSearch(); }));
-
-    // Fırsat + yeni ilanlar
-    const deals = all.map((l) => ({ l, b: AI.priceBadge(l) })).filter((x) => x.b && x.b.key === "firsat");
-    renderCards($("#dealGrid"), deals.sort((a, b) => b.b.pct - a.b.pct).slice(0, 4).map((x) => x.l));
-    renderCards($("#newGrid"), AI.rank(all.slice().sort((a, b) => new Date(b.date) - new Date(a.date))).slice(0, 8));
-
-    // Kategori sayıları
-    $$("[data-cat-count]").forEach((el) => {
-      const [cat2, kind] = el.dataset.catCount.split(":");
-      el.textContent = all.filter((l) => (!cat2 || l.category === cat2) && (!kind || l.kind === kind)).length + " ilan";
-    });
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
+    input.focus();
   }
 
   // ── İlanlar ────────────────────────────────────────────────────────────
   function pageIlanlar() {
     const qs = new URLSearchParams(location.search);
     const f = {};
-    ["category", "kind", "city", "district", "rooms", "feature"].forEach((k) => { if (qs.get(k)) f[k] = qs.get(k); });
+    ["segment", "category", "kind", "city", "district", "rooms", "feature", "brand", "model", "fuel", "gear"].forEach((k) => { if (qs.get(k)) f[k] = qs.get(k); });
     if (qs.get("min")) f.minPrice = +qs.get("min");
     if (qs.get("max")) f.maxPrice = +qs.get("max");
+    if (qs.get("minYear")) f.minYear = +qs.get("minYear");
+    if (qs.get("maxKm")) f.maxKm = +qs.get("maxKm");
     const rawQ = qs.get("q");
     // Yalnızca ?q= ile gelinirse (arama motoru SearchAction / dış bağlantı)
     // doğal dil sorgusunu ayrıştırıp filtrelere dönüştür; açık paramlar önceliklidir.
     if (rawQ) {
       const parsed = AI.parseQuery(rawQ);
-      ["category", "kind", "city", "district", "rooms", "feature", "minPrice", "maxPrice"].forEach((k) => {
+      ["segment", "category", "kind", "city", "district", "rooms", "feature", "minPrice", "maxPrice", "brand", "model", "minYear", "maxKm", "fuel", "gear"].forEach((k) => {
         if (f[k] == null && parsed[k] != null) f[k] = parsed[k];
       });
     }
+    if (!f.segment) f.segment = "emlak";
 
     // Filtre alanlarını doldur
     fillCitySelect($("#fCity"), true);
     fillDistrictSelect($("#fDistrict"), f.city || "", true);
     $("#fKind").innerHTML = '<option value="">Tüm Türler</option>' + D.kinds.map((k) => `<option value="${k.kind}">${esc(k.label)}</option>`).join("");
+    $("#fBrand").innerHTML = '<option value="">Tüm Markalar</option>' + D.brands.map((b) => `<option>${esc(b)}</option>`).join("");
+    $("#fFuel").innerHTML = '<option value="">Tümü</option>' + C.vehicles.fuels.map((x) => `<option>${esc(x)}</option>`).join("");
+    $("#fGear").innerHTML = '<option value="">Tümü</option>' + C.vehicles.gears.map((x) => `<option>${esc(x)}</option>`).join("");
+    function fillModels() {
+      const models = $("#fBrand").value ? D.modelsOf($("#fBrand").value) : [];
+      $("#fModel").innerHTML = '<option value="">Tüm Modeller</option>' + models.map((m) => `<option>${esc(m)}</option>`).join("");
+    }
+    fillModels();
+
+    $("#fSeg").value = f.segment;
     if (f.category) $("#fCat").value = f.category;
     if (f.city) $("#fCity").value = f.city;
     if (f.district) $("#fDistrict").value = f.district;
@@ -259,24 +275,50 @@
     if (f.rooms) $("#fRooms").value = f.rooms;
     if (f.minPrice) $("#fMin").value = f.minPrice;
     if (f.maxPrice) $("#fMax").value = f.maxPrice;
+    if (f.brand) { $("#fBrand").value = f.brand; fillModels(); }
+    if (f.model) $("#fModel").value = f.model;
+    if (f.minYear) $("#fMinYear").value = f.minYear;
+    if (f.maxKm != null) $("#fMaxKm").value = f.maxKm;
+    if (f.fuel) $("#fFuel").value = f.fuel;
+    if (f.gear) $("#fGear").value = f.gear;
+
+    // Segmente göre filtre alanlarını göster/gizle
+    function syncSegmentUI() {
+      const seg = $("#fSeg").value;
+      $$(".f-emlak").forEach((el) => { el.style.display = seg === "emlak" ? "" : "none"; });
+      $$(".f-vasita").forEach((el) => { el.style.display = seg === "vasita" ? "" : "none"; });
+      document.querySelector('#fSort option[value="m2"]').hidden = seg !== "emlak";
+    }
+    syncSegmentUI();
 
     $("#fCity").addEventListener("change", () => fillDistrictSelect($("#fDistrict"), $("#fCity").value, true));
+    $("#fBrand").addEventListener("change", fillModels);
 
     if (rawQ) {
       $("#aiNote").style.display = "block";
-      $("#aiNote").innerHTML = `🤖 <b>AI aramanızı anladı:</b> "${esc(rawQ)}" sorgusu filtrelere dönüştürüldü. Filtreleri dilediğiniz gibi ayarlayabilirsiniz.`;
+      $("#aiNote").innerHTML = `<b>AI aramanızı anladı:</b> "${esc(rawQ)}" sorgusu filtrelere dönüştürüldü. Filtreleri dilediğiniz gibi ayarlayabilirsiniz.`;
     }
 
     function currentFilters() {
-      const g = {};
+      const seg = $("#fSeg").value;
+      const g = { segment: seg };
       if ($("#fCat").value) g.category = $("#fCat").value;
       if ($("#fCity").value) g.city = $("#fCity").value;
       if ($("#fDistrict").value) g.district = $("#fDistrict").value;
-      if ($("#fKind").value) g.kind = $("#fKind").value;
-      if ($("#fRooms").value) g.rooms = $("#fRooms").value;
       if ($("#fMin").value) g.minPrice = +$("#fMin").value;
       if ($("#fMax").value) g.maxPrice = +$("#fMax").value;
-      if (f.feature) g.feature = f.feature;
+      if (seg === "emlak") {
+        if ($("#fKind").value) g.kind = $("#fKind").value;
+        if ($("#fRooms").value) g.rooms = $("#fRooms").value;
+        if (f.feature) g.feature = f.feature;
+      } else {
+        if ($("#fBrand").value) g.brand = $("#fBrand").value;
+        if ($("#fModel").value) g.model = $("#fModel").value;
+        if ($("#fMinYear").value) g.minYear = +$("#fMinYear").value;
+        if ($("#fMaxKm").value) g.maxKm = +$("#fMaxKm").value;
+        if ($("#fFuel").value) g.fuel = $("#fFuel").value;
+        if ($("#fGear").value) g.gear = $("#fGear").value;
+      }
       return g;
     }
     function run() {
@@ -284,7 +326,7 @@
       const sort = $("#fSort").value;
       if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
       else if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
-      else if (sort === "m2") list.sort((a, b) => b.m2 - a.m2);
+      else if (sort === "m2") list.sort((a, b) => (b.m2 || 0) - (a.m2 || 0));
       else if (sort === "ai") {
         list = list.map((l) => ({ l, b: AI.priceBadge(l) }))
           .sort((a, b) => (b.b && b.b.key === "firsat" ? b.b.pct : -(b.b ? b.b.pct : 0)) - (a.b && a.b.key === "firsat" ? a.b.pct : -(a.b ? a.b.pct : 0)))
@@ -296,10 +338,11 @@
       $("#count").textContent = fmt(list.length) + " ilan bulundu";
       renderCards($("#grid"), list);
     }
+    $("#fSeg").addEventListener("change", () => { syncSegmentUI(); run(); });
     $("#applyBtn").addEventListener("click", run);
     $("#fSort").addEventListener("change", run);
-    $("#clearBtn").addEventListener("click", () => { location.href = "ilanlar.html"; });
-    ["fCat", "fCity", "fDistrict", "fKind", "fRooms"].forEach((id) => $("#" + id).addEventListener("change", run));
+    $("#clearBtn").addEventListener("click", () => { location.href = "ilanlar.html?segment=" + $("#fSeg").value; });
+    ["fCat", "fCity", "fDistrict", "fKind", "fRooms", "fBrand", "fModel", "fFuel", "fGear"].forEach((id) => $("#" + id).addEventListener("change", run));
     run();
   }
 
@@ -350,8 +393,17 @@
     const est = AI.estimate(l);
     const b = AI.priceBadge(l);
     const desc = l.desc || AI.describe(l);
-    const specs = [
-      ["İlan No", l.id], ["Kategori", l.category === "satilik" ? "Satılık" : "Kiralık"],
+    const catLabel = l.category === "satilik" ? "Satılık" : "Kiralık";
+    const specs = (l.segment === "vasita" ? [
+      ["İlan No", l.id], ["Kategori", catLabel],
+      ["Marka", l.brand], ["Model", l.model],
+      ["Model Yılı", l.year], ["Kilometre", fmt(l.km) + " km"],
+      ["Yakıt", l.fuel], ["Vites", l.gear],
+      ["Konum", l.city + " / " + l.district],
+      ["İlan Tarihi", new Date(l.date).toLocaleDateString("tr-TR")],
+      ["Görüntülenme", fmt(l.views)],
+    ] : [
+      ["İlan No", l.id], ["Kategori", catLabel],
       ["Tür", l.kindLabel], ["Konum", l.city + " / " + l.district],
       ["Alan", fmt(l.m2) + " m²"],
       l.rooms && ["Oda Sayısı", l.rooms], l.bath && l.kind !== "arsa" && ["Banyo", l.bath],
@@ -360,7 +412,7 @@
       l.heating && ["Isıtma", l.heating],
       ["İlan Tarihi", new Date(l.date).toLocaleDateString("tr-TR")],
       ["Görüntülenme", fmt(l.views)],
-    ].filter(Boolean);
+    ]).filter(Boolean);
 
     const dotPos = est ? Math.max(4, Math.min(96, 50 + ((l.price / est.mid - 1) / 0.25) * 50)) : 50;
     const wa = "https://wa.me/" + C.company.phone.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`);
@@ -383,10 +435,10 @@
             <table class="spec-table">${specs.map(([k, v]) => `<tr><td>${esc(k)}</td><td><b>${esc(v)}</b></td></tr>`).join("")}</table>
             ${(l.features || []).length ? `<div class="tags" style="margin-top:14px">${l.features.map((f) => `<span class="chip">✓ ${esc(f)}</span>`).join("")}</div>` : ""}
           </div>
-          <div class="detail-card">
+          ${l.segment !== "vasita" ? `<div class="detail-card">
             <h2>${esc(l.district)} Fiyat Eğilimi</h2>
             <div id="trendChart"></div>
-          </div>
+          </div>` : ""}
           <div class="detail-card">
             <h2>Benzer İlanlar</h2>
             <div class="grid" id="similarGrid"></div>
@@ -397,24 +449,26 @@
           ${l.featured ? `<span class="chip" style="border-color:var(--accent);color:var(--accent);font-weight:700">${C.featured.label} İlan</span>` : ""}
           ${b ? `<span class="chip" style="border-color:currentColor;color:${b.key === "firsat" ? "var(--deal)" : b.key === "ustu" ? "var(--over)" : "var(--fair)"}">${b.label}${b.pct ? " — piyasadan %" + b.pct + (b.key === "firsat" ? " ucuz" : " pahalı") : ""}</span>` : ""}
           ${est ? `<div class="est-box">
-              <b>🤖 AI Değerleme</b><br>
-              Tahmini değer: <b class="mid">${fmt(est.mid)} ₺${l.category === "kiralik" ? "/ay" : ""}</b><br>
-              <small>Bant: ${fmt(est.low)} – ${fmt(est.high)} ₺ · ${fmt(est.perM2)} ₺/m²</small>
+              <b>AI Değerleme</b><br>
+              Tahmini değer: <b class="mid">${fmt(est.mid)} ₺${priceSuffix(l)}</b><br>
+              <small>Bant: ${fmt(est.low)} – ${fmt(est.high)} ₺${est.perM2 ? " · " + fmt(est.perM2) + " ₺/m²" : ""}</small>
               <div class="range-bar"><span class="dot" style="left:${dotPos}%"></span></div>
               <small style="color:var(--muted)">← ucuz | piyasa | pahalı →</small>
             </div>` : ""}
           <div class="seller">
             <div class="avatar">${esc(l.seller.name[0])}</div>
-            <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : "Emlak Ofisi"}</small></div>
+            <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small></div>
           </div>
           <a class="btn" data-c-tel href="#">📞</a>
           <a class="btn" style="background:#25d366" href="${wa}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
           <button class="btn ghost" data-fav="${l.id}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
-          ${l.category === "satilik" ? `<div class="est-box">
-            <b>🏦 Kredi Taksiti</b><br>
-            <small>%${C.credit.defaultRate} aylık faiz, %${C.credit.maxLtv * 100} kredi ile:</small>
-            <ul class="factor-list">${C.credit.terms.map((t) => { const m = AI.mortgage(l.price * C.credit.maxLtv, C.credit.defaultRate, t); return `<li><span>${t / 12} yıl vade</span><b>${fmt(Math.round(m.monthly))} ₺/ay</b></li>`; }).join("")}</ul>
-          </div>` : ""}
+          ${l.category === "satilik" ? (() => {
+            const cr = l.segment === "vasita" ? C.credit.vehicle : C.credit;
+            return `<div class="est-box">
+            <b>${l.segment === "vasita" ? "Taşıt Kredisi" : "Konut Kredisi"} Taksiti</b><br>
+            <small>%${cr.defaultRate} aylık faiz, %${cr.maxLtv * 100} kredi ile:</small>
+            <ul class="factor-list">${cr.terms.map((t) => { const m = AI.mortgage(l.price * cr.maxLtv, cr.defaultRate, t); return `<li><span>${t >= 12 && t % 12 === 0 ? t / 12 + " yıl" : t + " ay"} vade</span><b>${fmt(Math.round(m.monthly))} ₺/ay</b></li>`; }).join("")}</ul>
+          </div>`; })() : ""}
         </aside>
       </div>`;
 
@@ -443,6 +497,23 @@
     $("#pKind").innerHTML = D.kinds.map((k) => `<option value="${k.kind}">${esc(k.label)}</option>`).join("");
     $("#featBoxes").innerHTML = Object.keys(C.valuation.features)
       .map((f) => `<label><input type="checkbox" value="${esc(f)}"> ${esc(f)}</label>`).join("");
+    $("#pBrand").innerHTML = D.brands.map((b) => `<option>${esc(b)}</option>`).join("");
+    $("#pFuel").innerHTML = C.vehicles.fuels.map((x) => `<option>${esc(x)}</option>`).join("");
+    $("#pGear").innerHTML = C.vehicles.gears.map((x) => `<option>${esc(x)}</option>`).join("");
+    function fillPModels() {
+      $("#pModel").innerHTML = D.modelsOf($("#pBrand").value).map((m) => `<option>${esc(m)}</option>`).join("");
+    }
+    fillPModels();
+    $("#pBrand").addEventListener("change", fillPModels);
+
+    // Segment geçişi (Taşınmaz / Araç)
+    function syncSegmentUI() {
+      const seg = $("#pSeg").value;
+      $$(".p-emlak").forEach((el) => { el.style.display = seg === "emlak" ? "" : "none"; });
+      $$(".p-vasita").forEach((el) => { el.style.display = seg === "vasita" ? "" : "none"; });
+    }
+    $("#pSeg").addEventListener("change", syncSegmentUI);
+    syncSegmentUI();
 
     // Fotoğraf yükleme: canvas ile küçültülüp base64 olarak ilana gömülür
     const photos = [];
@@ -472,17 +543,11 @@
     }
 
     function collect() {
-      const kind = $("#pKind").value;
-      const kindLabel = (D.kinds.find((k) => k.kind === kind) || {}).label || kind;
-      return {
-        category: $("#pCat").value, kind, kindLabel,
+      const seg = $("#pSeg").value;
+      const base = {
+        segment: seg,
+        category: $("#pCat").value,
         city: $("#pCity").value, district: $("#pDistrict").value,
-        m2: +$("#pM2").value || 0,
-        rooms: kind === "arsa" ? null : $("#pRooms").value || null,
-        age: kind === "arsa" ? null : +$("#pAge").value || 0,
-        bath: 1, floorPos: null, floor: null, totalFloors: null,
-        heating: kind === "arsa" ? null : "Kombi (Doğalgaz)",
-        features: $$("#featBoxes input:checked").map((i) => i.value),
         price: +$("#pPrice").value || 0,
         title: $("#pTitle").value.trim(),
         desc: $("#pDesc").value.trim(),
@@ -490,10 +555,38 @@
         featured: $("#pFeatured").checked,
         seller: { name: "Sahibinden", type: "sahibinden" },
       };
+      if (seg === "vasita") {
+        return Object.assign(base, {
+          kind: "otomobil", kindLabel: "Otomobil",
+          brand: $("#pBrand").value, model: $("#pModel").value,
+          year: +$("#pYear").value || 0, km: +$("#pKm").value || 0,
+          fuel: $("#pFuel").value, gear: $("#pGear").value,
+          m2: null, rooms: null, bath: null, age: null,
+          floorPos: null, floor: null, totalFloors: null, heating: null,
+          features: [],
+        });
+      }
+      const kind = $("#pKind").value;
+      const kindLabel = (D.kinds.find((k) => k.kind === kind) || {}).label || kind;
+      return Object.assign(base, {
+        kind, kindLabel,
+        m2: +$("#pM2").value || 0,
+        rooms: kind === "arsa" ? null : $("#pRooms").value || null,
+        age: kind === "arsa" ? null : +$("#pAge").value || 0,
+        bath: 1, floorPos: null, floor: null, totalFloors: null,
+        heating: kind === "arsa" ? null : "Kombi (Doğalgaz)",
+        features: $$("#featBoxes input:checked").map((i) => i.value),
+      });
     }
 
     function validate(l) {
       if (!l.district) return "Lütfen ilçe seçin.";
+      if (l.segment === "vasita") {
+        if (!l.brand || !l.model) return "Marka ve model seçin.";
+        if (!l.year || l.year < C.vehicles.minYear || l.year > 2026) return "Geçerli bir model yılı girin.";
+        if (l.km == null || l.km < 0) return "Geçerli bir kilometre girin.";
+        return null;
+      }
       if (!l.m2 || l.m2 < 10) return "Geçerli bir m² girin.";
       return null;
     }
@@ -505,19 +598,24 @@
       const out = $("#suggestOut");
       if (err) { out.innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
       const est = AI.estimate(l);
-      if (!est) { out.textContent = "Bu bölge için piyasa verisi bulunamadı."; return; }
-      out.innerHTML = `🤖 AI fiyat önerisi: <b>${fmt(est.low)} – ${fmt(est.high)} ₺${l.category === "kiralik" ? "/ay" : ""}</b> (orta nokta ${fmt(est.mid)} ₺). Hızlı satış için bandın altını, pazarlık payı için üstünü seçebilirsiniz.`;
+      if (!est) { out.textContent = "Bu seçim için piyasa verisi bulunamadı."; return; }
+      out.innerHTML = `AI fiyat önerisi: <b>${fmt(est.low)} – ${fmt(est.high)} ₺${priceSuffix(l)}</b> (orta nokta ${fmt(est.mid)} ₺). Hızlı satış için bandın altını, pazarlık payı için üstünü seçebilirsiniz.`;
       if (!$("#pPrice").value) $("#pPrice").value = est.mid;
     });
+
+    function autoTitle(l) {
+      const catLabel = l.category === "satilik" ? "Satılık" : "Kiralık";
+      if (l.segment === "vasita") return `${l.year} ${l.brand} ${l.model} ${catLabel}`;
+      return `${l.district} ${l.rooms ? l.rooms + " " : ""}${catLabel} ${l.kindLabel}` + ((l.features || []).includes("Deniz Manzarası") ? " — Deniz Manzaralı" : "");
+    }
 
     // AI başlık + açıklama
     $("#writeBtn").addEventListener("click", () => {
       const l = collect();
       const err = validate(l);
       if (err) { $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
-      const catLabel = l.category === "satilik" ? "Satılık" : "Kiralık";
       l.id = "TMP" + Date.now();
-      $("#pTitle").value = `${l.district} ${l.rooms ? l.rooms + " " : ""}${catLabel} ${l.kindLabel}` + (l.features.includes("Deniz Manzarası") ? " — Deniz Manzaralı" : "");
+      $("#pTitle").value = autoTitle(l);
       $("#pDesc").value = AI.describe(l);
     });
 
@@ -526,8 +624,7 @@
       const l = collect();
       const err = validate(l) || (!l.price ? "Fiyat girin ya da AI önerisini kullanın." : null);
       if (err) { $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
-      const catLabel = l.category === "satilik" ? "Satılık" : "Kiralık";
-      l.title = l.title || `${l.district} ${l.rooms ? l.rooms + " " : ""}${catLabel} ${l.kindLabel}`;
+      l.title = l.title || autoTitle(l);
       l.desc = l.desc || null;
       const saved = D.saveUserListing(l);
       location.href = "ilan.html?id=" + saved.id;
@@ -542,34 +639,68 @@
     $("#vKind").innerHTML = D.kinds.map((k) => `<option value="${k.kind}">${esc(k.label)}</option>`).join("");
     $("#vFeatBoxes").innerHTML = Object.keys(C.valuation.features)
       .map((f) => `<label><input type="checkbox" value="${esc(f)}"> ${esc(f)}</label>`).join("");
+    $("#vBrand").innerHTML = D.brands.map((b) => `<option>${esc(b)}</option>`).join("");
+    $("#vFuel").innerHTML = C.vehicles.fuels.map((x) => `<option>${esc(x)}</option>`).join("");
+    $("#vGear").innerHTML = C.vehicles.gears.map((x) => `<option>${esc(x)}</option>`).join("");
+    function fillVModels() {
+      $("#vModel").innerHTML = D.modelsOf($("#vBrand").value).map((m) => `<option>${esc(m)}</option>`).join("");
+    }
+    fillVModels();
+    $("#vBrand").addEventListener("change", fillVModels);
+
+    function syncSegmentUI() {
+      const seg = $("#vSeg").value;
+      $$(".v-emlak").forEach((el) => { el.style.display = seg === "emlak" ? "" : "none"; });
+      $$(".v-vasita").forEach((el) => { el.style.display = seg === "vasita" ? "" : "none"; });
+      $("#vCatKira").textContent = seg === "vasita" ? "Günlük Kiralama Değeri" : "Kira Değeri (aylık)";
+      $("#vResult").style.display = "none";
+    }
+    $("#vSeg").addEventListener("change", syncSegmentUI);
+    syncSegmentUI();
 
     $("#vBtn").addEventListener("click", () => {
-      const p = {
-        city: $("#vCity").value, district: $("#vDistrict").value,
-        kind: $("#vKind").value, category: $("#vCat").value,
-        m2: +$("#vM2").value || 0, rooms: $("#vRooms").value || null,
-        age: +$("#vAge").value || 0, floorPos: null,
-        features: $$("#vFeatBoxes input:checked").map((i) => i.value),
-      };
+      const seg = $("#vSeg").value;
       const panel = $("#vResult");
-      if (!p.district || !p.m2) {
-        panel.style.display = "block";
-        panel.innerHTML = '<p style="color:var(--over)">Lütfen ilçe ve m² bilgisini girin.</p>';
-        return;
+      let p;
+      if (seg === "vasita") {
+        p = {
+          segment: "vasita",
+          brand: $("#vBrand").value, model: $("#vModel").value,
+          year: +$("#vYear").value || 0, km: +$("#vKm").value || 0,
+          fuel: $("#vFuel").value, gear: $("#vGear").value,
+          category: $("#vCat").value,
+        };
+        if (!p.year || p.year < C.vehicles.minYear || p.year > 2026) {
+          panel.style.display = "block";
+          panel.innerHTML = '<p style="color:var(--over)">Lütfen geçerli bir model yılı girin.</p>';
+          return;
+        }
+      } else {
+        p = {
+          city: $("#vCity").value, district: $("#vDistrict").value,
+          kind: $("#vKind").value, category: $("#vCat").value,
+          m2: +$("#vM2").value || 0, rooms: $("#vRooms").value || null,
+          age: +$("#vAge").value || 0, floorPos: null,
+          features: $$("#vFeatBoxes input:checked").map((i) => i.value),
+        };
+        if (!p.district || !p.m2) {
+          panel.style.display = "block";
+          panel.innerHTML = '<p style="color:var(--over)">Lütfen ilçe ve m² bilgisini girin.</p>';
+          return;
+        }
       }
       const est = AI.estimate(p);
-      if (!est) { panel.style.display = "block"; panel.innerHTML = "<p>Bu bölge için veri yok.</p>"; return; }
-      const unit = p.category === "kiralik" ? " ₺/ay" : " ₺";
+      if (!est) { panel.style.display = "block"; panel.innerHTML = "<p>Bu seçim için piyasa verisi yok.</p>"; return; }
+      const unit = p.category === "kiralik" ? (seg === "vasita" ? " ₺/gün" : " ₺/ay") : " ₺";
       panel.style.display = "block";
       panel.innerHTML = `
-        <p style="color:var(--muted)">🤖 Yapay zekâ değerleme sonucu (güven: %${est.confidence})</p>
+        <p style="color:var(--muted)">Yapay zekâ değerleme sonucu (güven: %${est.confidence})</p>
         <div class="big">${fmt(est.low)} – ${fmt(est.high)}${unit}</div>
-        <p>Orta nokta: <b>${fmt(est.mid)}${unit}</b> · Birim değer: <b>${fmt(est.perM2)} ₺/m²</b></p>
+        <p>Orta nokta: <b>${fmt(est.mid)}${unit}</b>${est.perM2 ? ` · Birim değer: <b>${fmt(est.perM2)} ₺/m²</b>` : ""}</p>
         <ul class="factor-list">${est.factors.map((f) => `<li><span>${esc(f.label)}</span><b>${esc(f.unit ? fmt(f.effect) + " " + f.unit : f.effect)}</b></li>`).join("")}</ul>
-        <h3 style="margin:18px 0 6px">📈 Bölge fiyat eğilimi</h3>
-        <div id="vTrend"></div>
-        <p class="notice" style="margin-top:12px">Bu değerleme piyasa ortalamalarına dayalı bir tahmindir; kesin değer için yerinde ekspertiz gerekir.</p>`;
-      sparkline($("#vTrend"), AI.trend(p.city, p.district), p.city + " / " + p.district);
+        ${seg === "emlak" ? '<h3 style="margin:18px 0 6px">Bölge fiyat eğilimi</h3><div id="vTrend"></div>' : ""}
+        <p class="notice" style="margin-top:12px">Bu değerleme piyasa ortalamalarına dayalı bir tahmindir; kesin değer için ${seg === "vasita" ? "ekspertiz" : "yerinde ekspertiz"} gerekir.</p>`;
+      if (seg === "emlak") sparkline($("#vTrend"), AI.trend(p.city, p.district), p.city + " / " + p.district);
       panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
 
@@ -623,7 +754,7 @@
     $("#chatSend").addEventListener("click", send);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
     $$(".chip[data-ask]").forEach((c) => c.addEventListener("click", () => { input.value = c.textContent; send(); }));
-    push("bot", `Merhaba! 👋 Ben <b>${esc(C.assistant.name)}</b>, EmlakAI'nin yapay zekâ asistanıyım. Doğal dille yazın, sizin için ilan bulayım, değer tahmin edeyim ya da kredi hesaplayayım.`);
+    push("bot", `Merhaba! Ben <b>${esc(C.assistant.name)}</b>, ${esc(C.brand.name)}'nin yapay zekâ asistanıyım. Doğal dille yazın: taşınmaz ya da araç ilanı bulayım, değer tahmin edeyim, kredi hesaplayayım.`);
   }
 
   // ── Favoriler ───────────────────────────────────────────────────────────

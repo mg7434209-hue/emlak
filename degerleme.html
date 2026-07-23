@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Değerleme — Evim Ne Kadar Eder? | EmlakAI</title>
-  <meta name="description" content="Ücretsiz yapay zekâ destekli gayrimenkul değerleme: konum ve özellikleri girin, tahmini değer bandını ve bölge fiyat trendini anında görün.">
+  <title>AI Değerleme — Taşınmaz ve Araç Değerleme | EmlakAI</title>
+  <meta name="description" content="Ücretsiz yapay zekâ destekli değerleme: taşınmaz için konum ve özellikleri, araç için marka/model/yıl/km girin; tahmini değer bandını anında görün.">
   <link rel="canonical" href="https://mg7434209-hue.github.io/emlak/degerleme.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="EmlakAI">
-  <meta property="og:title" content="AI Değerleme — Evim Ne Kadar Eder? | EmlakAI">
-  <meta property="og:description" content="Ücretsiz yapay zekâ destekli gayrimenkul değerleme: konum ve özellikleri girin, tahmini değer bandını ve bölge fiyat trendini anında görün.">
+  <meta property="og:title" content="AI Değerleme — Taşınmaz ve Araç Değerleme | EmlakAI">
+  <meta property="og:description" content="Ücretsiz yapay zekâ destekli değerleme: taşınmaz için konum ve özellikleri, araç için marka/model/yıl/km girin; tahmini değer bandını anında görün.">
   <meta property="og:url" content="https://mg7434209-hue.github.io/emlak/degerleme.html">
   <meta property="og:image" content="https://mg7434209-hue.github.io/emlak/assets/img/og.png">
   <meta property="og:locale" content="tr_TR">
@@ -36,24 +36,33 @@
   <main>
     <div class="container page-head">
       <h1>AI Değerleme</h1>
-      <p>Gayrimenkulünüzün özelliklerini girin; bölge piyasa verisiyle tahmini değer bandını anında görün.</p>
+      <p>Taşınmazınızın ya da aracınızın özelliklerini girin; piyasa verisiyle tahmini değer bandını anında görün.</p>
     </div>
 
     <div class="container section" style="padding-top:18px">
       <div class="form-card">
         <div class="form-grid">
-          <div><label for="vCat">Değerleme Tipi</label>
-            <select id="vCat"><option value="satilik">Satış Değeri</option><option value="kiralik">Kira Değeri (aylık)</option></select>
+          <div><label for="vSeg">Ne değerlensin?</label>
+            <select id="vSeg"><option value="emlak">Taşınmaz</option><option value="vasita">Araç</option></select>
           </div>
-          <div><label for="vKind">Tür</label><select id="vKind"></select></div>
-          <div><label for="vCity">Şehir</label><select id="vCity"></select></div>
-          <div><label for="vDistrict">İlçe</label><select id="vDistrict"></select></div>
-          <div><label for="vM2">Alan (m²)</label><input id="vM2" type="number" min="10" placeholder="örn. 120"></div>
-          <div><label for="vRooms">Oda Sayısı</label>
+          <div><label for="vCat">Değerleme Tipi</label>
+            <select id="vCat"><option value="satilik">Satış Değeri</option><option value="kiralik" id="vCatKira">Kira Değeri (aylık)</option></select>
+          </div>
+          <div class="v-emlak"><label for="vKind">Tür</label><select id="vKind"></select></div>
+          <div class="v-emlak"><label for="vCity">Şehir</label><select id="vCity"></select></div>
+          <div class="v-emlak"><label for="vDistrict">İlçe</label><select id="vDistrict"></select></div>
+          <div class="v-emlak"><label for="vM2">Alan (m²)</label><input id="vM2" type="number" min="10" placeholder="örn. 120"></div>
+          <div class="v-emlak"><label for="vRooms">Oda Sayısı</label>
             <select id="vRooms"><option value="">Belirtme</option><option>1+0</option><option>1+1</option><option>2+1</option><option>3+1</option><option>4+1</option><option>5+2</option></select>
           </div>
-          <div><label for="vAge">Bina Yaşı</label><input id="vAge" type="number" min="0" max="100" value="0"></div>
-          <div class="full"><label>Özellikler</label><div class="check-grid" id="vFeatBoxes"></div></div>
+          <div class="v-emlak"><label for="vAge">Bina Yaşı</label><input id="vAge" type="number" min="0" max="100" value="0"></div>
+          <div class="v-vasita"><label for="vBrand">Marka</label><select id="vBrand"></select></div>
+          <div class="v-vasita"><label for="vModel">Model</label><select id="vModel"></select></div>
+          <div class="v-vasita"><label for="vYear">Model Yılı</label><input id="vYear" type="number" min="2008" max="2026" placeholder="örn. 2021"></div>
+          <div class="v-vasita"><label for="vKm">Kilometre</label><input id="vKm" type="number" min="0" placeholder="örn. 85000"></div>
+          <div class="v-vasita"><label for="vFuel">Yakıt</label><select id="vFuel"></select></div>
+          <div class="v-vasita"><label for="vGear">Vites</label><select id="vGear"></select></div>
+          <div class="full v-emlak"><label>Özellikler</label><div class="check-grid" id="vFeatBoxes"></div></div>
           <div class="full"><button class="btn" id="vBtn" type="button" style="width:100%;padding:14px">Değeri Hesapla</button></div>
         </div>
       </div>
@@ -61,7 +70,7 @@
     </div>
 
     <div class="container section" id="kredi" style="padding-top:0">
-      <div class="section-head"><div><h2>Konut Kredisi Hesaplayıcı</h2><p>Tahmini aylık taksitinizi hesaplayın</p></div></div>
+      <div class="section-head"><div><h2>Kredi Hesaplayıcı</h2><p>Konut ya da taşıt kredinizin tahmini aylık taksitini hesaplayın</p></div></div>
       <div class="form-card">
         <div class="form-grid">
           <div><label for="kAmount">Kredi Tutarı (₺)</label><input id="kAmount" type="number" min="0" placeholder="örn. 3000000"></div>

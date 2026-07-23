@@ -221,14 +221,14 @@ const cityLines = Object.entries(cities).map(([city, cd]) => {
 fs.writeFileSync(path.join(__dirname, "llms.txt"),
   `# ${C.brand.name}
 
-> ${C.brand.tagline}. Satılık/kiralık konut, iş yeri ve arsa ilanları; tamamı
-> istemci tarafında çalışan yapay zekâ araçları: doğal dil arama, anında
-> değerleme, fiyat-piyasa analizi, ilan yazarı ve EVA sohbet asistanı.
+> ${C.brand.tagline}. Satılık/kiralık konut, iş yeri, arsa ve araç ilanları;
+> tamamı istemci tarafında çalışan yapay zekâ araçları: doğal dil arama, anında
+> değerleme (taşınmaz + araç), fiyat-piyasa analizi, ilan yazarı ve EVA asistanı.
 
 ## Önemli sayfalar
 
-- [Ana sayfa](${URL0}/): AI destekli ilan arama
-- [İlanlar](${URL0}/ilanlar.html): filtreli satılık/kiralık ilan listesi
+- [Ana sayfa](${URL0}/): AI destekli ilan arama (taşınmaz + araç)
+- [İlanlar](${URL0}/ilanlar.html): filtreli satılık/kiralık taşınmaz ve araç listesi
 - [Bölge fiyatları](${URL0}/bolge-fiyatlari.html): il/ilçe bazlı güncel konut m² fiyat tabloları (${C.seo.dataDate})
 - [AI Değerleme](${URL0}/degerleme.html): ücretsiz anında gayrimenkul değerleme
 - [Rehber](${URL0}/rehber.html): ev alma-satma ve kredi SSS/rehberi

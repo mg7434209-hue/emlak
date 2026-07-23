@@ -7,8 +7,14 @@ window.EMLAK = window.EMLAK || {};
 EMLAK.config = {
   brand: {
     name: "EmlakAI",
-    tagline: "Türkiye'nin yapay zekâ destekli emlak platformu",
+    tagline: "Yapay zekâ destekli taşınmaz ve araç ilan platformu",
     domain: "emlakai.example",
+  },
+
+  // ── Segmentler: taşınmaz (emlak) + araç (vasita) ────────────────────────
+  segments: {
+    emlak: { label: "Taşınmaz" },
+    vasita: { label: "Araç" },
   },
   company: {
     title: "EmlakAI Teknoloji Ltd. Şti.",
@@ -90,8 +96,40 @@ EMLAK.config = {
     fairBand: 0.07,   // piyasa uygunu bandı (±%7) — AI fiyat etiketi
   },
 
+  // ── Araç piyasa verisi & değerleme katsayıları ──────────────────────────
+  // brands: marka → model → sıfır km liste fiyatı (₺, referans dönem seo.dataDate)
+  vehicles: {
+    brands: {
+      "Renault":    { "Clio": 1150000, "Megane": 1750000, "Duster": 1950000 },
+      "Fiat":       { "Egea": 1250000, "Egea Cross": 1550000 },
+      "Toyota":     { "Corolla": 1950000, "C-HR": 2550000 },
+      "Volkswagen": { "Polo": 1650000, "Passat": 3450000, "Tiguan": 3950000 },
+      "Ford":       { "Focus": 1900000, "Puma": 2350000 },
+      "Hyundai":    { "i20": 1400000, "Tucson": 3150000 },
+      "Honda":      { "Civic": 2250000 },
+      "Peugeot":    { "208": 1550000, "3008": 3250000 },
+      "BMW":        { "3 Serisi": 4850000, "X3": 6500000 },
+      "Mercedes":   { "C Serisi": 5250000, "E Serisi": 7300000 },
+      "Tesla":      { "Model Y": 3250000 },
+    },
+    // yaş → sıfır fiyata oran (yıl üst sınırı, çarpan)
+    ageCurve: [ [0, 0.97], [1, 0.88], [3, 0.76], [5, 0.65], [8, 0.52], [12, 0.40], [99, 0.28] ],
+    kmNormPerYear: 15000,   // yıllık olağan km
+    kmEffectPer10k: 1.2,    // norm sapması her 10.000 km için değer etkisi (±%)
+    kmEffectCapPct: 18,     // km etkisinin üst sınırı (±%)
+    fuelFactor: { "Benzin": 1, "Dizel": 1.03, "LPG & Benzin": 0.96, "Hibrit": 1.06, "Elektrik": 1.08 },
+    gearFactor: { "Otomatik": 1.04, "Manuel": 1 },
+    rentDailyFactor: 0.0011, // günlük kiralama ≈ araç değerinin %0,11'i
+    fuels: ["Benzin", "Dizel", "LPG & Benzin", "Hibrit", "Elektrik"],
+    gears: ["Otomatik", "Manuel"],
+    minYear: 2008,           // form/filtre alt sınırı
+  },
+
   // ── Kredi hesaplayıcı varsayılanları ────────────────────────────────────
-  credit: { defaultRate: 2.89, maxLtv: 0.8, terms: [60, 120, 180, 240] },
+  credit: {
+    defaultRate: 2.89, maxLtv: 0.8, terms: [60, 120, 180, 240],
+    vehicle: { defaultRate: 3.15, maxLtv: 0.7, terms: [12, 24, 36, 48] },
+  },
 
   // ── AI asistan ayarları ─────────────────────────────────────────────────
   assistant: { name: "EVA", maxResults: 6 },

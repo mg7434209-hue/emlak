@@ -36,25 +36,34 @@
   <main>
     <div class="container page-head">
       <h1>İlan Ver</h1>
-      <p>Bilgileri girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. İlanınız anında yayına alınır (bu tarayıcıda saklanır).</p>
+      <p>Taşınmaz ya da araç ilanınızın bilgilerini girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. İlanınız anında yayına alınır (bu tarayıcıda saklanır).</p>
     </div>
 
     <div class="container section" style="padding-top:18px">
       <div class="form-card">
         <div class="form-grid">
+          <div><label for="pSeg">İlan Türü</label>
+            <select id="pSeg"><option value="emlak">Taşınmaz</option><option value="vasita">Araç</option></select>
+          </div>
           <div><label for="pCat">Kategori</label>
             <select id="pCat"><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option></select>
           </div>
-          <div><label for="pKind">Tür</label><select id="pKind"></select></div>
           <div><label for="pCity">Şehir</label><select id="pCity"></select></div>
           <div><label for="pDistrict">İlçe</label><select id="pDistrict"></select></div>
-          <div><label for="pM2">Alan (m²)</label><input id="pM2" type="number" min="10" placeholder="örn. 120"></div>
-          <div><label for="pRooms">Oda Sayısı</label>
+          <div class="p-emlak"><label for="pKind">Tür</label><select id="pKind"></select></div>
+          <div class="p-emlak"><label for="pM2">Alan (m²)</label><input id="pM2" type="number" min="10" placeholder="örn. 120"></div>
+          <div class="p-emlak"><label for="pRooms">Oda Sayısı</label>
             <select id="pRooms"><option value="">Belirtme</option><option>1+0</option><option>1+1</option><option>2+1</option><option>3+1</option><option>4+1</option><option>5+2</option></select>
           </div>
-          <div><label for="pAge">Bina Yaşı</label><input id="pAge" type="number" min="0" max="100" placeholder="örn. 5"></div>
+          <div class="p-emlak"><label for="pAge">Bina Yaşı</label><input id="pAge" type="number" min="0" max="100" placeholder="örn. 5"></div>
+          <div class="p-vasita"><label for="pBrand">Marka</label><select id="pBrand"></select></div>
+          <div class="p-vasita"><label for="pModel">Model</label><select id="pModel"></select></div>
+          <div class="p-vasita"><label for="pYear">Model Yılı</label><input id="pYear" type="number" min="2008" max="2026" placeholder="örn. 2021"></div>
+          <div class="p-vasita"><label for="pKm">Kilometre</label><input id="pKm" type="number" min="0" placeholder="örn. 85000"></div>
+          <div class="p-vasita"><label for="pFuel">Yakıt</label><select id="pFuel"></select></div>
+          <div class="p-vasita"><label for="pGear">Vites</label><select id="pGear"></select></div>
           <div><label for="pPrice">Fiyat (₺)</label><input id="pPrice" type="number" min="0" placeholder="Boş bırakın, AI önersin"></div>
-          <div class="full"><label>Özellikler</label><div class="check-grid" id="featBoxes"></div></div>
+          <div class="full p-emlak"><label>Özellikler</label><div class="check-grid" id="featBoxes"></div></div>
           <div class="full">
             <label for="pPhotos">Fotoğraflar (en fazla 5 — bu tarayıcıda saklanır)</label>
             <input id="pPhotos" type="file" accept="image/*" multiple>

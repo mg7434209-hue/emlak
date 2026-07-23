@@ -1,13 +1,13 @@
 # EmlakAI
 
-> Türkiye'nin yapay zekâ destekli emlak platformu. Satılık/kiralık konut, iş yeri ve arsa ilanları; tamamı
-> istemci tarafında çalışan yapay zekâ araçları: doğal dil arama, anında
-> değerleme, fiyat-piyasa analizi, ilan yazarı ve EVA sohbet asistanı.
+> Yapay zekâ destekli taşınmaz ve araç ilan platformu. Satılık/kiralık konut, iş yeri, arsa ve araç ilanları;
+> tamamı istemci tarafında çalışan yapay zekâ araçları: doğal dil arama, anında
+> değerleme (taşınmaz + araç), fiyat-piyasa analizi, ilan yazarı ve EVA asistanı.
 
 ## Önemli sayfalar
 
-- [Ana sayfa](https://mg7434209-hue.github.io/emlak/): AI destekli ilan arama
-- [İlanlar](https://mg7434209-hue.github.io/emlak/ilanlar.html): filtreli satılık/kiralık ilan listesi
+- [Ana sayfa](https://mg7434209-hue.github.io/emlak/): AI destekli ilan arama (taşınmaz + araç)
+- [İlanlar](https://mg7434209-hue.github.io/emlak/ilanlar.html): filtreli satılık/kiralık taşınmaz ve araç listesi
 - [Bölge fiyatları](https://mg7434209-hue.github.io/emlak/bolge-fiyatlari.html): il/ilçe bazlı güncel konut m² fiyat tabloları (2026-07)
 - [AI Değerleme](https://mg7434209-hue.github.io/emlak/degerleme.html): ücretsiz anında gayrimenkul değerleme
 - [Rehber](https://mg7434209-hue.github.io/emlak/rehber.html): ev alma-satma ve kredi SSS/rehberi

@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>İlanlar — Satılık & Kiralık | EmlakAI</title>
-  <meta name="description" content="Satılık ve kiralık daire, villa, arsa, dükkan ilanları. AI fiyat etiketi ve akıllı filtrelerle arayın.">
+  <title>İlanlar — Satılık & Kiralık Taşınmaz ve Araç | EmlakAI</title>
+  <meta name="description" content="Satılık ve kiralık taşınmaz (daire, villa, arsa, iş yeri) ve araç ilanları. AI fiyat etiketi ve akıllı filtrelerle arayın.">
   <link rel="canonical" href="https://mg7434209-hue.github.io/emlak/ilanlar.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="EmlakAI">
-  <meta property="og:title" content="İlanlar — Satılık & Kiralık | EmlakAI">
-  <meta property="og:description" content="Satılık ve kiralık daire, villa, arsa, dükkan ilanları. AI fiyat etiketi ve akıllı filtrelerle arayın.">
+  <meta property="og:title" content="İlanlar — Satılık & Kiralık Taşınmaz ve Araç | EmlakAI">
+  <meta property="og:description" content="Satılık ve kiralık taşınmaz (daire, villa, arsa, iş yeri) ve araç ilanları. AI fiyat etiketi ve akıllı filtrelerle arayın.">
   <meta property="og:url" content="https://mg7434209-hue.github.io/emlak/ilanlar.html">
   <meta property="og:image" content="https://mg7434209-hue.github.io/emlak/assets/img/og.png">
   <meta property="og:locale" content="tr_TR">
@@ -46,15 +46,28 @@
     <div class="container listing-layout">
       <aside class="filters">
         <h3>Filtreler <button class="btn ghost sm" id="clearBtn" type="button">Temizle</button></h3>
+        <div><label for="fSeg">Segment</label>
+          <select id="fSeg"><option value="emlak">Taşınmaz</option><option value="vasita">Araç</option></select>
+        </div>
         <div><label for="fCat">Kategori</label>
           <select id="fCat"><option value="">Tümü</option><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option></select>
         </div>
         <div><label for="fCity">Şehir</label><select id="fCity"></select></div>
         <div><label for="fDistrict">İlçe</label><select id="fDistrict"></select></div>
-        <div><label for="fKind">Tür</label><select id="fKind"></select></div>
-        <div><label for="fRooms">Oda Sayısı</label>
+        <div class="f-emlak"><label for="fKind">Tür</label><select id="fKind"></select></div>
+        <div class="f-emlak"><label for="fRooms">Oda Sayısı</label>
           <select id="fRooms"><option value="">Tümü</option><option>1+0</option><option>1+1</option><option>2+1</option><option>3+1</option><option>4+1</option><option>5+2</option></select>
         </div>
+        <div class="f-vasita"><label for="fBrand">Marka</label><select id="fBrand"></select></div>
+        <div class="f-vasita"><label for="fModel">Model</label><select id="fModel"></select></div>
+        <div class="f-vasita"><label>Yıl / Kilometre</label>
+          <div class="row2">
+            <input id="fMinYear" type="number" min="2008" max="2026" placeholder="Min yıl">
+            <input id="fMaxKm" type="number" min="0" placeholder="Max km">
+          </div>
+        </div>
+        <div class="f-vasita"><label for="fFuel">Yakıt</label><select id="fFuel"></select></div>
+        <div class="f-vasita"><label for="fGear">Vites</label><select id="fGear"></select></div>
         <div><label>Fiyat Aralığı (₺)</label>
           <div class="row2">
             <input id="fMin" type="number" min="0" placeholder="Min">
