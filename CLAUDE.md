@@ -45,9 +45,9 @@ gömme; değişiklik = config.
 
 ## Dosya mimarisi
 - `assets/config.js` — konfig (yukarıda).
-- `assets/data.js`   — deterministik örnek ilan üreteci (~72 emlak + ~36 araç,
-  sabit seed) + localStorage kullanıcı ilanları (`EMLAK.data`; `brands`,
-  `modelsOf` araç yardımcıları).
+- `assets/data.js`   — ilan veri katmanı (`EMLAK.data`): YALNIZCA gerçek
+  kullanıcı ilanları (localStorage `emlakai.userListings`); demo/örnek ilan
+  ÜRETİLMEZ, geri ekleme. Şehir/tür/marka yardımcıları (`brands`, `modelsOf`).
 - `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery —
   marka/model/yıl/km/yakıt/vites dâhil), değerleme (estimate; `segment:
   "vasita"` ise araç dalı), fiyat etiketi (priceBadge), açıklama üretimi

@@ -53,7 +53,7 @@ Railway'e `npm start` ile, GitHub Pages'e doğrudan statik olarak yayınlanabili
 ## Mimari
 
 - `assets/config.js` — tek doğru kaynak: marka, iletişim, piyasa verisi, katsayılar
-- `assets/data.js` — deterministik örnek ilan üreteci (~72 ilan) + kullanıcı ilanları
+- `assets/data.js` — ilan veri katmanı: yalnızca gerçek kullanıcı ilanları (localStorage); demo ilan yok
 - `assets/ai.js` — AI motoru (arama ayrıştırma, değerleme, NLG, öneri, sohbet)
 - `assets/app.js` — arayüz; `server.js` — bağımlılıksız statik sunucu
 

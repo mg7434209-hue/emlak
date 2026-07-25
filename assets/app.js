@@ -336,7 +336,9 @@
         list = AI.rank(list); // öne çıkan ilanlar varsayılan sıralamada önce gelir
       }
       $("#count").textContent = fmt(list.length) + " ilan bulundu";
-      renderCards($("#grid"), list);
+      renderCards($("#grid"), list, D.all().length === 0
+        ? "Henüz yayında ilan yok. İlk ilanı siz verebilirsiniz — İlan Ver sayfası bir dakikanızı alır."
+        : "Bu kriterlere uygun ilan bulunamadı. Filtreleri genişletmeyi deneyin.");
     }
     $("#fSeg").addEventListener("change", () => { syncSegmentUI(); run(); });
     $("#applyBtn").addEventListener("click", run);
@@ -462,6 +464,7 @@
           <a class="btn" data-c-tel href="#">📞</a>
           <a class="btn" style="background:#25d366" href="${wa}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
           <button class="btn ghost" data-fav="${l.id}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
+          ${l.user ? `<button class="btn ghost" id="removeBtn" style="color:var(--over);border-color:var(--over)">İlanı Kaldır</button>` : ""}
           ${l.category === "satilik" ? (() => {
             const cr = l.segment === "vasita" ? C.credit.vehicle : C.credit;
             return `<div class="est-box">
@@ -485,6 +488,13 @@
     const favBtn = $(".side-card [data-fav]", root);
     favBtn.addEventListener("click", () => {
       favBtn.textContent = toggleFav(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle";
+    });
+    const rmBtn = $("#removeBtn", root);
+    if (rmBtn) rmBtn.addEventListener("click", () => {
+      if (confirm("Bu ilan kalıcı olarak kaldırılacak. Emin misiniz?")) {
+        D.removeUserListing(l.id);
+        location.href = "ilanlar.html";
+      }
     });
     observeReveals(root);
   }
