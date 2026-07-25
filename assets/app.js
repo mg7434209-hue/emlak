@@ -79,6 +79,19 @@
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
+  // Telefon normalizasyonu: "0543 743 42 09" → {display, intl, wa}
+  function normPhone(raw) {
+    let d = String(raw || "").replace(/\D/g, "");
+    if (d.startsWith("90")) d = d.slice(2);
+    if (d.startsWith("0")) d = d.slice(1);
+    if (d.length !== 10) return null;
+    return {
+      display: "0" + d.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, "$1 $2 $3 $4"),
+      intl: "+90" + d,
+      wa: "90" + d,
+    };
+  }
+
   // ── İlan kartı ──────────────────────────────────────────────────────────
   function cardHTML(l) {
     const b = AI.priceBadge(l);
@@ -407,17 +420,26 @@
     ] : [
       ["İlan No", l.id], ["Kategori", catLabel],
       ["Tür", l.kindLabel], ["Konum", l.city + " / " + l.district],
-      ["Alan", fmt(l.m2) + " m²"],
+      l.locality && ["Mahalle / Site", l.locality],
+      ["Alan (Brüt)", fmt(l.m2) + " m²"],
+      l.m2Net && ["Alan (Net)", fmt(l.m2Net) + " m²"],
       l.rooms && ["Oda Sayısı", l.rooms], l.bath && l.kind !== "arsa" && ["Banyo", l.bath],
       l.age != null && l.kind !== "arsa" && ["Bina Yaşı", l.age === 0 ? "Sıfır" : l.age],
       l.floor != null && ["Kat", l.floor + (l.totalFloors ? " / " + l.totalFloors : "")],
+      l.totalFloors && l.floor == null && ["Kat Sayısı", l.totalFloors],
       l.heating && ["Isıtma", l.heating],
+      l.kitchen && ["Mutfak", l.kitchen],
+      l.dues != null && ["Aidat", fmt(l.dues) + " ₺/ay"],
+      l.deed && ["Tapu Durumu", l.deed],
+      l.creditOk != null && ["Krediye Uygun", l.creditOk ? "Evet" : "Hayır"],
+      l.swap != null && ["Takas", l.swap ? "Evet" : "Hayır"],
       ["İlan Tarihi", new Date(l.date).toLocaleDateString("tr-TR")],
       ["Görüntülenme", fmt(l.views)],
     ]).filter(Boolean);
 
     const dotPos = est ? Math.max(4, Math.min(96, 50 + ((l.price / est.mid - 1) / 0.25) * 50)) : 50;
-    const wa = "https://wa.me/" + C.company.phone.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`);
+    const contact = l.phone || C.company.phone; // ilana özel telefon varsa o kullanılır
+    const wa = "https://wa.me/" + contact.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`);
 
     root.innerHTML = `
       <div class="breadcrumb container">
@@ -461,7 +483,7 @@
             <div class="avatar">${esc(l.seller.name[0])}</div>
             <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small></div>
           </div>
-          <a class="btn" data-c-tel href="#">📞</a>
+          <a class="btn" id="callBtn" href="tel:${contact.intl}">📞 ${esc(contact.display)}</a>
           <a class="btn" style="background:#25d366" href="${wa}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
           <button class="btn ghost" data-fav="${l.id}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
           ${l.user ? `<button class="btn ghost" id="removeBtn" style="color:var(--over);border-color:var(--over)">İlanı Kaldır</button>` : ""}
@@ -475,9 +497,6 @@
         </aside>
       </div>`;
 
-    const tel = $("[data-c-tel]", root);
-    tel.href = "tel:" + C.company.phone.intl;
-    tel.textContent = "📞 " + C.company.phone.display;
     sparkline($("#trendChart"), AI.trend(l.city, l.district), l.city + " / " + l.district);
     renderCards($("#similarGrid"), AI.similar(l, D.all(), 4));
     $$(".photo-strip img", root).forEach((im) => im.addEventListener("click", () => {
@@ -554,6 +573,8 @@
 
     function collect() {
       const seg = $("#pSeg").value;
+      const sellerType = $("#pSellerType").value;
+      const sellerName = $("#pSellerName").value.trim() || (sellerType === "ofis" ? "Emlak Ofisi" : "Sahibinden");
       const base = {
         segment: seg,
         category: $("#pCat").value,
@@ -563,7 +584,8 @@
         desc: $("#pDesc").value.trim(),
         photos: photos.slice(),
         featured: $("#pFeatured").checked,
-        seller: { name: "Sahibinden", type: "sahibinden" },
+        seller: { name: sellerName, type: sellerType },
+        phone: normPhone($("#pPhone").value),
       };
       if (seg === "vasita") {
         return Object.assign(base, {
@@ -591,6 +613,7 @@
 
     function validate(l) {
       if (!l.district) return "Lütfen ilçe seçin.";
+      if ($("#pPhone").value.trim() && !l.phone) return "Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).";
       if (l.segment === "vasita") {
         if (!l.brand || !l.model) return "Marka ve model seçin.";
         if (!l.year || l.year < C.vehicles.minYear || l.year > 2026) return "Geçerli bir model yılı girin.";

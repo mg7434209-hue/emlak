@@ -45,9 +45,14 @@ gömme; değişiklik = config.
 
 ## Dosya mimarisi
 - `assets/config.js` — konfig (yukarıda).
-- `assets/data.js`   — ilan veri katmanı (`EMLAK.data`): YALNIZCA gerçek
-  kullanıcı ilanları (localStorage `emlakai.userListings`); demo/örnek ilan
-  ÜRETİLMEZ, geri ekleme. Şehir/tür/marka yardımcıları (`brands`, `modelsOf`).
+- `assets/data.js`   — ilan veri katmanı (`EMLAK.data`): demo/örnek ilan
+  ÜRETİLMEZ, geri ekleme. İki gerçek kaynak: `REAL[]` (repoya işlenen gerçek
+  ilanlar — herkese görünür; yeni ilan = listeye ekle + `npm run build` +
+  commit) ve localStorage `emlakai.userListings` (yalnız o cihaz). Fotoğraflar
+  `assets/img/ilanlar/` altında, `photos` dizisinde göreli yol. İlana özel
+  `phone` alanı ara/WhatsApp düğmelerini o numaraya yönlendirir; `locality`,
+  `m2Net`, `dues`, `deed`, `swap`, `creditOk`, `kitchen` isteğe bağlı alanlar
+  detayda gösterilir. Şehir/tür/marka yardımcıları (`brands`, `modelsOf`).
 - `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery —
   marka/model/yıl/km/yakıt/vites dâhil), değerleme (estimate; `segment:
   "vasita"` ise araç dalı), fiyat etiketi (priceBadge), açıklama üretimi

@@ -3,7 +3,7 @@
  * `assets/config.js` TEK KAYNAK kalır; bu betik oradaki veriden şunları üretir:
  *   - bolge-fiyatlari.html : statik bölge fiyat tabloları (arama motorları ve
  *     AI tarayıcıları JS çalıştırmadan okuyabilsin diye tamamen statik HTML)
- *   - sitemap.xml          : statik sayfalar (demo ilan yok; ilanlar istemci tarafında)
+ *   - sitemap.xml          : statik sayfalar + repodaki gerçek ilanlar (data.js REAL)
  *   - robots.txt           : klasik + AI tarayıcı (GPTBot, ClaudeBot…) izinleri
  *   - llms.txt             : LLM'ler için site özeti (AEO)
  * Kaynak değişince `npm run build` çalıştırıp çıktıyı da commit'le.
@@ -171,10 +171,12 @@ const staticPages = [
   ["rehber.html", "0.8", "weekly"],
   ["ilan-ver.html", "0.7", "monthly"],
 ];
+// Repoya işlenen gerçek ilanlar (Node ortamında localStorage boş → yalnız REAL)
+const listingUrls = EMLAK.data.all().map((l) => `  <url><loc>${URL0}/ilan.html?id=${l.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>`);
 fs.writeFileSync(path.join(__dirname, "sitemap.xml"),
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${staticPages.map(([p, pr, cf]) => `  <url><loc>${URL0}/${p}</loc><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`).join("\n")}
+${staticPages.map(([p, pr, cf]) => `  <url><loc>${URL0}/${p}</loc><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`).join("\n")}${listingUrls.length ? "\n" + listingUrls.join("\n") : ""}
 </urlset>
 `);
 
