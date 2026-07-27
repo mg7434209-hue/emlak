@@ -364,6 +364,8 @@
         : "Bu kriterlere uygun ilan bulunamadı. Filtreleri genişletmeyi deneyin.");
     }
     $("#fSeg").addEventListener("change", () => { syncSegmentUI(); run(); });
+    const ft = $("#filtersToggle");
+    if (ft) ft.addEventListener("click", () => $(".filters").classList.toggle("open"));
     $("#applyBtn").addEventListener("click", run);
     $("#fSort").addEventListener("change", run);
     $("#clearBtn").addEventListener("click", () => { location.href = "ilanlar.html?segment=" + $("#fSeg").value; });
@@ -498,6 +500,10 @@
           <a class="btn" id="callBtn" href="tel:${contact.intl}">📞 ${esc(contact.display)}</a>
           <a class="btn" style="background:#25d366" href="${wa}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
           <button class="btn ghost" data-fav="${l.id}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost sm" id="shareBtn" type="button" style="flex:1">Paylaş</button>
+            <button class="btn ghost sm" id="printBtn" type="button" style="flex:1">Yazdır / PDF</button>
+          </div>
           ${l.user ? `<button class="btn ghost" id="removeBtn" style="color:var(--over);border-color:var(--over)">İlanı Kaldır</button>` : ""}
           ${l.category === "satilik" ? (() => {
             const cr = l.segment === "vasita" ? C.credit.vehicle : C.credit;
@@ -528,6 +534,22 @@
         location.href = "ilanlar.html";
       }
     });
+
+    // Paylaş: özet metin + bağlantı (mobilde sistem paylaşımı, masaüstünde pano)
+    const shareBtn = $("#shareBtn", root);
+    shareBtn.addEventListener("click", async () => {
+      const summary = l.segment === "vasita"
+        ? `${l.title}\n${fmtPrice(l)} · ${l.year} · ${fmt(l.km)} km · ${l.fuel} · ${l.gear}\n📍 ${l.city} / ${l.district}`
+        : `${l.title}\n${fmtPrice(l)}${l.rooms ? " · " + l.rooms : ""} · ${fmt(l.m2)} m²\n📍 ${l.city} / ${l.district}${l.locality ? " · " + l.locality : ""}`;
+      const url = canon.href;
+      try {
+        if (navigator.share) { await navigator.share({ title: l.title, text: summary, url }); return; }
+        await navigator.clipboard.writeText(summary + "\n" + url);
+        shareBtn.textContent = "Kopyalandı ✓";
+        setTimeout(() => { shareBtn.textContent = "Paylaş"; }, 1800);
+      } catch (e) { /* kullanıcı paylaşımı iptal etti */ }
+    });
+    $("#printBtn", root).addEventListener("click", () => window.print());
     observeReveals(root);
   }
 
