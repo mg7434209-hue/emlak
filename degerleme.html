@@ -58,7 +58,7 @@
           <div class="v-emlak"><label for="vAge">Bina Yaşı</label><input id="vAge" type="number" min="0" max="100" value="0"></div>
           <div class="v-vasita"><label for="vBrand">Marka</label><select id="vBrand"></select></div>
           <div class="v-vasita"><label for="vModel">Model</label><select id="vModel"></select></div>
-          <div class="v-vasita"><label for="vYear">Model Yılı</label><input id="vYear" type="number" min="2008" max="2026" placeholder="örn. 2021"></div>
+          <div class="v-vasita"><label for="vYear">Model Yılı</label><input id="vYear" type="number" min="2008" placeholder="örn. 2021"></div>
           <div class="v-vasita"><label for="vKm">Kilometre</label><input id="vKm" type="number" min="0" placeholder="örn. 85000"></div>
           <div class="v-vasita"><label for="vFuel">Yakıt</label><select id="vFuel"></select></div>
           <div class="v-vasita"><label for="vGear">Vites</label><select id="vGear"></select></div>
@@ -73,11 +73,12 @@
       <div class="section-head"><div><h2>Kredi Hesaplayıcı</h2><p>Konut ya da taşıt kredinizin tahmini aylık taksitini hesaplayın</p></div></div>
       <div class="form-card">
         <div class="form-grid">
+          <div><label for="kType">Kredi Türü</label>
+            <select id="kType"><option value="emlak">Konut Kredisi</option><option value="vasita">Taşıt Kredisi</option></select>
+          </div>
           <div><label for="kAmount">Kredi Tutarı (₺)</label><input id="kAmount" type="number" min="0" placeholder="örn. 3000000"></div>
           <div><label for="kRate">Aylık Faiz (%)</label><input id="kRate" type="number" step="0.01" min="0"></div>
-          <div><label for="kTerm">Vade</label>
-            <select id="kTerm"><option value="60">5 yıl (60 ay)</option><option value="120" selected>10 yıl (120 ay)</option><option value="180">15 yıl (180 ay)</option><option value="240">20 yıl (240 ay)</option></select>
-          </div>
+          <div><label for="kTerm">Vade</label><select id="kTerm"></select></div>
           <div class="full"><button class="btn" id="kBtn" type="button">Hesapla</button></div>
           <div class="full notice" id="kOut">Tutar ve vadeyi girin, taksiti görün.</div>
         </div>
@@ -98,7 +99,7 @@
     </div>
   </footer>
 
-  <a class="fab" href="asistan.html">✦ AI Asistan</a>
+  <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
   <script src="assets/config.js"></script>
   <script src="assets/data.js"></script>
   <script src="assets/ai.js"></script>

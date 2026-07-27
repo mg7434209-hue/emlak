@@ -73,7 +73,7 @@ function chrome(body, { title, desc, canonical, jsonld }) {
       <div class="copyright">© 2026 ${esc(C.brand.name)} — Veriler ${C.seo.dataDate} dönemi piyasa ortalamalarıdır; bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
     </div>
   </footer>
-  <a class="fab" href="asistan.html">✦ AI Asistan</a>
+  <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
   <script src="assets/config.js"></script>
   <script src="assets/data.js"></script>
   <script src="assets/ai.js"></script>
@@ -172,7 +172,7 @@ const staticPages = [
   ["ilan-ver.html", "0.7", "monthly"],
 ];
 // Repoya işlenen gerçek ilanlar (Node ortamında localStorage boş → yalnız REAL)
-const listingUrls = EMLAK.data.all().map((l) => `  <url><loc>${URL0}/ilan.html?id=${l.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>`);
+const listingUrls = EMLAK.data.all().map((l) => `  <url><loc>${URL0}/ilan.html?id=${encodeURIComponent(l.id)}</loc><lastmod>${String(l.date).slice(0, 10)}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`);
 fs.writeFileSync(path.join(__dirname, "sitemap.xml"),
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -183,9 +183,10 @@ ${staticPages.map(([p, pr, cf]) => `  <url><loc>${URL0}/${p}</loc><changefreq>${
 // ── 3) robots.txt ─────────────────────────────────────────────────────────
 fs.writeFileSync(path.join(__dirname, "robots.txt"),
   `# ${C.brand.name} — klasik arama motorları ve AI tarayıcıları için
+# (favoriler.html noindex meta ile işaretlidir; taranabilir kalmalı ki
+#  noindex okunabilsin — bu yüzden Disallow YOK)
 User-agent: *
 Allow: /
-Disallow: /favoriler.html
 
 # AI arama/asistan tarayıcıları açıkça hoş karşılanır (AEO)
 User-agent: GPTBot
@@ -230,9 +231,10 @@ fs.writeFileSync(path.join(__dirname, "llms.txt"),
 - [Ana sayfa](${URL0}/): AI destekli ilan arama (taşınmaz + araç)
 - [İlanlar](${URL0}/ilanlar.html): filtreli satılık/kiralık taşınmaz ve araç listesi
 - [Bölge fiyatları](${URL0}/bolge-fiyatlari.html): il/ilçe bazlı güncel konut m² fiyat tabloları (${C.seo.dataDate})
-- [AI Değerleme](${URL0}/degerleme.html): ücretsiz anında gayrimenkul değerleme
+- [AI Değerleme](${URL0}/degerleme.html): ücretsiz anında değerleme — taşınmaz (konum+özellik) ve araç (marka/model/yıl/km); konut ve taşıt kredisi hesaplayıcı
+- [İlan Ver](${URL0}/ilan-ver.html): AI fiyat önerisi ve AI başlık/açıklama yazarıyla ücretsiz ilan verme
 - [Rehber](${URL0}/rehber.html): ev alma-satma ve kredi SSS/rehberi
-- [AI Asistan](${URL0}/asistan.html): doğal dille emlak sorularına yanıt
+- [AI Asistan](${URL0}/asistan.html): doğal dille taşınmaz/araç sorularına yanıt
 
 ## Bölge fiyat özeti (${C.seo.dataDate}, satılık konut)
 

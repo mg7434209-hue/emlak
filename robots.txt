@@ -1,7 +1,8 @@
 # EmlakAI — klasik arama motorları ve AI tarayıcıları için
+# (favoriler.html noindex meta ile işaretlidir; taranabilir kalmalı ki
+#  noindex okunabilsin — bu yüzden Disallow YOK)
 User-agent: *
 Allow: /
-Disallow: /favoriler.html
 
 # AI arama/asistan tarayıcıları açıkça hoş karşılanır (AEO)
 User-agent: GPTBot

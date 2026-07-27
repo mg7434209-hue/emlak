@@ -17,9 +17,12 @@
   const strip = (s) => TR_LOWER(s).normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ö/g, "o").replace(/ç/g, "c");
 
-  // ── Sayı ayrıştırma: "3 milyon", "750 bin", "2.5m", "15000" ────────────
+  // Türkçe binlik ayıracını temizle: "1.500.000" → "1500000" ("2.5" korunur)
+  const deThousand = (s) => String(s).replace(/\.(?=\d{3}(?:\D|$))/g, "");
+
+  // ── Sayı ayrıştırma: "3 milyon", "750 bin", "2.5m", "1.500.000" ────────
   function parseAmount(text) {
-    const m = strip(text).match(/(\d+(?:[.,]\d+)?)\s*(milyon|myn|m\b|bin|k\b)?/);
+    const m = deThousand(strip(text)).match(/(\d+(?:[.,]\d+)?)\s*(milyon|myn|m\b|bin|k\b)?/);
     if (!m) return null;
     let v = parseFloat(m[1].replace(",", "."));
     const unit = m[2] || "";
@@ -32,7 +35,7 @@
   // ör: "antalya manavgat'ta deniz manzaralı 3+1 satılık daire 5 milyon altı"
   // ör: "2020 üstü dizel otomatik toyota corolla 100 bin km altı"
   function parseQuery(text) {
-    const q = strip(text);
+    const q = deThousand(strip(text));
     const f = { text };
 
     if (/kiralik|kiraya|kira\b/.test(q)) f.category = "kiralik";
@@ -97,7 +100,8 @@
     if (/havuz/.test(q)) f.feature = "Havuz";
     if (/esyali/.test(q)) f.feature = "Eşyalı";
     if (/site ici|site icinde/.test(q)) f.feature = "Site İçi";
-    if (/yeni|sifir/.test(q)) f.maxAge = 5;
+    // "yeni/sıfır bina" yalnızca emlakta ve kelime sınırıyla ("Yenimahalle" eşleşmez)
+    if (f.segment !== "vasita" && /\b(yeni|sifir)\b/.test(q)) f.maxAge = 5;
 
     return f;
   }
@@ -139,7 +143,8 @@
     const VC = C.vehicles;
     const base = VC.brands[p.brand] && VC.brands[p.brand][p.model];
     if (!base) return null;
-    const age = Math.max(0, 2026 - (p.year || 2026));
+    const nowYear = new Date().getFullYear();
+    const age = Math.max(0, nowYear - (p.year || nowYear));
     const factors = [];
     let value = base;
     factors.push({ label: `${p.brand} ${p.model} sıfır km liste fiyatı`, effect: base, unit: "₺" });
@@ -231,6 +236,7 @@
 
   // ── AI fiyat etiketi ────────────────────────────────────────────────────
   function priceBadge(l) {
+    if (!l.price) return null; // fiyatsız kayda etiket üretme ("%100 fırsat" hatası)
     const est = estimate(l);
     if (!est || !est.mid) return null;
     const ratio = l.price / est.mid;
@@ -248,7 +254,7 @@
       s.push(`${l.year} model ${l.brand} ${l.model}, ${l.city} / ${l.district} konumunda ${catLabel}.`);
       s.push(`${fmtNum(l.km)} km'de, ${(l.fuel || "").toLocaleLowerCase("tr-TR")} yakıtlı ve ${(l.gear || "").toLocaleLowerCase("tr-TR")} vitestir.`);
       const est = estimate(l);
-      if (est) {
+      if (est && l.price > 0) {
         const b = priceBadge(l);
         if (b && b.key === "firsat") s.push(`Yapay zekâ analizine göre fiyat, piyasa değerinin yaklaşık %${b.pct} altındadır.`);
         else if (b && b.key === "uygun") s.push("Yapay zekâ analizine göre fiyat, piyasa değeriyle uyumludur.");
@@ -280,7 +286,7 @@
       s.push("Öne çıkan özellikler: " + l.features.join(", ") + ".");
     }
     const est = estimate(l);
-    if (est) {
+    if (est && l.price > 0) {
       const b = priceBadge(l);
       if (b && b.key === "firsat") s.push(`Yapay zekâ analizine göre fiyat, bölge ortalamasının yaklaşık %${b.pct} altındadır — değerlendirilmesi gereken bir fırsattır.`);
       else if (b && b.key === "uygun") s.push("Yapay zekâ analizine göre fiyat, bölge piyasasıyla uyumludur.");
@@ -415,7 +421,7 @@
     const g = Object.assign({}, f);
     let results = applyFilters(EMLAK.data.all(), g);
     const relaxed = [];
-    const relaxOrder = [["rooms", "oda sayısı"], ["maxPrice", "fiyat üst sınırı"], ["minPrice", "fiyat alt sınırı"], ["model", "model"], ["maxKm", "km sınırı"], ["minYear", "model yılı"], ["kind", "gayrimenkul türü"], ["district", "ilçe"]];
+    const relaxOrder = [["rooms", "oda sayısı"], ["maxAge", "bina yaşı"], ["maxPrice", "fiyat üst sınırı"], ["minPrice", "fiyat alt sınırı"], ["model", "model"], ["maxKm", "km sınırı"], ["minYear", "model yılı"], ["kind", "gayrimenkul türü"], ["district", "ilçe"]];
     for (const [k, label] of relaxOrder) {
       if (results.length) break;
       if (g[k] != null) { delete g[k]; relaxed.push(label); results = applyFilters(EMLAK.data.all(), g); }

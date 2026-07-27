@@ -60,9 +60,13 @@
     daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", dukkan: "🏪", ofis: "🏛️", arsa: "🌳",
     otomobil: "🚗",
   };
+  // Fotoğraf kaynağı beyaz listesi: yalnızca base64 görsel ya da repo içi yol
+  const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+)$/;
+  const safePhoto = (p) => (typeof p === "string" && SAFE_PHOTO.test(p) ? p : "");
   function thumbHTML(l, big) {
-    if (l.photos && l.photos.length) {
-      return `<img src="${l.photos[0]}" alt="${esc(l.title)}" style="width:100%;height:100%;object-fit:cover">`;
+    const p = safePhoto(l.photos && l.photos[0]);
+    if (p) {
+      return `<img src="${p}" alt="${esc(l.title)}" style="width:100%;height:100%;object-fit:cover">`;
     }
     return thumbSVG(l, big);
   }
@@ -119,7 +123,7 @@
         ${l.featured ? `<span class="badge badge-feat">${C.featured.label}</span>` : ""}
         ${b ? `<span class="badge ${b.cls}" ${l.featured ? 'style="top:40px"' : ""}>${b.label}${b.pct ? " (%" + b.pct + ")" : ""}</span>` : ""}
         <span class="badge badge-cat">${l.category === "satilik" ? "Satılık" : "Kiralık"}</span>
-        <button class="fav-btn" data-fav="${l.id}" title="Favorilere ekle" style="z-index:3">${isFav ? "❤️" : "🤍"}</button>
+        <button class="fav-btn" data-fav="${esc(l.id)}" aria-label="Favorilere ekle" aria-pressed="${isFav}" style="z-index:3">${isFav ? "❤️" : "🤍"}</button>
       </div>
       <div class="body">
         <div class="price">${fmtPrice(l)}</div>
@@ -127,14 +131,16 @@
         <div class="meta">${meta.map(esc).join(" · ")}</div>
         <div class="loc">📍 ${esc(l.city)} / ${esc(l.district)}</div>
       </div>
-      <a class="overlay" href="ilan.html?id=${l.id}" aria-label="${esc(l.title)}"></a>
+      <a class="overlay" href="ilan.html?id=${encodeURIComponent(l.id)}" aria-label="${esc(l.title)}"></a>
     </article>`;
   }
   function bindFavButtons(root) {
     $$("[data-fav]", root).forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault(); e.stopPropagation();
-        btn.textContent = toggleFav(btn.dataset.fav) ? "❤️" : "🤍";
+        const on = toggleFav(btn.dataset.fav);
+        btn.textContent = on ? "❤️" : "🤍";
+        btn.setAttribute("aria-pressed", on);
         if (document.body.dataset.page === "favoriler") pageFavoriler();
       });
     });
@@ -152,13 +158,24 @@
   // ── Ortak başlık/menü/tema/FAB ─────────────────────────────────────────
   function initChrome() {
     const t = $("#themeToggle");
-    if (t) t.addEventListener("click", () => {
-      const now = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      localStorage.setItem(themeKey, now);
-      applyTheme(now);
-    });
+    if (t) {
+      t.setAttribute("aria-label", "Tema değiştir");
+      t.addEventListener("click", () => {
+        const now = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        localStorage.setItem(themeKey, now);
+        applyTheme(now);
+      });
+    }
     const m = $("#menuToggle");
-    if (m) m.addEventListener("click", () => $("#mainNav").classList.toggle("open"));
+    if (m) {
+      m.setAttribute("aria-label", "Menü");
+      m.setAttribute("aria-expanded", "false");
+      m.setAttribute("aria-controls", "mainNav");
+      m.addEventListener("click", () => {
+        const open = $("#mainNav").classList.toggle("open");
+        m.setAttribute("aria-expanded", open);
+      });
+    }
     updateFavCount();
     // İletişim enjeksiyonu
     $$("[data-c-tel]").forEach((a) => { a.href = "tel:" + C.company.phone.intl; a.textContent = C.company.phone.display; });
@@ -169,11 +186,20 @@
   }
 
   // ── SEO: JSON-LD yapılandırılmış veri (config'ten üretilir) ─────────────
+  // "<" kaçırılır: içerik ileride innerHTML/SSR'a taşınsa bile </script>
+  // kırılması yaşanmaz (savunma derinliği).
+  const jsonLdStr = (obj) => JSON.stringify(obj).replace(/</g, "\\u003c").replace(/[\u2028\u2029]/g, (m) => (m === "\u2028" ? "\\u2028" : "\\u2029"));
   function addJsonLd(obj) {
     const s = document.createElement("script");
     s.type = "application/ld+json";
-    s.textContent = JSON.stringify(obj);
+    s.textContent = jsonLdStr(obj);
     document.head.appendChild(s);
+  }
+  // OG meta güncelle/oluştur (ilan detayında paylaşım kartları için)
+  function setMetaProp(prop, content) {
+    let el = document.querySelector(`meta[property="${prop}"]`);
+    if (!el) { el = document.createElement("meta"); el.setAttribute("property", prop); document.head.appendChild(el); }
+    el.setAttribute("content", content);
   }
   function injectSiteJsonLd() {
     const url = C.seo.siteUrl;
@@ -239,13 +265,17 @@
     };
     const input = $("#aiQuery");
     input.placeholder = PH.emlak;
-    $$("#segTabs .tab-btn").forEach((b) => b.addEventListener("click", () => {
-      $$("#segTabs .tab-btn").forEach((x) => x.classList.remove("active"));
-      b.classList.add("active");
-      seg = b.dataset.seg;
-      input.placeholder = PH[seg];
-      input.focus();
-    }));
+    $$("#segTabs .tab-btn").forEach((b) => {
+      b.setAttribute("aria-selected", b.classList.contains("active"));
+      b.addEventListener("click", () => {
+        $$("#segTabs .tab-btn").forEach((x) => { x.classList.remove("active"); x.setAttribute("aria-selected", "false"); });
+        b.classList.add("active");
+        b.setAttribute("aria-selected", "true");
+        seg = b.dataset.seg;
+        input.placeholder = PH[seg];
+        input.focus();
+      });
+    });
     const doSearch = () => {
       const text = input.value.trim();
       const f = text ? AI.parseQuery(text) : {};
@@ -310,7 +340,9 @@
       const seg = $("#fSeg").value;
       $$(".f-emlak").forEach((el) => { el.style.display = seg === "emlak" ? "" : "none"; });
       $$(".f-vasita").forEach((el) => { el.style.display = seg === "vasita" ? "" : "none"; });
-      document.querySelector('#fSort option[value="m2"]').hidden = seg !== "emlak";
+      const m2opt = document.querySelector('#fSort option[value="m2"]');
+      m2opt.hidden = seg !== "emlak";
+      if (m2opt.hidden && $("#fSort").value === "m2") $("#fSort").value = "new";
     }
     syncSegmentUI();
 
@@ -359,13 +391,22 @@
         list = AI.rank(list); // öne çıkan ilanlar varsayılan sıralamada önce gelir
       }
       $("#count").textContent = fmt(list.length) + " ilan bulundu";
-      renderCards($("#grid"), list, D.all().length === 0
-        ? "Henüz yayında ilan yok. İlk ilanı siz verebilirsiniz — İlan Ver sayfası bir dakikanızı alır."
+      // Boş durum mesajı: segmentte hiç ilan yoksa filtre önerme, ilan vermeye yönlendir
+      const seg = $("#fSeg").value;
+      const segCount = D.all().filter((x) => (x.segment || "emlak") === seg).length;
+      renderCards($("#grid"), list, segCount === 0
+        ? (seg === "vasita" ? "Araç" : "Taşınmaz") + " segmentinde henüz yayında ilan yok. İlk ilanı siz verebilirsiniz — İlan Ver sayfası bir dakikanızı alır."
         : "Bu kriterlere uygun ilan bulunamadı. Filtreleri genişletmeyi deneyin.");
     }
     $("#fSeg").addEventListener("change", () => { syncSegmentUI(); run(); });
     const ft = $("#filtersToggle");
-    if (ft) ft.addEventListener("click", () => $(".filters").classList.toggle("open"));
+    if (ft) {
+      ft.setAttribute("aria-expanded", "false");
+      ft.addEventListener("click", () => {
+        const open = $(".filters").classList.toggle("open");
+        ft.setAttribute("aria-expanded", open);
+      });
+    }
     $("#applyBtn").addEventListener("click", run);
     $("#fSort").addEventListener("change", run);
     $("#clearBtn").addEventListener("click", () => { location.href = "ilanlar.html?segment=" + $("#fSeg").value; });
@@ -379,40 +420,67 @@
     const l = id && D.byId(id);
     const root = $("#detailRoot");
     if (!l) {
+      const nx = document.createElement("meta");
+      nx.name = "robots"; nx.content = "noindex";
+      document.head.appendChild(nx);
       root.innerHTML = '<div class="empty"><p style="font-size:2.4rem">😕</p><p>İlan bulunamadı ya da yayından kaldırılmış.</p><p style="margin-top:14px"><a class="btn" href="ilanlar.html">Tüm İlanlara Dön</a></p></div>';
       return;
     }
     document.title = l.title + " — " + C.brand.name;
-    // Dinamik SEO: description, canonical ve ilan JSON-LD'si
+    // Dinamik SEO: description, canonical, OG kartları ve ilan JSON-LD'si
     const metaDesc = document.querySelector('meta[name="description"]');
-    const descText = `${l.title} — ${fmt(l.price)} ₺${l.category === "kiralik" ? "/ay" : ""}, ${fmt(l.m2)} m²${l.rooms ? ", " + l.rooms : ""}, ${l.city}/${l.district}. AI değerleme ve fiyat analiziyle.`;
+    const descText = l.segment === "vasita"
+      ? `${l.title} — ${fmt(l.price)} ₺${priceSuffix(l)}, ${l.year} model, ${fmt(l.km)} km, ${l.fuel}, ${l.gear}, ${l.city}/${l.district}. AI değerleme ve fiyat analiziyle.`
+      : `${l.title} — ${fmt(l.price)} ₺${priceSuffix(l)}${l.m2 ? ", " + fmt(l.m2) + " m²" : ""}${l.rooms ? ", " + l.rooms : ""}, ${l.city}/${l.district}. AI değerleme ve fiyat analiziyle.`;
     if (metaDesc) metaDesc.setAttribute("content", descText);
     let canon = document.querySelector('link[rel="canonical"]');
     if (!canon) { canon = document.createElement("link"); canon.rel = "canonical"; document.head.appendChild(canon); }
-    canon.href = C.seo.siteUrl + "/ilan.html?id=" + l.id;
+    canon.href = C.seo.siteUrl + "/ilan.html?id=" + encodeURIComponent(l.id);
+    // Paylaşım kartları (OG) — statik jenerik değerlerin üzerine yazılır
+    const webPhotos = (l.photos || []).filter((p) => safePhoto(p) && !p.startsWith("data:")).map((p) => C.seo.siteUrl + "/" + p);
+    setMetaProp("og:title", document.title);
+    setMetaProp("og:description", descText);
+    setMetaProp("og:url", canon.href);
+    if (webPhotos.length) setMetaProp("og:image", webPhotos[0]);
+    // JSON-LD: araç → Car (Product alt tipi, offers geçerli); taşınmaz →
+    // Product + RealEstateListing çoklu tip (offers) ve about: Accommodation
+    const offer = {
+      "@type": "Offer", price: l.price, priceCurrency: "TRY",
+      availability: "https://schema.org/InStock", url: canon.href,
+      ...(l.category === "kiralik" ? { priceSpecification: { "@type": "UnitPriceSpecification", price: l.price, priceCurrency: "TRY", unitCode: l.segment === "vasita" ? "DAY" : "MON" } } : {}),
+    };
+    const address = { "@type": "PostalAddress", addressLocality: l.district, addressRegion: l.city, addressCountry: "TR" };
     const ld = document.createElement("script");
     ld.type = "application/ld+json";
-    ld.textContent = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": l.category === "kiralik" ? "RealEstateListing" : "RealEstateListing",
+    ld.textContent = jsonLdStr(l.segment === "vasita" ? {
+      "@context": "https://schema.org", "@type": "Car",
       name: l.title, url: canon.href, description: descText,
-      datePosted: l.date,
-      offers: { "@type": "Offer", price: l.price, priceCurrency: "TRY", availability: "https://schema.org/InStock" },
-      address: { "@type": "PostalAddress", addressLocality: l.district, addressRegion: l.city, addressCountry: "TR" },
-      floorSize: { "@type": "QuantitativeValue", value: l.m2, unitCode: "MTK" },
-      numberOfRooms: l.rooms || undefined,
-      image: (l.photos && l.photos[0]) || C.seo.siteUrl + C.seo.ogImage,
+      brand: { "@type": "Brand", name: l.brand }, model: l.model,
+      vehicleModelDate: String(l.year || ""),
+      mileageFromOdometer: { "@type": "QuantitativeValue", value: l.km, unitCode: "KMT" },
+      fuelType: l.fuel, vehicleTransmission: l.gear,
+      offers: offer,
+      image: webPhotos.length ? webPhotos : undefined,
+    } : {
+      "@context": "https://schema.org", "@type": ["Product", "RealEstateListing"],
+      name: l.title, url: canon.href, description: descText,
+      datePosted: l.date, offers: offer,
+      about: {
+        "@type": "Accommodation", name: l.title, address,
+        ...(l.m2 ? { floorSize: { "@type": "QuantitativeValue", value: l.m2, unitCode: "MTK" } } : {}),
+        ...(l.rooms ? { numberOfRooms: l.rooms } : {}),
+      },
+      image: webPhotos.length ? webPhotos : undefined,
     });
     document.head.appendChild(ld);
     const ldBc = document.createElement("script");
     ldBc.type = "application/ld+json";
-    ldBc.textContent = JSON.stringify({
+    ldBc.textContent = jsonLdStr({
       "@context": "https://schema.org", "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "Ana Sayfa", item: C.seo.siteUrl + "/" },
         { "@type": "ListItem", position: 2, name: "İlanlar", item: C.seo.siteUrl + "/ilanlar.html" },
-        { "@type": "ListItem", position: 3, name: l.city, item: C.seo.siteUrl + "/ilanlar.html?city=" + encodeURIComponent(l.city) },
-        { "@type": "ListItem", position: 4, name: l.title, item: canon.href },
+        { "@type": "ListItem", position: 3, name: l.title, item: canon.href },
       ],
     });
     document.head.appendChild(ldBc);
@@ -461,8 +529,9 @@
       </div>
       <div class="detail-layout container">
         <div>
+          <h1 class="detail-title">${esc(l.title)}</h1>
           <div class="gallery" id="galleryMain">${thumbHTML(l, true)}</div>
-          ${(l.photos || []).length > 1 ? `<div class="photo-strip">${l.photos.map((p, i) => `<img src="${p}" data-photo="${i}" alt="Fotoğraf ${i + 1}" class="${i === 0 ? "sel" : ""}">`).join("")}</div>` : ""}
+          ${(l.photos || []).length > 1 ? `<div class="photo-strip">${l.photos.map((p, i) => `<img src="${safePhoto(p)}" data-photo="${i}" alt="Fotoğraf ${i + 1}" class="${i === 0 ? "sel" : ""}">`).join("")}</div>` : ""}
           <div class="detail-card">
             <h2>Açıklama</h2>
             <p>${esc(desc)}</p>
@@ -497,9 +566,9 @@
             <div class="avatar">${esc(l.seller.name[0])}</div>
             <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small></div>
           </div>
-          <a class="btn" id="callBtn" href="tel:${contact.intl}">📞 ${esc(contact.display)}</a>
-          <a class="btn" style="background:#25d366" href="${wa}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
-          <button class="btn ghost" data-fav="${l.id}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
+          <a class="btn" id="callBtn" href="tel:${esc(contact.intl)}">📞 ${esc(contact.display)}</a>
+          <a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
+          <button class="btn ghost" data-fav="${esc(l.id)}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
           <div style="display:flex;gap:8px">
             <button class="btn ghost sm" id="shareBtn" type="button" style="flex:1">Paylaş</button>
             <button class="btn ghost sm" id="printBtn" type="button" style="flex:1">Yazdır / PDF</button>
@@ -518,7 +587,7 @@
     sparkline($("#trendChart"), AI.trend(l.city, l.district), l.city + " / " + l.district);
     renderCards($("#similarGrid"), AI.similar(l, D.all(), 4));
     $$(".photo-strip img", root).forEach((im) => im.addEventListener("click", () => {
-      $("#galleryMain").innerHTML = `<img src="${l.photos[+im.dataset.photo]}" alt="${esc(l.title)}" style="width:100%;display:block">`;
+      $("#galleryMain").innerHTML = `<img src="${safePhoto(l.photos[+im.dataset.photo])}" alt="${esc(l.title)}" style="width:100%;display:block">`;
       $$(".photo-strip img", root).forEach((x) => x.classList.remove("sel"));
       im.classList.add("sel");
     }));
@@ -601,8 +670,8 @@
     });
     function renderPhotoPreview() {
       $("#photoPreview").innerHTML = photos.map((p, i) =>
-        `<span style="position:relative;display:inline-block"><img src="${p}" alt="Fotoğraf ${i + 1}" style="width:90px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
-         <button type="button" data-rm="${i}" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:20px;height:20px;font-size:11px;line-height:1">✕</button></span>`).join("");
+        `<span style="position:relative;display:inline-block"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}" style="width:90px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+         <button type="button" data-rm="${i}" aria-label="Fotoğraf ${i + 1}'i kaldır" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:20px;height:20px;font-size:11px;line-height:1">✕</button></span>`).join("");
       $$("#photoPreview [data-rm]").forEach((b) => b.addEventListener("click", () => { photos.splice(+b.dataset.rm, 1); renderPhotoPreview(); }));
     }
 
@@ -639,7 +708,9 @@
         kind, kindLabel,
         m2: +$("#pM2").value || 0,
         rooms: kind === "arsa" ? null : $("#pRooms").value || null,
-        age: kind === "arsa" ? null : +$("#pAge").value || 0,
+        // Boş bırakılan bina yaşı null kalır ("Sıfır bina" varsayılmaz,
+        // değerlemeye yaş katsayısı uygulanmaz)
+        age: kind === "arsa" || $("#pAge").value === "" ? null : Math.max(0, +$("#pAge").value || 0),
         bath: 1, floorPos: null, floor: null, totalFloors: null,
         heating: kind === "arsa" ? null : "Kombi (Doğalgaz)",
         features: $$("#featBoxes input:checked").map((i) => i.value),
@@ -651,7 +722,7 @@
       if ($("#pPhone").value.trim() && !l.phone) return "Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).";
       if (l.segment === "vasita") {
         if (!l.brand || !l.model) return "Marka ve model seçin.";
-        if (!l.year || l.year < C.vehicles.minYear || l.year > 2026) return "Geçerli bir model yılı girin.";
+        if (!l.year || l.year < C.vehicles.minYear || l.year > new Date().getFullYear() + 1) return "Geçerli bir model yılı girin.";
         if (l.km == null || l.km < 0) return "Geçerli bir kilometre girin.";
         return null;
       }
@@ -695,7 +766,11 @@
       l.title = l.title || autoTitle(l);
       l.desc = l.desc || null;
       const saved = D.saveUserListing(l);
-      location.href = "ilan.html?id=" + saved.id;
+      if (!saved) { // depolama kotası aşıldı (fotoğraflar çok yer kaplıyor)
+        $("#suggestOut").innerHTML = '<span style="color:var(--over)">İlan kaydedilemedi: fotoğraflar cihaz depolamasına sığmadı. Birkaç fotoğrafı kaldırıp yeniden deneyin.</span>';
+        return;
+      }
+      location.href = "ilan.html?id=" + encodeURIComponent(saved.id);
     });
   }
 
@@ -738,7 +813,7 @@
           fuel: $("#vFuel").value, gear: $("#vGear").value,
           category: $("#vCat").value,
         };
-        if (!p.year || p.year < C.vehicles.minYear || p.year > 2026) {
+        if (!p.year || p.year < C.vehicles.minYear || p.year > new Date().getFullYear() + 1) {
           panel.style.display = "block";
           panel.innerHTML = '<p style="color:var(--over)">Lütfen geçerli bir model yılı girin.</p>';
           return;
@@ -772,8 +847,15 @@
       panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
 
-    // Kredi hesaplayıcı
-    $("#kRate").value = C.credit.defaultRate;
+    // Kredi hesaplayıcı — kredi türüne göre oran ve vadeler config'ten gelir
+    function syncCreditUI() {
+      const cr = $("#kType").value === "vasita" ? C.credit.vehicle : C.credit;
+      $("#kRate").value = cr.defaultRate;
+      $("#kTerm").innerHTML = cr.terms.map((t, i) =>
+        `<option value="${t}"${i === 1 ? " selected" : ""}>${t >= 12 && t % 12 === 0 ? t / 12 + " yıl (" + t + " ay)" : t + " ay"}</option>`).join("");
+    }
+    $("#kType").addEventListener("change", syncCreditUI);
+    syncCreditUI();
     $("#kBtn").addEventListener("click", () => {
       const amount = +$("#kAmount").value || 0;
       const rate = +$("#kRate").value || 0;
@@ -804,8 +886,13 @@
         const r = EMLAK.ai.chat(text);
         let html = esc(r.reply);
         if (r.listings) {
-          html += r.listings.map((l) => `<a class="mini-card" href="ilan.html?id=${l.id}">
-            <b>${fmtPrice(l)}</b> — ${esc(l.title)}<br><small>📍 ${esc(l.city)} / ${esc(l.district)} · ${fmt(l.m2)} m²${l.rooms ? " · " + l.rooms : ""}</small></a>`).join("");
+          html += r.listings.map((l) => {
+            const info = l.segment === "vasita"
+              ? `${l.year} · ${fmt(l.km)} km${l.fuel ? " · " + l.fuel : ""}`
+              : `${fmt(l.m2)} m²${l.rooms ? " · " + l.rooms : ""}`;
+            return `<a class="mini-card" href="ilan.html?id=${encodeURIComponent(l.id)}">
+            <b>${fmtPrice(l)}</b> — ${esc(l.title)}<br><small>📍 ${esc(l.city)} / ${esc(l.district)} · ${esc(info)}</small></a>`;
+          }).join("");
         }
         if (r.action) html += `<a class="mini-card" style="text-align:center;font-weight:700;color:var(--primary)" href="${r.action.href}">${esc(r.action.label)} →</a>`;
         typing.innerHTML = html;
@@ -832,19 +919,32 @@
     const cmp = $("#compareWrap");
     if (list.length >= 2) {
       cmp.style.display = "block";
+      const four = list.slice(0, 4);
+      const allVasita = four.every((l) => l.segment === "vasita");
+      const allEmlak = four.every((l) => l.segment !== "vasita");
+      // Satır kümesi segmente göre: karışık listede yalnızca ortak satırlar
       const rows = [
         ["Fiyat", (l) => fmtPrice(l)],
         ["Konum", (l) => l.city + " / " + l.district],
+      ];
+      if (allEmlak) rows.push(
         ["Tür", (l) => l.kindLabel],
-        ["Alan", (l) => fmt(l.m2) + " m²"],
-        ["₺/m²", (l) => fmt(Math.round(l.price / l.m2))],
+        ["Alan", (l) => (l.m2 ? fmt(l.m2) + " m²" : "—")],
+        ["₺/m²", (l) => (l.m2 ? fmt(Math.round(l.price / l.m2)) : "—")],
         ["Oda", (l) => l.rooms || "—"],
         ["Yaş", (l) => (l.age != null ? l.age : "—")],
-        ["AI Etiketi", (l) => { const b = AI.priceBadge(l); return b ? b.label.replace("AI: ", "") : "—"; }],
-      ];
+      );
+      if (allVasita) rows.push(
+        ["Marka / Model", (l) => l.brand + " " + l.model],
+        ["Yıl", (l) => l.year || "—"],
+        ["Kilometre", (l) => (l.km != null ? fmt(l.km) + " km" : "—")],
+        ["Yakıt", (l) => l.fuel || "—"],
+        ["Vites", (l) => l.gear || "—"],
+      );
+      rows.push(["AI Etiketi", (l) => { const b = AI.priceBadge(l); return b ? b.label.replace("AI: ", "") : "—"; }]);
       $("#compareTable").innerHTML =
-        "<tr><td></td>" + list.slice(0, 4).map((l) => `<td><b><a href="ilan.html?id=${l.id}">${esc(l.title)}</a></b></td>`).join("") + "</tr>" +
-        rows.map(([k, fn]) => `<tr><td>${k}</td>` + list.slice(0, 4).map((l) => `<td>${fn(l)}</td>`).join("") + "</tr>").join("");
+        "<tr><td></td>" + four.map((l) => `<td><b><a href="ilan.html?id=${encodeURIComponent(l.id)}">${esc(l.title)}</a></b></td>`).join("") + "</tr>" +
+        rows.map(([k, fn]) => `<tr><td>${esc(k)}</td>` + four.map((l) => `<td>${esc(fn(l))}</td>`).join("") + "</tr>").join("");
     } else cmp.style.display = "none";
   }
 

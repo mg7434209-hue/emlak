@@ -62,16 +62,16 @@
         <div class="f-vasita"><label for="fModel">Model</label><select id="fModel"></select></div>
         <div class="f-vasita"><label>Yıl / Kilometre</label>
           <div class="row2">
-            <input id="fMinYear" type="number" min="2008" max="2026" placeholder="Min yıl">
-            <input id="fMaxKm" type="number" min="0" placeholder="Max km">
+            <input id="fMinYear" type="number" min="2008" placeholder="Min yıl" aria-label="En düşük model yılı">
+            <input id="fMaxKm" type="number" min="0" placeholder="Max km" aria-label="En yüksek kilometre">
           </div>
         </div>
         <div class="f-vasita"><label for="fFuel">Yakıt</label><select id="fFuel"></select></div>
         <div class="f-vasita"><label for="fGear">Vites</label><select id="fGear"></select></div>
         <div><label>Fiyat Aralığı (₺)</label>
           <div class="row2">
-            <input id="fMin" type="number" min="0" placeholder="Min">
-            <input id="fMax" type="number" min="0" placeholder="Max">
+            <input id="fMin" type="number" min="0" placeholder="Min" aria-label="En düşük fiyat (₺)">
+            <input id="fMax" type="number" min="0" placeholder="Max" aria-label="En yüksek fiyat (₺)">
           </div>
         </div>
         <button class="btn" id="applyBtn" type="button">Uygula</button>
@@ -110,7 +110,7 @@
     </div>
   </footer>
 
-  <a class="fab" href="asistan.html">✦ AI Asistan</a>
+  <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
   <script src="assets/config.js"></script>
   <script src="assets/data.js"></script>
   <script src="assets/ai.js"></script>

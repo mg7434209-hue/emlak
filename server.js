@@ -33,17 +33,24 @@ const MIME = {
 };
 
 function safeJoin(base, target) {
+  // path traversal koruması: çözülen yol, kökün KENDİSİ ya da kök + ayraç ile
+  // başlamalı ("/emlak" ile başlayan kardeş dizinler, ör. "/emlak-x", ELENİR)
   const targetPath = path.normalize(path.join(base, target));
-  if (!targetPath.startsWith(base)) return null; // path traversal koruması
+  if (targetPath !== base && !targetPath.startsWith(base + path.sep)) return null;
   return targetPath;
 }
 
+// Host başlığı doğrulaması: yalnızca bilinen yayın host'larına yönlendirme
+// yapılır (istemci kontrollü Host ile açık yönlendirme engellenir).
+const HOST_OK = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$|(^|\.)up\.railway\.app$|(^|\.)github\.io$/;
+
 const server = http.createServer((req, res) => {
   try {
-    // HTTP → HTTPS (yalnızca proxy açıkça http dediğinde; aynı host korunur).
+    // HTTP → HTTPS (yalnızca proxy açıkça http dediğinde ve host bilinen bir
+    // yayın host'uysa; aksi halde yönlendirme yapılmaz, istek normal servis edilir).
     const host = (req.headers.host || "").toLowerCase();
     const xfp = req.headers["x-forwarded-proto"];
-    if (xfp === "http" && host && !/^(localhost|127\.|0\.0\.0\.0)/.test(host)) {
+    if (xfp === "http" && HOST_OK.test(host) && !/^(localhost|127\.|0\.0\.0\.0)/.test(host)) {
       res.writeHead(301, { Location: "https://" + host + req.url });
       return res.end();
     }
@@ -75,6 +82,12 @@ const server = http.createServer((req, res) => {
       "Content-Type": mime,
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=86400",
+      // Satır içi script yok (script-src 'self'); satır içi style= üretildiği
+      // için style-src'de 'unsafe-inline' gerekli. img data: → base64 ilan
+      // fotoğrafları ve SVG favicon için.
+      "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "X-Frame-Options": "DENY",
     };
 
     const accept = req.headers["accept-encoding"] || "";

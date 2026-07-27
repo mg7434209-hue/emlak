@@ -16,6 +16,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+  <!-- FAQPage JSON-LD: sayfada GÖRÜNEN SSS ile birebir aynı tutulur -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -24,52 +25,42 @@
       {
         "@type": "Question",
         "name": "Ev satın alırken hangi adımları izlemeliyim?",
-        "acceptedAnswer": { "@type": "Answer", "text": "1) Bütçenizi ve kredi limitinizi netleştirin. 2) Bölge fiyatlarını araştırın — EmlakAI Bölge Fiyatları sayfası ilçe bazlı ortalama m² fiyatlarını gösterir. 3) İlanları AI fiyat etiketine göre karşılaştırın (Fırsat / Piyasa Uygunu / Piyasa Üstü). 4) Beğendiğiniz evi yerinde görün, tapu ve iskân durumunu kontrol edin. 5) Pazarlık öncesi AI değerleme bandını referans alın. 6) Tapu devrini resmi işlemle tamamlayın." }
+        "acceptedAnswer": { "@type": "Answer", "text": "Bütçenizi netleştirin, bölge fiyatlarını araştırın, ilanları AI fiyat etiketiyle karşılaştırın, evi yerinde görüp tapu/iskân kontrolü yapın, pazarlıkta AI değerleme bandını referans alın ve tapu devriyle tamamlayın." }
       },
       {
         "@type": "Question",
-        "name": "EmlakAI'nin yapay zekâ değerlemesi nasıl çalışır?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Değerleme motoru, ilçe bazlı güncel ortalama m² fiyatını temel alır; gayrimenkul türü, bina yaşı, oda düzeni, kat konumu ve özellikler (deniz manzarası, havuz, otopark vb.) için katsayılar uygular. Sonuç, ±%8 güven bandıyla birlikte tahmini değer aralığı olarak sunulur. Değerleme bilgi amaçlıdır; kesin değer için yerinde ekspertiz gerekir." }
+        "name": "AI değerleme ne kadar güvenilir?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Değerleme, bölge piyasa ortalamaları ve özellik katsayılarına dayanır; ±%8 güven bandıyla sunulur. Fikir verme amaçlıdır — kredi ve resmi işlemler için lisanslı ekspertiz raporu gerekir." }
       },
       {
         "@type": "Question",
-        "name": "İlanım aramalarda nasıl öne çıkar?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Üç şey belirleyici: eksiksizlik, doğru fiyat ve öne çıkarma. Konum + oda + tür geçen açıklayıcı bir başlık, 180+ karakterlik açıklama, 4+ özellik ve fotoğraf ekleyin; fiyatı AI değerleme bandının içinde tutun. Ayrıca 'İlanımı öne çıkar' seçeneği, ilanınızı listelerde öne alır." }
+        "name": "AI fiyat etiketi neye göre veriliyor?",
+        "acceptedAnswer": { "@type": "Answer", "text": "İlan fiyatı, aynı bölge/özellikteki tahmini piyasa değeriyle kıyaslanır: %7'den ucuzsa Fırsat, ±%7 bandındaysa Piyasa Uygunu, %7'den pahalıysa Piyasa Üstü." }
       },
       {
         "@type": "Question",
-        "name": "AI fiyat etiketi (Fırsat / Piyasa Uygunu / Piyasa Üstü) ne anlama gelir?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Her ilanın fiyatı, aynı bölge ve özellikteki tahmini piyasa değeriyle karşılaştırılır. Fiyat piyasa tahmininin %7'den fazla altındaysa 'Fırsat', ±%7 bandın içindeyse 'Piyasa Uygunu', %7'den fazla üzerindeyse 'Piyasa Üstü' etiketi verilir." }
+        "name": "Kira bedeli nasıl tahmin ediliyor?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Aylık kira, konutun satış değerinin yaklaşık binde 4'ü üzerinden hesaplanır (yıllık ~%5 brüt getiri). Konum ve talebe göre gerçek kira bu tahminden sapabilir." }
       },
       {
         "@type": "Question",
-        "name": "Konut kredisi taksiti nasıl hesaplanır?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Taksitler anüite formülüyle hesaplanır: eşit taksitli kredide aylık ödeme, kredi tutarı, aylık faiz oranı ve vadeye bağlıdır. Örneğin 3.000.000 TL kredi, aylık %2,89 faiz ve 120 ay vadeyle aylık taksit yaklaşık 89.600 TL olur. Bankalar genelde konut değerinin en fazla %80'i kadar kredi verir. Güncel oranlar bankadan bankaya değişir." }
+        "name": "Konut kredisinde taksit neye göre değişir?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Üç değişken var: kredi tutarı, aylık faiz oranı ve vade. Taksitler anüite (eşit taksit) formülüyle hesaplanır. Vade uzadıkça taksit düşer ama toplam faiz artar." }
       },
       {
         "@type": "Question",
-        "name": "Kiralık konutta aylık kira nasıl tahmin edilir?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Pratik bir kural, aylık kiranın konutun satış değerinin binde 4-5'i (yıllık ~%5 brüt getiri) civarında olmasıdır. EmlakAI kira tahminlerini bölge m² fiyatı üzerinden bu oranla hesaplar; konum ve talebe göre sapma olabilir." }
+        "name": "Alım-satım masrafları nelerdir?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Tapu harcı, döner sermaye ücreti, varsa emlak komisyonu, kredili işlemlerde ekspertiz/dosya masrafı ve DASK başlıca kalemlerdir. Oranlar dönemsel değiştiği için işlem öncesi güncel tarifeleri doğrulayın." }
       },
       {
         "@type": "Question",
-        "name": "Ev alım-satımında hangi masraflar var?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Başlıca kalemler: tapu harcı (satış bedeli üzerinden, alıcı-satıcı arasında paylaşımı pazarlığa tabidir), döner sermaye ücreti, varsa emlakçı komisyonu, kredi kullanılıyorsa ekspertiz ve dosya masrafı, DASK ve konut sigortası. Oranlar dönemsel değişir; işlemden önce güncel tarifeleri Tapu Müdürlüğü ve bankanızdan doğrulayın." }
+        "name": "İlan vermek ücretli mi?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Hayır. İlan vermek ücretsizdir; AI fiyat önerisi ve başlık/açıklama yazarı da ücretsiz sunulur." }
       },
       {
         "@type": "Question",
-        "name": "Doğal dil arama ile nasıl ilan bulurum?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Arama kutusuna aradığınızı cümle olarak yazın: örneğin 'Antalya Konyaaltı deniz manzaralı 3+1, 10 milyon altı'. EmlakAI şehir, ilçe, oda sayısı, tür, fiyat aralığı ve özellikleri otomatik ayrıştırıp filtre uygular; birebir sonuç yoksa kriterleri esneterek en yakın ilanları önerir." }
-      },
-      {
-        "@type": "Question",
-        "name": "Yatırım için hangi bölgeler öne çıkıyor?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Genel ilke: değer artış eğilimi yüksek ve birim fiyatı henüz görece düşük ilçeler yatırım potansiyeli taşır. EmlakAI verisinde Antalya yıllık ~%2,2 ile en güçlü eğilime sahip ildir; ilçe bazlı güncel tablo Bölge Fiyatları sayfasındadır. Yatırım kararında konum gelişimi, kira getirisi ve likidite birlikte değerlendirilmelidir." }
-      },
-      {
-        "@type": "Question",
-        "name": "EmlakAI'de ilan vermek ücretli mi?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Hayır, ilan vermek ücretsizdir. İlan bilgilerini girersiniz; yapay zekâ isterseniz başlık ve açıklamayı yazar, piyasa verisine göre fiyat önerir." }
+        "name": "Verilerim nereye gidiyor?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Hiçbir yere. Tüm AI özellikleri tarayıcınızda çalışır; ilanlarınız ve favorileriniz yalnızca kendi cihazınızda (localStorage) saklanır." }
       }
     ]
   }
@@ -120,12 +111,14 @@
       </ol>
 
       <h2>⭐ İlanınızı öne çıkarmanın 5 kuralı</h2>
+      <p class="notice" style="margin-bottom:12px">Not: Sitede verdiğiniz ilanlar şu an yalnızca kendi cihazınızda
+      saklanır. İlanınızın tüm ziyaretçilere yayınlanmasını isterseniz bize iletin — kalıcı yayına biz alalım.</p>
       <ol>
         <li><b>Eksiksiz bilgi:</b> m², oda, bina yaşı ve en az 4 özellik girin — doğal dil aramada her özellik bir eşleşme şansıdır.</li>
         <li><b>Güçlü başlık:</b> Konum + oda + ayırt edici özellik: "Manavgat 3+1 Deniz Manzaralı Satılık Daire".</li>
         <li><b>Zengin açıklama:</b> 180+ karakter hedefleyin; <a href="ilan-ver.html">"AI Yazsın"</a> düğmesi sizin için üretir.</li>
         <li><b>Doğru fiyat:</b> AI değerleme bandının içinde kalın; "Piyasa Üstü" etiketli ilanlar daha az ilgi görür.</li>
-        <li><b>Öne çıkarın:</b> "⭐ İlanımı öne çıkar" seçeneği ilanınızı arama sonuçlarında ve listelerde öne alır.</li>
+        <li><b>Öne çıkarın:</b> "⭐ İlanımı öne çıkar" seçeneği ilanınızı bu cihazdaki listelerde öne alır.</li>
       </ol>
 
       <h2>🤖 Yapay zekâ araçları nasıl çalışır?</h2>
@@ -177,7 +170,7 @@
     </div>
   </footer>
 
-  <a class="fab" href="asistan.html">✦ AI Asistan</a>
+  <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
   <script src="assets/config.js"></script>
   <script src="assets/data.js"></script>
   <script src="assets/ai.js"></script>

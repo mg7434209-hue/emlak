@@ -9,9 +9,10 @@
 - [Ana sayfa](https://mg7434209-hue.github.io/emlak/): AI destekli ilan arama (taşınmaz + araç)
 - [İlanlar](https://mg7434209-hue.github.io/emlak/ilanlar.html): filtreli satılık/kiralık taşınmaz ve araç listesi
 - [Bölge fiyatları](https://mg7434209-hue.github.io/emlak/bolge-fiyatlari.html): il/ilçe bazlı güncel konut m² fiyat tabloları (2026-07)
-- [AI Değerleme](https://mg7434209-hue.github.io/emlak/degerleme.html): ücretsiz anında gayrimenkul değerleme
+- [AI Değerleme](https://mg7434209-hue.github.io/emlak/degerleme.html): ücretsiz anında değerleme — taşınmaz (konum+özellik) ve araç (marka/model/yıl/km); konut ve taşıt kredisi hesaplayıcı
+- [İlan Ver](https://mg7434209-hue.github.io/emlak/ilan-ver.html): AI fiyat önerisi ve AI başlık/açıklama yazarıyla ücretsiz ilan verme
 - [Rehber](https://mg7434209-hue.github.io/emlak/rehber.html): ev alma-satma ve kredi SSS/rehberi
-- [AI Asistan](https://mg7434209-hue.github.io/emlak/asistan.html): doğal dille emlak sorularına yanıt
+- [AI Asistan](https://mg7434209-hue.github.io/emlak/asistan.html): doğal dille taşınmaz/araç sorularına yanıt
 
 ## Bölge fiyat özeti (2026-07, satılık konut)
 

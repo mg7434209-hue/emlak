@@ -51,10 +51,52 @@
   const brandNames = Object.keys(C.vehicles.brands);
 
   // ── Kullanıcı ilanları (localStorage) ──────────────────────────────────
+  // localStorage bir GÜVEN SINIRIDIR: başka bir betik/eklenti tarafından
+  // tahrif edilmiş olabilir. Okurken her kayıt normalize edilir; geçersiz
+  // tipler güvenli varsayılanlara çekilir (XSS ve TypeError'lara karşı).
   const LS_KEY = "emlakai.userListings";
+  const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+)$/;
+  const str = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
+  const num = (v) => (Number.isFinite(+v) ? +v : null);
+  function normalizeListing(l) {
+    if (!l || typeof l !== "object") return null;
+    const seg = l.segment === "vasita" ? "vasita" : "emlak";
+    const seller = l.seller && typeof l.seller === "object" ? l.seller : {};
+    const phone = l.phone && typeof l.phone === "object" &&
+      /^\+90\d{10}$/.test(l.phone.intl) && /^90\d{10}$/.test(l.phone.wa)
+      ? { display: str(l.phone.display, 20), intl: l.phone.intl, wa: l.phone.wa } : null;
+    return {
+      id: String(l.id || "").replace(/[^A-Z0-9]/gi, "").slice(0, 32),
+      user: true, segment: seg,
+      category: l.category === "kiralik" ? "kiralik" : "satilik",
+      kind: KINDS.some((k) => k.kind === l.kind) || l.kind === "otomobil" ? l.kind : "daire",
+      kindLabel: str(l.kindLabel, 40) || "Daire",
+      title: str(l.title, 200), desc: str(l.desc, 4000) || null,
+      city: cityNames.includes(l.city) ? l.city : "",
+      district: str(l.district, 60),
+      price: num(l.price) || 0,
+      m2: num(l.m2), rooms: str(l.rooms, 10) || null, bath: num(l.bath),
+      age: num(l.age), floor: num(l.floor), totalFloors: num(l.totalFloors),
+      floorPos: str(l.floorPos, 10) || null, floorLabel: str(l.floorLabel, 30) || null,
+      heating: str(l.heating, 40) || null,
+      brand: brandNames.includes(l.brand) ? l.brand : (seg === "vasita" ? str(l.brand, 30) : undefined),
+      model: str(l.model, 40) || undefined,
+      year: num(l.year), km: num(l.km),
+      fuel: str(l.fuel, 20) || undefined, gear: str(l.gear, 20) || undefined,
+      features: (Array.isArray(l.features) ? l.features : []).map((f) => str(f, 40)).filter(Boolean).slice(0, 20),
+      photos: (Array.isArray(l.photos) ? l.photos : []).filter((p) => typeof p === "string" && SAFE_PHOTO.test(p)).slice(0, 5),
+      seller: { name: str(seller.name, 80) || "Sahibinden", type: seller.type === "ofis" ? "ofis" : "sahibinden" },
+      phone,
+      date: str(l.date, 40) || new Date(0).toISOString(),
+      views: num(l.views) || 0, favCount: num(l.favCount) || 0,
+      featured: !!l.featured,
+    };
+  }
   function userListings() {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }
-    catch (e) { return []; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+      return (Array.isArray(raw) ? raw : []).map(normalizeListing).filter((l) => l && l.id);
+    } catch (e) { return []; }
   }
   function saveUserListing(l) {
     const all = userListings();
@@ -63,7 +105,11 @@
     l.views = 0;
     l.user = true;
     all.unshift(l);
-    localStorage.setItem(LS_KEY, JSON.stringify(all));
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(all));
+    } catch (e) {
+      return null; // depolama kotası aşıldı (çok/büyük fotoğraf) — çağıran bildirir
+    }
     return l;
   }
   function removeUserListing(id) {

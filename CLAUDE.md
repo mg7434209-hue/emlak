@@ -48,12 +48,14 @@ gömme; değişiklik = config.
 - `assets/data.js`   — ilan veri katmanı (`EMLAK.data`): demo/örnek ilan
   ÜRETİLMEZ, geri ekleme. İki gerçek kaynak: `REAL[]` (repoya işlenen gerçek
   ilanlar — herkese görünür; yeni ilan = listeye ekle + `npm run build` +
-  commit) ve localStorage `emlakai.userListings` (yalnız o cihaz). Fotoğraflar
-  `assets/img/ilanlar/` altında, `photos` dizisinde göreli yol. İlana özel
-  `phone` alanı ara/WhatsApp düğmelerini o numaraya yönlendirir; `locality`,
-  `m2Net`, `dues`, `deed`, `swap`, `creditOk`, `kitchen` isteğe bağlı alanlar
-  detayda gösterilir. `views`/`favCount` taban sayılardır; detay sayfası
-  üzerine cihaz içi sayaç ekler (localStorage `emlakai.views`).
+  commit) ve localStorage `emlakai.userListings` (yalnız o cihaz). localStorage
+  bir GÜVEN SINIRIDIR: `normalizeListing` okurken her kaydı doğrular (tipler,
+  fotoğraf beyaz listesi `SAFE_PHOTO`), tahrif edilmiş veriyi zararsız kılar.
+  Fotoğraflar `assets/img/ilanlar/` altında, `photos` dizisinde göreli yol.
+  İlana özel `phone` alanı ara/WhatsApp düğmelerini o numaraya yönlendirir;
+  `locality`, `m2Net`, `dues`, `deed`, `swap`, `creditOk`, `kitchen` isteğe
+  bağlı alanlar detayda gösterilir. `views`/`favCount` taban sayılardır; detay
+  sayfası üzerine cihaz içi sayaç ekler (localStorage `emlakai.views`).
   Şehir/tür/marka yardımcıları (`brands`, `modelsOf`).
 - `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery —
   marka/model/yıl/km/yakıt/vites dâhil), değerleme (estimate; `segment:
