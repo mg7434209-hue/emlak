@@ -39,6 +39,16 @@
     el.style.display = n ? "grid" : "none";
   }
 
+  // ── Görüntülenme sayacı (cihaz bazlı; ilanın taban sayısına eklenir) ───
+  const viewsKey = "emlakai.views";
+  function bumpViews(id) {
+    let m = {};
+    try { m = JSON.parse(localStorage.getItem(viewsKey) || "{}"); } catch (e) {}
+    m[id] = (m[id] || 0) + 1;
+    localStorage.setItem(viewsKey, JSON.stringify(m));
+    return m[id];
+  }
+
   // ── SVG görsel üreteci (dış görsel yok; tür bazlı yer tutucu) ──────────
   const PALETTES = {
     daire: ["#2456d8", "#4d8bf5"], residence: ["#5b2ac9", "#9b6bff"],
@@ -416,7 +426,6 @@
       ["Yakıt", l.fuel], ["Vites", l.gear],
       ["Konum", l.city + " / " + l.district],
       ["İlan Tarihi", new Date(l.date).toLocaleDateString("tr-TR")],
-      ["Görüntülenme", fmt(l.views)],
     ] : [
       ["İlan No", l.id], ["Kategori", catLabel],
       ["Tür", l.kindLabel], ["Konum", l.city + " / " + l.district],
@@ -434,11 +443,13 @@
       l.creditOk != null && ["Krediye Uygun", l.creditOk ? "Evet" : "Hayır"],
       l.swap != null && ["Takas", l.swap ? "Evet" : "Hayır"],
       ["İlan Tarihi", new Date(l.date).toLocaleDateString("tr-TR")],
-      ["Görüntülenme", fmt(l.views)],
     ]).filter(Boolean);
 
     const dotPos = est ? Math.max(4, Math.min(96, 50 + ((l.price / est.mid - 1) / 0.25) * 50)) : 50;
     const contact = l.phone || C.company.phone; // ilana özel telefon varsa o kullanılır
+    // İstatistikler: taban (kaynak ilan) + bu cihazdaki görüntülenme/favori
+    const totalViews = (l.views || 0) + bumpViews(l.id);
+    const statHTML = () => `👁 ${fmt(totalViews)} görüntülenme &nbsp;·&nbsp; ❤️ ${fmt((l.favCount || 0) + (favs().includes(l.id) ? 1 : 0))} favori`;
     const wa = "https://wa.me/" + contact.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`);
 
     root.innerHTML = `
@@ -470,6 +481,7 @@
         </div>
         <aside class="side-card">
           <div class="price">${fmtPrice(l)}</div>
+          <div class="stat-line" id="statLine">${statHTML()}</div>
           ${l.featured ? `<span class="chip" style="border-color:var(--accent);color:var(--accent);font-weight:700">${C.featured.label} İlan</span>` : ""}
           ${b ? `<span class="chip" style="border-color:currentColor;color:${b.key === "firsat" ? "var(--deal)" : b.key === "ustu" ? "var(--over)" : "var(--fair)"}">${b.label}${b.pct ? " — piyasadan %" + b.pct + (b.key === "firsat" ? " ucuz" : " pahalı") : ""}</span>` : ""}
           ${est ? `<div class="est-box">
@@ -507,6 +519,7 @@
     const favBtn = $(".side-card [data-fav]", root);
     favBtn.addEventListener("click", () => {
       favBtn.textContent = toggleFav(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle";
+      $("#statLine").innerHTML = statHTML();
     });
     const rmBtn = $("#removeBtn", root);
     if (rmBtn) rmBtn.addEventListener("click", () => {

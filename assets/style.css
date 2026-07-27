@@ -275,6 +275,7 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
   padding: 20px; position: sticky; top: 80px; display: grid; gap: 12px;
 }
 .side-card .price { font-size: 1.7rem; font-weight: 800; color: var(--primary); }
+.stat-line { color: var(--muted); font-size: 0.85rem; }
 .seller { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface-2); border-radius: 10px; }
 .seller .avatar { width: 40px; height: 40px; border-radius: 999px; background: var(--primary); color: #fff; display: grid; place-items: center; font-weight: 700; }
 .est-box { border: 1px dashed var(--primary); border-radius: 12px; padding: 12px; font-size: 0.9rem; }

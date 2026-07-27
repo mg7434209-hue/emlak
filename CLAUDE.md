@@ -52,7 +52,9 @@ gömme; değişiklik = config.
   `assets/img/ilanlar/` altında, `photos` dizisinde göreli yol. İlana özel
   `phone` alanı ara/WhatsApp düğmelerini o numaraya yönlendirir; `locality`,
   `m2Net`, `dues`, `deed`, `swap`, `creditOk`, `kitchen` isteğe bağlı alanlar
-  detayda gösterilir. Şehir/tür/marka yardımcıları (`brands`, `modelsOf`).
+  detayda gösterilir. `views`/`favCount` taban sayılardır; detay sayfası
+  üzerine cihaz içi sayaç ekler (localStorage `emlakai.views`).
+  Şehir/tür/marka yardımcıları (`brands`, `modelsOf`).
 - `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery —
   marka/model/yıl/km/yakıt/vites dâhil), değerleme (estimate; `segment:
   "vasita"` ise araç dalı), fiyat etiketi (priceBadge), açıklama üretimi

@@ -29,10 +29,11 @@
       kitchen: "Açık (Amerikan)",
       seller: { name: "Sahibinden", type: "sahibinden" },
       date: "2026-07-03T10:00:00.000Z",
-      views: 0,
+      views: 5780,   // kaynak ilandaki görüntülenme (taban; site içi görüntülenmeler üzerine eklenir)
+      favCount: 50,  // kaynak ilandaki favori sayısı (taban)
       featured: true,
       photos: [], // ör: ["assets/img/ilanlar/ea1001-1.jpg", "assets/img/ilanlar/ea1001-2.jpg"]
-      desc: "Manavgat Karacalar Mahallesi'nde, Akdeniz 87 Sitesi içinde, denize yürüme mesafesinde tripleks villa. Tek tapuda 2 bağımsız bölüm: dubleks villa + eklenti giriş kat bağımsız bölüm — ister iki bölümü ayrı ayrı kiraya verin, ister birinde oturup diğerini değerlendirin. İçi komple yenilendi. Site içinde havuz, 24 saat güvenlik ve otomatik kumandalı kapı; kendine ait otopark ve siteye ait plaj mevcut. Brüt 240 m² / net 200 m², 3+2 oda düzeni, 3 banyo, açık (Amerikan) mutfak. Arsa payına düşen alan 262,5 m² (site yüzölçümü 26.777 m²). Tapu durumu kat mülkiyetli; krediye uygun; takasa açıktır. Aidat 2.000 ₺.",
+      desc: "Manavgat Karacalar Mahallesi'nde, Akdeniz 87 Sitesi içinde, denize yürüme mesafesinde tripleks villa. Tek tapuda 2 bağımsız bölüm: dubleks villa + eklenti giriş kat bağımsız bölüm — ister iki bölümü ayrı ayrı kiraya verin, ister birinde oturup diğerini değerlendirin. İçi komple yenilendi. Site içinde havuz, 24 saat güvenlik ve otomatik kumandalı kapı; kendine ait otopark ve siteye ait plaj mevcut. Brüt 240 m² / net 200 m², 3+2 oda düzeni, 3 banyo, açık (Amerikan) mutfak. Arsa payına düşen alan 262,5 m² (site yüzölçümü 26.777 m²). Tapu durumu kat mülkiyetli; krediye uygundur. Takas: mantıklı gelen arsa ile takas değerlendirilebilir. Aidat 2.000 ₺.",
     },
   ];
 
