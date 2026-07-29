@@ -42,6 +42,19 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 - `asistan.html` — EVA sohbet asistanı
 - `favoriler.html` — favoriler + karşılaştırma tablosu
 
+## Yönetim Paneli (admin.html)
+
+Sahibinden benzeri onaylı yayın akışı — sunucu (Railway) üzerinde çalışır:
+
+- Ziyaretçi ilan verir → **onay bekler**; admin onaylayınca **herkese yayınlanır**
+- `admin.html`: şifreli giriş (12 saat oturum), bekleyen ilanları onaylama/reddetme,
+  öne çıkarma, fiyat güncelleme, silme, JSON yedek indirme
+- Şifre: `ADMIN_PASS` ortam değişkeni (önerilen) ya da `config.admin.pass`
+- Depolama: `DATA_DIR` (Railway **Volume** bağlayın — yoksa her dağıtımda ilanlar
+  repodaki `REAL[]` tohumuna sıfırlanır) ya da `./data/listings.json`
+- Statik yayında (GitHub Pages) API yoktur; site otomatik olarak repo + cihaz-yerel
+  ilan moduna düşer
+
 ## Çalıştırma
 
 ```bash

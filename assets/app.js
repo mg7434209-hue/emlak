@@ -39,6 +39,10 @@
     el.style.display = n ? "grid" : "none";
   }
 
+  // ── Yönetici oturumu (sessionStorage; sunucu 12 saat geçerli sayar) ────
+  const adminTokKey = "emlakai.adminToken";
+  const adminToken = () => sessionStorage.getItem(adminTokKey) || "";
+
   // ── Görüntülenme sayacı (cihaz bazlı; ilanın taban sayısına eklenir) ───
   const viewsKey = "emlakai.views";
   function bumpViews(id) {
@@ -624,6 +628,13 @@
 
   // ── İlan ver ────────────────────────────────────────────────────────────
   function pageIlanVer() {
+    // Sunucu varsa akış: gönder → yönetici onayı → herkese yayın
+    if (D.hasServer()) {
+      const ph = $(".page-head p");
+      if (ph) ph.textContent = adminToken()
+        ? "Yönetici oturumu açık: yayınladığınız ilanlar onay beklemeden herkese açılır."
+        : "Bilgileri girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. İlanınız yönetici onayından sonra tüm ziyaretçilere yayınlanır.";
+    }
     fillCitySelect($("#pCity"), false);
     fillDistrictSelect($("#pDistrict"), $("#pCity").value, false);
     $("#pCity").addEventListener("change", () => fillDistrictSelect($("#pDistrict"), $("#pCity").value, false));
@@ -758,13 +769,32 @@
       $("#pDesc").value = AI.describe(l);
     });
 
-    // Yayınla
-    $("#publishBtn").addEventListener("click", () => {
+    // Yayınla — sunucu varsa oraya gönderilir (onaylı yayın akışı);
+    // statik yayında cihaz-yerel kayda düşer.
+    $("#publishBtn").addEventListener("click", async () => {
       const l = collect();
       const err = validate(l) || (!l.price ? "Fiyat girin ya da AI önerisini kullanın." : null);
       if (err) { $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
       l.title = l.title || autoTitle(l);
       l.desc = l.desc || null;
+      if (D.hasServer()) {
+        const btn = $("#publishBtn");
+        btn.disabled = true; btn.textContent = "Gönderiliyor…";
+        try {
+          const r = await D.submit(l, adminToken());
+          if (r && r.ok) {
+            if (r.status === "active") { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
+            $("#suggestOut").innerHTML = '<b style="color:var(--deal)">İlanınız alındı ✓</b> Yönetici onayından sonra yayına girecek.';
+            btn.textContent = "İlan Gönderildi ✓";
+            return;
+          }
+          $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "İlan gönderilemedi, lütfen tekrar deneyin.")}</span>`;
+        } catch (e) {
+          $("#suggestOut").innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı, lütfen tekrar deneyin.</span>';
+        }
+        btn.disabled = false; btn.textContent = "İlanı Yayınla";
+        return;
+      }
       const saved = D.saveUserListing(l);
       if (!saved) { // depolama kotası aşıldı (fotoğraflar çok yer kaplıyor)
         $("#suggestOut").innerHTML = '<span style="color:var(--over)">İlan kaydedilemedi: fotoğraflar cihaz depolamasına sığmadı. Birkaç fotoğrafı kaldırıp yeniden deneyin.</span>';
@@ -948,14 +978,110 @@
     } else cmp.style.display = "none";
   }
 
+  // ── Yönetim paneli (admin.html) ─────────────────────────────────────────
+  function pageAdmin() {
+    if (!D.hasServer()) {
+      $("#staticWrap").style.display = "block";
+      $("#loginWrap").style.display = "none";
+      return;
+    }
+    const show = (logged) => {
+      $("#loginWrap").style.display = logged ? "none" : "";
+      $("#panelWrap").style.display = logged ? "" : "none";
+    };
+    async function api(pathname, opts) {
+      const r = await fetch(pathname, Object.assign({
+        headers: { "Content-Type": "application/json", "X-Admin-Token": adminToken() },
+      }, opts));
+      if (r.status === 401) { sessionStorage.removeItem(adminTokKey); show(false); throw new Error("unauthorized"); }
+      return r.json();
+    }
+    let rows = [];
+    const STATUS = { active: ["Yayında", "var(--deal)"], pending: ["Onay Bekliyor", "var(--accent)"], rejected: ["Reddedildi", "var(--over)"] };
+    async function refresh() {
+      const j = await api("api/admin/listings", { method: "GET" });
+      rows = j.listings || [];
+      const stats = [
+        ["Yayında", rows.filter((l) => l.status === "active").length],
+        ["Onay Bekleyen", rows.filter((l) => l.status === "pending").length],
+        ["Öne Çıkan", rows.filter((l) => l.featured && l.status === "active").length],
+        ["Toplam", rows.length],
+      ];
+      $("#adminStats").innerHTML = stats.map(([k, v]) => `<div class="stat-box"><b>${v}</b><span>${esc(k)}</span></div>`).join("");
+      render();
+    }
+    function render() {
+      const f = $("#adminFilter").value;
+      const list = rows.filter((l) => !f || l.status === f);
+      $("#adminCount").textContent = list.length + " ilan";
+      $("#adminTable").innerHTML = '<tr><th>İlan</th><th>Fiyat</th><th>Durum</th><th style="text-align:right">İşlem</th></tr>' +
+        (list.length ? list.map((l) => {
+          const [sl, sc] = STATUS[l.status] || ["—", "var(--muted)"];
+          return `<tr>
+            <td><a href="ilan.html?id=${encodeURIComponent(l.id)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b></a><br>
+              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${new Date(l.date).toLocaleDateString("tr-TR")}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small></td>
+            <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
+            <td><span style="color:${sc};font-weight:700">${sl}</span></td>
+            <td style="text-align:right;white-space:nowrap">
+              ${l.status !== "active" ? `<button class="btn sm" data-act="approve" data-id="${esc(l.id)}">Onayla</button>` : ""}
+              ${l.status === "pending" ? `<button class="btn ghost sm" data-act="reject" data-id="${esc(l.id)}">Reddet</button>` : ""}
+              ${l.status === "active" ? `<button class="btn ghost sm" data-act="${l.featured ? "unfeature" : "feature"}" data-id="${esc(l.id)}">${l.featured ? "⭐ Kaldır" : "⭐ Öne Çıkar"}</button>` : ""}
+              <button class="btn ghost sm" data-act="price" data-id="${esc(l.id)}">Fiyat</button>
+              <button class="btn ghost sm" data-act="remove" data-id="${esc(l.id)}" style="color:var(--over);border-color:var(--over)">Sil</button>
+            </td></tr>`;
+        }).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Bu durumda ilan yok.</td></tr>');
+      $$("#adminTable [data-act]").forEach((b) => b.addEventListener("click", async () => {
+        const act = b.dataset.act, id = b.dataset.id;
+        let value;
+        if (act === "price") {
+          const v = prompt("Yeni fiyat (₺):");
+          if (v == null) return;
+          value = +String(v).replace(/[^\d]/g, "");
+        }
+        if (act === "remove" && !confirm("İlan kalıcı olarak silinecek. Emin misiniz?")) return;
+        try {
+          const r = await api("api/admin/action", { method: "POST", body: JSON.stringify({ id, action: act, value }) });
+          if (r && r.error) alert(r.error);
+        } catch (e) { /* 401 → giriş ekranına döner */ }
+        refresh().catch(() => {});
+      }));
+    }
+    $("#adminFilter").addEventListener("change", render);
+    $("#loginBtn").addEventListener("click", async () => {
+      try {
+        const r = await fetch("api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pass: $("#adminPass").value }) });
+        const j = await r.json();
+        if (!j.token) { $("#loginOut").innerHTML = `<span style="color:var(--over)">${esc(j.error || "Giriş başarısız.")}</span>`; return; }
+        sessionStorage.setItem(adminTokKey, j.token);
+        $("#adminPass").value = "";
+        show(true);
+        refresh().catch(() => {});
+      } catch (e) {
+        $("#loginOut").innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı.</span>';
+      }
+    });
+    $("#adminPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#loginBtn").click(); });
+    $("#logoutBtn").addEventListener("click", () => { sessionStorage.removeItem(adminTokKey); show(false); });
+    $("#exportBtn").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "emlakai-ilanlar-yedek.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    if (adminToken()) { show(true); refresh().catch(() => show(false)); } else show(false);
+  }
+
   // ── Başlat ──────────────────────────────────────────────────────────────
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
+    await D.init(); // sunucu API'si varsa ilanları oradan yükle
     initChrome();
     const page = document.body.dataset.page;
     const routes = {
       index: pageIndex, ilanlar: pageIlanlar, ilan: pageIlan,
       "ilan-ver": pageIlanVer, degerleme: pageDegerleme,
-      asistan: pageAsistan, favoriler: pageFavoriler,
+      asistan: pageAsistan, favoriler: pageFavoriler, admin: pageAdmin,
     };
     if (routes[page]) routes[page]();
   });

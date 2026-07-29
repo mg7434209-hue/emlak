@@ -67,7 +67,7 @@
       ? { display: str(l.phone.display, 20), intl: l.phone.intl, wa: l.phone.wa } : null;
     return {
       id: String(l.id || "").replace(/[^A-Z0-9]/gi, "").slice(0, 32),
-      user: true, segment: seg,
+      segment: seg,
       category: l.category === "kiralik" ? "kiralik" : "satilik",
       kind: KINDS.some((k) => k.kind === l.kind) || l.kind === "otomobil" ? l.kind : "daire",
       kindLabel: str(l.kindLabel, 40) || "Daire",
@@ -87,6 +87,15 @@
       photos: (Array.isArray(l.photos) ? l.photos : []).filter((p) => typeof p === "string" && SAFE_PHOTO.test(p)).slice(0, 5),
       seller: { name: str(seller.name, 80) || "Sahibinden", type: seller.type === "ofis" ? "ofis" : "sahibinden" },
       phone,
+      // İsteğe bağlı detay alanları (detay sayfası varsa gösterir)
+      locality: str(l.locality, 120) || undefined,
+      m2Net: num(l.m2Net) || undefined,
+      dues: num(l.dues) || undefined,
+      deed: str(l.deed, 60) || undefined,
+      swap: typeof l.swap === "boolean" ? l.swap : undefined,
+      creditOk: typeof l.creditOk === "boolean" ? l.creditOk : undefined,
+      kitchen: str(l.kitchen, 60) || undefined,
+      status: ["active", "pending", "rejected"].includes(l.status) ? l.status : undefined,
       date: str(l.date, 40) || new Date(0).toISOString(),
       views: num(l.views) || 0, favCount: num(l.favCount) || 0,
       featured: !!l.featured,
@@ -95,7 +104,8 @@
   function userListings() {
     try {
       const raw = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-      return (Array.isArray(raw) ? raw : []).map(normalizeListing).filter((l) => l && l.id);
+      return (Array.isArray(raw) ? raw : []).map(normalizeListing).filter((l) => l && l.id)
+        .map((l) => { l.user = true; return l; });
     } catch (e) { return []; }
   }
   function saveUserListing(l) {
@@ -117,11 +127,43 @@
     localStorage.setItem(LS_KEY, JSON.stringify(all));
   }
 
+  // ── Sunucu API'si (Railway'de server.js) ───────────────────────────────
+  // Sunucu varsa ilanlar oradan gelir (HERKESE görünür, admin onaylı akış).
+  // Statik yayında (GitHub Pages) fetch başarısız olur → REAL + localStorage.
+  let remote = null; // sunucudan gelen aktif ilan listesi (null = sunucu yok)
+  async function init() {
+    if (typeof fetch !== "function") return;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 2500);
+      const r = await fetch("api/listings", { signal: ctrl.signal });
+      clearTimeout(t);
+      if (r.ok) {
+        const j = await r.json();
+        if (j && Array.isArray(j.listings)) remote = j.listings;
+      }
+    } catch (e) { /* statik yayın — yerel veriye düş */ }
+  }
+  async function submit(l, adminToken) {
+    const headers = { "Content-Type": "application/json" };
+    if (adminToken) headers["X-Admin-Token"] = adminToken;
+    const r = await fetch("api/listings", { method: "POST", headers, body: JSON.stringify(l) });
+    return r.json();
+  }
+
   EMLAK.data = {
-    all: () => userListings().concat(REAL),
+    init,
+    submit,
+    hasServer: () => remote !== null,
+    all: () => {
+      const base = remote || REAL;
+      const seen = new Set(base.map((l) => l.id));
+      return userListings().filter((l) => !seen.has(l.id)).concat(base);
+    },
     byId: (id) => EMLAK.data.all().find((l) => l.id === id) || null,
     saveUserListing,
     removeUserListing,
+    normalize: normalizeListing,
     cities: cityNames,
     districtsOf: (city) => (C.market.cities[city] ? Object.keys(C.market.cities[city].districts) : []),
     kinds: KINDS.map((k) => ({ kind: k.kind, label: k.label })),

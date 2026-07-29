@@ -21,7 +21,8 @@ seçimli form; AI fiyat önerisi + AI başlık/açıklama yazarı + fotoğraf +
 `degerleme.html` (AI değerleme: taşınmaz + araç, kredi) · `asistan.html` (EVA) ·
 `rehber.html` (SSS/rehber, FAQPage JSON-LD — elle yazılır) ·
 `bolge-fiyatlari.html` (ÜRETİLİR, elle düzenlenmez) · `favoriler.html` ·
-`404.html`.
+`404.html` · `admin.html` (yönetim paneli — menüde YOK, robots'ta engelli,
+noindex; yalnızca sunucu API'si varken çalışır).
 Nav menü SADE tutulur (5 öğe): Ana Sayfa · İlanlar · Değerleme · Favoriler ·
 İlan Ver. İkincil sayfalar (Bölge Fiyatları · Rehber · AI Asistan) footer'daki
 `.footer-links` bloğundadır; asistana ayrıca her sayfadaki FAB düğmesi götürür.
@@ -73,6 +74,21 @@ gömme; değişiklik = config.
   `data-c-tel` / `data-c-mail` / `data-c-addr` öznitelikleriyle enjekte edilir.
 - Yeni AI özelliği eklerken katsayıları `config.js`'e koy, koda gömme.
 - localStorage anahtarları `emlakai.` önekiyle başlar.
+
+## Sunucu API'si & Yönetim Paneli (server.js + admin.html)
+`server.js` statik sunucuya ek olarak ilan API'si taşır (bağımlılıksız):
+- `GET/POST /api/listings` (herkese açık liste / ilan gönderme),
+  `POST /api/login`, `GET /api/admin/listings`, `POST /api/admin/action`.
+- Akış sahibinden benzeri: ziyaretçi ilanı `pending` düşer; admin onaylayınca
+  `active` olur ve HERKESE görünür. Admin oturumu açıkken verilen ilan
+  doğrudan `active`.
+- Depolama: `DATA_DIR` (Railway Volume önerilir) ya da `./data/listings.json`
+  (gitignore'da). İlk açılışta `data.js` REAL[] listesinden tohumlanır —
+  Railway'de Volume yoksa her dağıtımda depo REAL'e sıfırlanır; kalıcı ilan =
+  REAL'e işle + commit, ya da Volume bağla.
+- Şifre: `ADMIN_PASS` ortam değişkeni (yoksa `config.admin.pass` — değiştir!).
+- İstemci: `data.js` `init()` API'yi yoklar; yoksa (GitHub Pages) REAL +
+  localStorage'a düşer, `admin.html` "statik yayın" uyarısı gösterir.
 
 ## Ağ Kısıtı (ÖNEMLİ)
 Buluttaki Claude Code dış sitelere erişemez (egress izin listesi). Dış veri

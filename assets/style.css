@@ -319,6 +319,15 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
 .footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 26px; margin-bottom: 14px; }
 .copyright { border-top: 1px solid var(--border); padding-top: 16px; text-align: center; font-size: 0.82rem; }
 
+/* ── Yönetim paneli ─────────────────────────────────── */
+.admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+.stat-box b { font-size: 1.5rem; color: var(--primary); display: block; }
+.stat-box span { color: var(--muted); font-size: 0.86rem; }
+.admin-table th { text-align: left; padding: 8px 6px; border-bottom: 2px solid var(--border); font-size: 0.85rem; color: var(--muted); }
+.admin-table { min-width: 720px; }
+.admin-table td .btn { margin-left: 4px; }
+
 .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.5s, transform 0.5s; }
 .reveal.in { opacity: 1; transform: none; }
 .notice { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; color: var(--muted); }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yönetim Paneli | EmlakAI</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body data-page="admin">
+  <header class="site-header">
+    <div class="container header-in">
+      <a class="logo" href="index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></span>Emlak<span class="ai">AI</span></a>
+      <nav class="main-nav" id="mainNav">
+        <a href="index.html">Ana Sayfa</a>
+        <a href="ilanlar.html">İlanlar</a>
+        <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
+      </nav>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-head">
+      <h1>Yönetim Paneli</h1>
+      <p>İlan onayı, öne çıkarma, fiyat güncelleme ve yayından kaldırma buradan yapılır.</p>
+    </div>
+
+    <!-- Giriş -->
+    <div class="container section" id="loginWrap" style="padding-top:18px">
+      <div class="form-card" style="max-width:420px">
+        <div class="form-grid">
+          <div class="full"><label for="adminPass">Yönetici Şifresi</label>
+            <input id="adminPass" type="password" autocomplete="current-password">
+          </div>
+          <div class="full"><button class="btn" id="loginBtn" type="button" style="width:100%">Giriş Yap</button></div>
+          <div class="full notice" id="loginOut">Şifre sunucuda doğrulanır; oturum 12 saat geçerlidir.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel -->
+    <div class="container section" id="panelWrap" style="display:none;padding-top:18px">
+      <div class="admin-stats" id="adminStats"></div>
+
+      <div class="toolbar" style="margin-top:22px">
+        <span class="count" id="adminCount"></span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="adminFilter">
+            <option value="">Tüm Durumlar</option>
+            <option value="pending">Onay Bekleyen</option>
+            <option value="active">Yayında</option>
+            <option value="rejected">Reddedilen</option>
+          </select>
+          <button class="btn ghost sm" id="exportBtn" type="button">JSON Yedek İndir</button>
+          <button class="btn ghost sm" id="logoutBtn" type="button">Çıkış</button>
+        </div>
+      </div>
+
+      <div class="detail-card" style="margin-top:12px">
+        <table class="spec-table admin-table" id="adminTable"></table>
+      </div>
+      <p class="notice" style="margin-top:14px">Yeni ilan eklemek için <a href="ilan-ver.html">İlan Ver</a> sayfasını kullanın —
+      yönetici oturumu açıkken verdiğiniz ilanlar onay beklemeden doğrudan yayına alınır.</p>
+    </div>
+
+    <!-- Statik yayın uyarısı -->
+    <div class="container section" id="staticWrap" style="display:none;padding-top:18px">
+      <div class="notice">Bu kopya statik olarak yayınlanıyor (sunucu API'si yok); yönetim paneli yalnızca
+      Railway üzerindeki canlı sitede çalışır.</div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="copyright">© 2026 EmlakAI — Yönetim Paneli</div>
+    </div>
+  </footer>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/ai.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -133,4 +133,9 @@ EMLAK.config = {
 
   // ── AI asistan ayarları ─────────────────────────────────────────────────
   assistant: { name: "EVA", maxResults: 6 },
+
+  // ── Yönetim paneli (admin.html) ─────────────────────────────────────────
+  // Sunucu tarafında ADMIN_PASS ortam değişkeni bunu GEÇERSİZ KILAR (önerilen).
+  // Buradaki değer yalnızca yerel geliştirme varsayılanıdır.
+  admin: { pass: "emlak2026" },
 };

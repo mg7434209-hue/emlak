@@ -187,6 +187,8 @@ fs.writeFileSync(path.join(__dirname, "robots.txt"),
 #  noindex okunabilsin — bu yüzden Disallow YOK)
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /api/
 
 # AI arama/asistan tarayıcıları açıkça hoş karşılanır (AEO)
 User-agent: GPTBot
