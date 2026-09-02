@@ -44,6 +44,20 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 - `asistan.html` — EVA sohbet asistanı
 - `favoriler.html` — favoriler + karşılaştırma tablosu
 
+## 👤 Üyelik — herkes kayıt olup ilan verebilir
+
+- `giris.html`: e-posta + şifre ile **ücretsiz kayıt** ve giriş (şifreler scrypt
+  ile tuzlanarak saklanır; oturum jetonu HMAC imzalı, 30 gün geçerli)
+- İlan vermek üyelik ister; giriş yapmamış ziyaretçi `ilan-ver.html`'de üyelik
+  kapısını görür. İlan sahibinin adı/telefonu hesaptan otomatik doldurulur
+- `hesap.html` (**Hesabım**): İlanlarım (durum, görüntülenme, düzenle/sil),
+  Mesajlarım (kendi ilanlarına gelen talepler, tek tıkla WhatsApp) ve
+  hesap bilgileri + şifre değiştirme
+- İlan metni/fotoğrafı değişince ilan yeniden yönetici onayına düşer; yalnızca
+  **fiyat indirimi** yapıldığında ilan yayında kalır
+- Yönetici panelinden üye yönetimi: askıya alma, geçici şifre atama, silme
+  (üyeyle birlikte ilanları ve fotoğrafları da silinir)
+
 ## Yönetim Paneli (admin.html)
 
 Sahibinden benzeri onaylı yayın akışı — sunucu (Railway) üzerinde çalışır:
@@ -70,6 +84,7 @@ Sahibinden benzeri onaylı yayın akışı — sunucu (Railway) üzerinde çalı
 2. `config.seo.siteUrl` değerini yayın adresine çevirip `npm run build` çalıştırın
    (canonical, sitemap ve llms.txt bu adresi kullanır).
 3. `/admin.html` → şifreyle giriş yapın (menüde yoktur, `robots.txt`'te engellidir).
+   İsterseniz `SESSION_SECRET` de tanımlayın (yoksa `DATA_DIR/session.key` üretilir).
 4. Yönetici oturumu açıkken `/ilan-ver.html` üzerinden ilan girin — bu ilanlar
    **onay beklemeden doğrudan yayına** girer. Fotoğrafları (en fazla 8) ekleyin;
    fiyat/başlık/açıklama için AI düğmelerini kullanabilirsiniz.
@@ -83,13 +98,16 @@ Sahibinden benzeri onaylı yayın akışı — sunucu (Railway) üzerinde çalı
 | Uç | Açıklama |
 |---|---|
 | `GET /api/listings` | Yayındaki ilanlar |
-| `POST /api/listings` | İlan gönder (saatte 5; admin token'la sınırsız ve doğrudan yayında) |
+| `POST /api/auth/register` · `login` · `me` · `update` | Üyelik: kayıt (5/saat), giriş (10/15 dk), oturum doğrulama, profil/şifre |
+| `GET /api/my/listings` · `GET /api/my/messages` · `POST /api/my/action` | Üyenin kendi ilanları, mesajları; kendi ilanını düzenleme/silme |
+| `POST /api/listings` | İlan gönder — **üyelik ister** (saatte 10; admin token'la sınırsız ve doğrudan yayında) |
 | `GET /api/listing?id=` | İlan durumu (ilan takibi) |
 | `POST /api/view` | Görüntülenme sayacı (IP + ilan başına 12 saatte bir) |
 | `POST /api/messages` | İlana mesaj/talep bırakma (saatte 10) |
 | `POST /api/login` | Yönetici girişi (15 dakikada 10 deneme) |
 | `GET /api/admin/listings` · `POST /api/admin/action` | İlan yönetimi (`approve/reject/remove/feature/unfeature/price/edit`) |
 | `GET /api/admin/messages` · `POST /api/admin/message` | Mesaj yönetimi |
+| `GET /api/admin/users` · `POST /api/admin/user` | Üye yönetimi (`ban/unban/password/remove/admin`) |
 | `POST /api/admin/import` | Yedekten geri yükleme |
 | `GET /sitemap.xml` | Yayındaki ilanları da içeren dinamik site haritası |
 

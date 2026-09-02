@@ -19,14 +19,19 @@ araçta marka/model/yıl/km/yakıt/vites filtreleri; sayfa başına 24 ilan +
 konut/taşıt kredisi, fiyat düştüyse `.price-drop` rozeti, sunucu varken
 "Satıcıya Mesaj Gönder" formu; dinamik canonical + JSON-LD) · `ilan-ver.html`
 (segment seçimli form; AI fiyat önerisi + AI başlık/açıklama yazarı + en fazla
-8 fotoğraf + ⭐ öne çıkarma + sunucu varken "İlanlarım" ilan takibi) ·
+8 fotoğraf + ⭐ öne çıkarma; sunucu varken ÜYELİK ister — giriş yoksa
+`#ilanVerGate` üyelik kapısı gösterilir) ·
+`giris.html` (üye girişi + ücretsiz kayıt; `?next=` ile geri dönüş, `?kayit=1`
+kayıt sekmesini açar) · `hesap.html` (Hesabım: ilanlarım · mesajlarım · profil/şifre;
+noindex + robots'ta engelli) ·
 `degerleme.html` (AI değerleme: taşınmaz + araç, kredi) · `asistan.html` (EVA) ·
 `rehber.html` (SSS/rehber, FAQPage JSON-LD — elle yazılır) ·
 `bolge-fiyatlari.html` (ÜRETİLİR, elle düzenlenmez) · `favoriler.html` ·
 `404.html` · `admin.html` (yönetim paneli — menüde YOK, robots'ta engelli,
 noindex; yalnızca sunucu API'si varken çalışır).
 Nav menü SADE tutulur (5 öğe): Ana Sayfa · İlanlar · Değerleme · Favoriler ·
-İlan Ver. İkincil sayfalar (Bölge Fiyatları · Rehber · AI Asistan) footer'daki
+İlan Ver. Oturum bağlantısı ("Giriş Yap" / "👤 Ad") sayfalara ELLE eklenmez —
+`app.js` `injectAuthLink()` her sayfada nav'a enjekte eder. İkincil sayfalar (Bölge Fiyatları · Rehber · AI Asistan) footer'daki
 `.footer-links` bloğundadır; asistana ayrıca her sayfadaki FAB düğmesi götürür.
 Nav/footer değişince TÜM sayfalarda + `build-seo.js` iskeletinde güncelle.
 
@@ -78,6 +83,25 @@ gömme; değişiklik = config.
 - Yeni AI özelliği eklerken katsayıları `config.js`'e koy, koda gömme.
 - localStorage anahtarları `emlakai.` önekiyle başlar.
 
+## Üyelik (kayıt + giriş) — server.js + giris.html + hesap.html
+Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
+- Şifreler `crypto.scryptSync` ile tuzlanıp `users.json`'a `scrypt$tuz$özet`
+  olarak yazılır; API hiçbir yerde şifre özetini DÖNDÜRMEZ (`publicUser`).
+- Oturum jetonu STATELESS: `uid.sonKullanma.HMAC` (anahtar `DATA_DIR/session.key`
+  ya da `SESSION_SECRET`); sunucu yeniden başlayınca üyeler düşmez. TTL 30 gün.
+  İstemci `EMLAK.auth` ile localStorage `emlakai.session`'da tutar — jeton
+  tahrif edilirse sunucu reddeder (istemci verisi GÜVEN SINIRIDIR).
+- Uçlar: `/api/auth/register|login|me|update`, `/api/my/listings|messages|action`.
+- İlan sahibi `ownerId` ile hesaba bağlanır; ad/telefon boş bırakılırsa hesaptan
+  alınır. Üye YALNIZCA kendi ilanını düzenler/siler (`/api/my/action`).
+- Üye düzenlemesi ilanı yeniden `pending` yapar; TEK istisna `onlyPriceDrop()`
+  (yalnız fiyat indirimi) — ilan yayında kalır.
+- Yönetici üyeleri panelin "Üyeler" sekmesinden yönetir: askıya al/kaldır,
+  şifre ata, sil (üyenin ilanları ve fotoğrafları da silinir).
+- Hız sınırı: kayıt 5/saat, üye girişi 10/15 dk.
+- Statik yayında (Pages) üyelik YOKTUR; `giris.html` uyarı gösterir, ilan verme
+  eskisi gibi cihaz-yerel (localStorage) çalışır.
+
 ## Sunucu API'si & Yönetim Paneli (server.js + admin.html)
 `server.js` statik sunucuya ek olarak ilan API'si taşır (bağımlılıksız):
 - Açık uçlar: `GET/POST /api/listings`, `GET /api/listing?id=` (ilan takibi),
@@ -89,8 +113,8 @@ gömme; değişiklik = config.
 - Akış sahibinden benzeri: ziyaretçi ilanı `pending` düşer; admin onaylayınca
   `active` olur ve HERKESE görünür. Admin oturumu açıkken verilen ilan
   doğrudan `active`.
-- HIZ SINIRI (bellek içi, IP başına): ilan 5/saat, mesaj 10/saat, giriş
-  10/15 dk. Admin token'ı ilan sınırını atlar; mesaj formunda bal küpü alanı var.
+- HIZ SINIRI (bellek içi, IP başına): ilan 10/saat, mesaj 10/saat, kayıt 5/saat,
+  giriş 10/15 dk. Admin token'ı ilan sınırını atlar; mesajda bal küpü alanı var.
 - FOTOĞRAF: istemci base64 gönderir, sunucu `DATA_DIR/uploads` altına dosya
   yazar ve ilanda `u/<dosya>` tutar; `/u/<dosya>` uzun önbellekle servis edilir.
   İlan silinince/fotoğraf çıkarılınca dosya da silinir. Fotoğrafı ASLA
@@ -100,14 +124,16 @@ gömme; değişiklik = config.
 - `GET /sitemap.xml` sunucuda DİNAMİK üretilir (statik dosyayı ezer; yayındaki
   ilanları da içerir). `build-seo.js`'in ürettiği statik sitemap Pages içindir.
 - Depolama: `DATA_DIR` (Railway Volume önerilir) ya da `./data` (gitignore'da):
-  `listings.json`, `messages.json`, `uploads/`. İlk açılışta `data.js` REAL[]
+  `listings.json`, `messages.json`, `users.json`, `session.key`, `uploads/`. İlk açılışta `data.js` REAL[]
   listesinden tohumlanır — Volume yoksa her dağıtımda sıfırlanır; panel bunu
   kırmızı uyarıyla söyler (`persistent:false`). Kalıcı ilan = Volume bağla ya
   da REAL'e işleyip commit'le; panelden JSON yedek al / yedekten yükle.
 - Şifre: `ADMIN_PASS` ortam değişkeni (yoksa `config.admin.pass` — değiştir!).
-- Panel iki sekmelidir: İlanlar (arama + durum filtresi, onay/red, tam
-  düzenleme penceresi `.modal-back`, öne çıkarma, fiyat, silme, yedek al/yükle)
-  ve Mesajlar (ara/WhatsApp, okundu, sil).
+- Panel üç sekmelidir: İlanlar (arama + durum filtresi, onay/red, tam düzenleme
+  penceresi `.modal-back`, öne çıkarma, fiyat, silme, yedek al/yükle), Mesajlar
+  (ara/WhatsApp, okundu, sil) ve Üyeler (askıya al, şifre ata, sil).
+- Düzenleme penceresi `openListingEditor(l, save)` ORTAKTIR: yönetim paneli
+  admin ucuna, hesap sayfası `/api/my/action`'a yazar — ikisini ayırma.
 - İstemci: `data.js` `init()` API'yi yoklar; yoksa (GitHub Pages) REAL +
   localStorage'a düşer, `admin.html` "statik yayın" uyarısı gösterir.
 

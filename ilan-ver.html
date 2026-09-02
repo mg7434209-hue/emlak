@@ -39,7 +39,20 @@
       <p>Taşınmaz ya da araç ilanınızın bilgilerini girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. İlanınız anında yayına alınır (bu tarayıcıda saklanır).</p>
     </div>
 
-    <div class="container section" style="padding-top:18px">
+    <!-- Üyelik kapısı: sunucuda ilan vermek için giriş gerekir -->
+    <div class="container section" id="ilanVerGate" style="display:none;padding-top:18px">
+      <div class="form-card" style="max-width:520px">
+        <h2 style="font-size:1.1rem;margin-bottom:8px">İlan vermek için ücretsiz hesap</h2>
+        <p class="notice" style="margin-bottom:14px">İlanlarınızı yayınlamak, düzenlemek ve size gelen mesajları
+        görmek için ücretsiz bir hesap oluşturun ya da giriş yapın. 30 saniye sürer.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn" href="giris.html?kayit=1&amp;next=ilan-ver.html">Ücretsiz Üye Ol</a>
+          <a class="btn ghost" href="giris.html?next=ilan-ver.html">Giriş Yap</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="container section" id="ilanVerForm" style="padding-top:18px">
       <div class="form-card">
         <div class="form-grid">
           <div><label for="pSeg">İlan Türü</label>
@@ -89,14 +102,6 @@
       </div>
     </div>
 
-    <!-- İlan takibi: bu cihazdan gönderilen ilanların yayın durumu -->
-    <div class="container section" id="trackWrap" style="display:none;padding-top:0">
-      <div class="detail-card">
-        <h2>İlanlarım</h2>
-        <p class="notice" style="margin-bottom:12px">Bu cihazdan gönderdiğiniz ilanlar ve yayın durumları. İlan numaranızı not alın.</p>
-        <table class="spec-table" id="trackList"></table>
-      </div>
-    </div>
   </main>
 
   <footer class="site-footer">

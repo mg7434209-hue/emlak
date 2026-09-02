@@ -98,6 +98,8 @@
       creditOk: typeof l.creditOk === "boolean" ? l.creditOk : undefined,
       kitchen: str(l.kitchen, 60) || undefined,
       status: ["active", "pending", "rejected"].includes(l.status) ? l.status : undefined,
+      // İlan sahibi hesabın kimliği (sunucu atar; istemci gönderemez)
+      ownerId: str(l.ownerId, 40) || undefined,
       date: str(l.date, 40) || new Date(0).toISOString(),
       updated: str(l.updated, 40) || undefined,
       // Fiyat geçmişi (sunucu tutar): [{price, date}] — detayda "fiyat düştü"
@@ -180,9 +182,67 @@
   async function submit(l, adminToken) {
     const headers = { "Content-Type": "application/json" };
     if (adminToken) headers["X-Admin-Token"] = adminToken;
+    const t = auth.token();
+    if (t) headers["X-User-Token"] = t;
     const r = await fetch("api/listings", { method: "POST", headers, body: JSON.stringify(l) });
     return r.json();
   }
+
+  // ── Üyelik (kayıt / giriş / kendi ilanları) ────────────────────────────
+  // Oturum jetonu ve profil localStorage'da tutulur; jeton sunucuda HMAC ile
+  // imzalıdır — tahrif edilirse sunucu reddeder (istemci verisi güven sınırı).
+  const SESS_KEY = "emlakai.session";
+  function readSession() {
+    try {
+      const j = JSON.parse(localStorage.getItem(SESS_KEY) || "null");
+      return j && typeof j.token === "string" && j.user ? j : null;
+    } catch (e) { return null; }
+  }
+  function writeSession(j) {
+    if (j) localStorage.setItem(SESS_KEY, JSON.stringify(j));
+    else localStorage.removeItem(SESS_KEY);
+  }
+  async function authApi(pathname, opts) {
+    const o = Object.assign({ headers: {} }, opts);
+    o.headers = Object.assign({ "Content-Type": "application/json" }, o.headers);
+    const t = auth.token();
+    if (t) o.headers["X-User-Token"] = t;
+    const r = await fetch(pathname, o);
+    const j = await r.json().catch(() => ({ error: "Sunucu yanıtı okunamadı." }));
+    if (r.status === 401 && auth.token()) { writeSession(null); }
+    return j;
+  }
+  const auth = {
+    token: () => (readSession() || {}).token || "",
+    user: () => (readSession() || {}).user || null,
+    logout: () => writeSession(null),
+    async register(payload) {
+      const j = await authApi("api/auth/register", { method: "POST", body: JSON.stringify(payload) });
+      if (j && j.token) writeSession({ token: j.token, user: j.user });
+      return j;
+    },
+    async login(email, password) {
+      const j = await authApi("api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+      if (j && j.token) writeSession({ token: j.token, user: j.user });
+      return j;
+    },
+    // Oturumun sunucuda hâlâ geçerli olduğunu doğrular (askıya alınma/süre dolumu)
+    async refresh() {
+      if (!auth.token()) return null;
+      const j = await authApi("api/auth/me", { method: "GET" });
+      if (j && j.user) { writeSession({ token: auth.token(), user: j.user }); return j.user; }
+      return null;
+    },
+    async update(payload) {
+      const j = await authApi("api/auth/update", { method: "POST", body: JSON.stringify(payload) });
+      if (j && j.user) writeSession({ token: auth.token(), user: j.user });
+      return j;
+    },
+    myListings: () => authApi("api/my/listings", { method: "GET" }),
+    myMessages: () => authApi("api/my/messages", { method: "GET" }),
+    myAction: (id, action, value) => authApi("api/my/action", { method: "POST", body: JSON.stringify({ id, action, value }) }),
+  };
+  EMLAK.auth = auth;
 
   EMLAK.data = {
     init,

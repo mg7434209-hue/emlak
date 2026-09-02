@@ -4,6 +4,7 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /hesap.html
 Disallow: /api/
 
 # AI arama/asistan tarayıcıları açıkça hoş karşılanır (AEO)

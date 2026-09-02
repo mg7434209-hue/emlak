@@ -4,7 +4,7 @@
  */
 (function () {
   "use strict";
-  const C = EMLAK.config, D = EMLAK.data, AI = EMLAK.ai;
+  const C = EMLAK.config, D = EMLAK.data, AI = EMLAK.ai, A = EMLAK.auth;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const fmt = AI.fmtNum;
@@ -129,6 +129,151 @@
     });
   }
 
+  // ── İlan düzenleme penceresi (yönetim paneli + hesabım sayfası) ───────
+  // save(patch) → sunucuya yazan söz (promise); {error} dönerse pencere açık kalır.
+  function openListingEditor(l, save) {
+    if (!l) return;
+    const seg = l.segment === "vasita" ? "vasita" : "emlak";
+    let photos = (l.photos || []).slice();
+    const kindOpts = D.kinds.map((k) => `<option value="${k.kind}"${k.kind === l.kind ? " selected" : ""}>${esc(k.label)}</option>`).join("");
+    const sel = (arr, v) => arr.map((x) => `<option${x === v ? " selected" : ""}>${esc(x)}</option>`).join("");
+    const numField = (id, label, val, extra) => `<div><label for="${id}">${esc(label)}</label><input id="${id}" type="number" ${extra || ""} value="${val == null ? "" : val}"></div>`;
+    const modal = $("#editModal");
+    modal.innerHTML = `<div class="modal-back" id="editBack">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-label="İlanı düzenle">
+        <div class="modal-head"><b>İlanı Düzenle — ${esc(l.id)}</b>
+          <button class="icon-btn" id="editClose" aria-label="Kapat">✕</button></div>
+        <div class="form-grid">
+          <div class="full"><label for="eTitle">Başlık</label><input id="eTitle" type="text" maxlength="200" value="${esc(l.title)}"></div>
+          <div><label for="eCat">Kategori</label><select id="eCat">
+            <option value="satilik"${l.category === "satilik" ? " selected" : ""}>Satılık</option>
+            <option value="kiralik"${l.category === "kiralik" ? " selected" : ""}>Kiralık</option></select></div>
+          ${numField("ePrice", "Fiyat (₺)", l.price, 'min="0"')}
+          <div><label for="eCity">Şehir</label><select id="eCity"></select></div>
+          <div><label for="eDistrict">İlçe</label><select id="eDistrict"></select></div>
+          ${seg === "emlak" ? `
+            <div><label for="eKind">Tür</label><select id="eKind">${kindOpts}</select></div>
+            ${numField("eM2", "Brüt m²", l.m2, 'min="0"')}
+            ${numField("eM2Net", "Net m²", l.m2Net, 'min="0"')}
+            <div><label for="eRooms">Oda</label><input id="eRooms" type="text" maxlength="10" value="${esc(l.rooms || "")}"></div>
+            ${numField("eBath", "Banyo", l.bath, 'min="0"')}
+            ${numField("eAge", "Bina Yaşı", l.age, 'min="0"')}
+            ${numField("eFloor", "Kat", l.floor, "")}
+            ${numField("eTotalFloors", "Kat Sayısı", l.totalFloors, 'min="0"')}
+            ${numField("eDues", "Aidat (₺/ay)", l.dues, 'min="0"')}
+            <div><label for="eHeating">Isıtma</label><input id="eHeating" type="text" maxlength="40" value="${esc(l.heating || "")}"></div>
+            <div><label for="eKitchen">Mutfak</label><input id="eKitchen" type="text" maxlength="60" value="${esc(l.kitchen || "")}"></div>
+            <div><label for="eDeed">Tapu Durumu</label><input id="eDeed" type="text" maxlength="60" value="${esc(l.deed || "")}"></div>
+            <div class="full"><label for="eLocality">Mahalle / Site</label><input id="eLocality" type="text" maxlength="120" value="${esc(l.locality || "")}"></div>
+            <div><label style="display:flex;gap:8px;align-items:center"><input id="eSwap" type="checkbox" style="width:auto"${l.swap ? " checked" : ""}> Takas</label></div>
+            <div><label style="display:flex;gap:8px;align-items:center"><input id="eCredit" type="checkbox" style="width:auto"${l.creditOk ? " checked" : ""}> Krediye uygun</label></div>
+            <div class="full"><label>Özellikler</label><div class="check-grid" id="eFeats">${Object.keys(C.valuation.features).map((f) => `<label><input type="checkbox" value="${esc(f)}"${(l.features || []).includes(f) ? " checked" : ""}> ${esc(f)}</label>`).join("")}</div></div>
+          ` : `
+            <div><label for="eBrand">Marka</label><select id="eBrand">${sel(D.brands, l.brand)}</select></div>
+            <div><label for="eModel">Model</label><select id="eModel"></select></div>
+            ${numField("eYear", "Model Yılı", l.year, 'min="1950"')}
+            ${numField("eKm", "Kilometre", l.km, 'min="0"')}
+            <div><label for="eFuel">Yakıt</label><select id="eFuel">${sel(C.vehicles.fuels, l.fuel)}</select></div>
+            <div><label for="eGear">Vites</label><select id="eGear">${sel(C.vehicles.gears, l.gear)}</select></div>
+          `}
+          <div><label for="eSellerName">İlan Sahibi</label><input id="eSellerName" type="text" maxlength="80" value="${esc((l.seller || {}).name || "")}"></div>
+          <div><label for="eSellerType">Satıcı Tipi</label><select id="eSellerType">
+            <option value="sahibinden"${(l.seller || {}).type !== "ofis" ? " selected" : ""}>Sahibinden</option>
+            <option value="ofis"${(l.seller || {}).type === "ofis" ? " selected" : ""}>Ofis / Galeri</option></select></div>
+          <div class="full"><label for="ePhone">İlan Telefonu</label><input id="ePhone" type="tel" maxlength="25" value="${esc((l.phone || {}).display || "")}" placeholder="Boş = site telefonu"></div>
+          <div class="full"><label for="eDesc">Açıklama</label><textarea id="eDesc" rows="7" maxlength="4000">${esc(l.desc || "")}</textarea></div>
+          <div class="full"><label>Fotoğraflar</label>
+            <div id="ePhotos" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
+            <input id="ePhotoFile" type="file" accept="image/*" multiple>
+          </div>
+          <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" id="eSave" type="button">Değişiklikleri Kaydet</button>
+            <button class="btn ghost" id="eCancel" type="button">Vazgeç</button>
+            <span class="notice" id="eOut" style="flex:1"></span>
+          </div>
+        </div>
+      </div></div>`;
+    fillCitySelect($("#eCity"), false);
+    $("#eCity").value = l.city || $("#eCity").value;
+    fillDistrictSelect($("#eDistrict"), $("#eCity").value, false);
+    $("#eDistrict").value = l.district || $("#eDistrict").value;
+    $("#eCity").addEventListener("change", () => fillDistrictSelect($("#eDistrict"), $("#eCity").value, false));
+    if (seg === "vasita") {
+      const fillM = () => {
+        $("#eModel").innerHTML = D.modelsOf($("#eBrand").value).map((m) => `<option${m === l.model ? " selected" : ""}>${esc(m)}</option>`).join("");
+      };
+      fillM();
+      $("#eBrand").addEventListener("change", fillM);
+    }
+    function renderPhotos() {
+      $("#ePhotos").innerHTML = photos.map((p, i) =>
+        `<span style="position:relative;display:inline-block"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}" style="width:110px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+         <button type="button" data-rm="${i}" aria-label="Fotoğrafı kaldır" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:22px;height:22px;line-height:1">✕</button></span>`).join("") ||
+        '<small style="color:var(--muted)">Fotoğraf yok — ilan kartında otomatik görsel kullanılır.</small>';
+      $$("#ePhotos [data-rm]").forEach((b) => b.addEventListener("click", () => { photos.splice(+b.dataset.rm, 1); renderPhotos(); }));
+    }
+    renderPhotos();
+    $("#ePhotoFile").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 8 - photos.length);
+      e.target.value = "";
+      for (const file of files) {
+        const data = await resizePhoto(file, 1400);
+        if (data) photos.push(data);
+        renderPhotos();
+      }
+    });
+    const close = () => { modal.innerHTML = ""; };
+    $("#editClose").addEventListener("click", close);
+    $("#eCancel").addEventListener("click", close);
+    $("#editBack").addEventListener("click", (e) => { if (e.target.id === "editBack") close(); });
+    $("#eSave").addEventListener("click", async () => {
+      const val = (id) => { const el = $("#" + id); return el ? el.value.trim() : ""; };
+      const numv = (id) => { const v = val(id); return v === "" ? null : +v; };
+      const patch = {
+        title: val("eTitle"), category: $("#eCat").value,
+        price: +val("ePrice") || 0, city: $("#eCity").value, district: $("#eDistrict").value,
+        desc: val("eDesc"), photos: photos.slice(),
+        seller: { name: val("eSellerName") || "Sahibinden", type: $("#eSellerType").value },
+        phone: val("ePhone") ? normPhone(val("ePhone")) : null,
+      };
+      if (val("ePhone") && !patch.phone) { $("#eOut").innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz.</span>'; return; }
+      if (seg === "emlak") {
+        const kind = $("#eKind").value;
+        Object.assign(patch, {
+          kind, kindLabel: (D.kinds.find((k) => k.kind === kind) || {}).label || kind,
+          m2: numv("eM2"), m2Net: numv("eM2Net"), rooms: val("eRooms") || null,
+          bath: numv("eBath"), age: numv("eAge"), floor: numv("eFloor"),
+          totalFloors: numv("eTotalFloors"), dues: numv("eDues"),
+          heating: val("eHeating") || null, kitchen: val("eKitchen") || undefined,
+          deed: val("eDeed") || undefined, locality: val("eLocality") || undefined,
+          swap: $("#eSwap").checked, creditOk: $("#eCredit").checked,
+          features: $$("#eFeats input:checked").map((i) => i.value),
+        });
+      } else {
+        Object.assign(patch, {
+          brand: $("#eBrand").value, model: $("#eModel").value,
+          year: numv("eYear"), km: numv("eKm"),
+          fuel: $("#eFuel").value, gear: $("#eGear").value,
+        });
+      }
+      const btn = $("#eSave");
+      btn.disabled = true; btn.textContent = "Kaydediliyor…";
+      try {
+        const r = await save(patch);
+        if (r && r.error) {
+          $("#eOut").innerHTML = `<span style="color:var(--over)">${esc(r.error)}</span>`;
+          btn.disabled = false; btn.textContent = "Değişiklikleri Kaydet";
+          return;
+        }
+        close(); // kaydeden taraf (panel / hesabım) listeyi kendisi tazeler
+      } catch (e) {
+        const out = $("#eOut"); // pencere kapandıysa uyarı yazacak yer kalmaz
+        if (out) out.innerHTML = '<span style="color:var(--over)">Kaydedilemedi.</span>';
+        btn.disabled = false; btn.textContent = "Değişiklikleri Kaydet";
+      }
+    });
+  }
+
   // ── İlan kartı ──────────────────────────────────────────────────────────
   function cardHTML(l) {
     const b = AI.priceBadge(l);
@@ -200,6 +345,7 @@
       });
     }
     updateFavCount();
+    injectAuthLink();
     // İletişim enjeksiyonu
     $$("[data-c-tel]").forEach((a) => { a.href = "tel:" + C.company.phone.intl; a.textContent = C.company.phone.display; });
     $$("[data-c-mail]").forEach((a) => { a.href = "mailto:" + C.company.email; a.textContent = C.company.email; });
@@ -224,6 +370,21 @@
     if (!el) { el = document.createElement("meta"); el.setAttribute("property", prop); document.head.appendChild(el); }
     el.setAttribute("content", content);
   }
+  // Üyelik bağlantısı: giriş yapılmışsa "Hesabım", değilse "Giriş Yap".
+  // Tüm sayfalara tek yerden enjekte edilir (sayfalara elle eklenmez).
+  function injectAuthLink() {
+    const nav = $("#mainNav");
+    if (!nav || $("#authLink")) return;
+    const u = A.user();
+    const a = document.createElement("a");
+    a.id = "authLink";
+    a.href = u ? "hesap.html" : "giris.html";
+    a.textContent = u ? "👤 " + (u.name || "Hesabım").split(" ")[0] : "Giriş Yap";
+    if (document.body.dataset.page === (u ? "hesap" : "giris")) a.classList.add("active");
+    const cta = nav.querySelector("a.cta");
+    nav.insertBefore(a, cta || null);
+  }
+
   function injectSiteJsonLd() {
     const url = C.seo.siteUrl;
     addJsonLd({
@@ -731,7 +892,16 @@
 
   // ── İlan ver ────────────────────────────────────────────────────────────
   function pageIlanVer() {
-    // Sunucu varsa akış: gönder → yönetici onayı → herkese yayın
+    // Sunucu varsa ilan vermek üyelik ister (yönetici oturumu hariç):
+    // giriş yoksa form gizlenir, üyelik kapısı gösterilir.
+    const me = A.user();
+    if (D.hasServer() && !me && !adminToken()) {
+      $("#ilanVerGate").style.display = "";
+      $("#ilanVerForm").style.display = "none";
+      const ph = $(".page-head p");
+      if (ph) ph.textContent = "İlan vermek için ücretsiz hesabınızla giriş yapın.";
+      return;
+    }
     if (D.hasServer()) {
       const ph = $(".page-head p");
       if (ph) ph.textContent = adminToken()
@@ -762,34 +932,11 @@
     $("#pSeg").addEventListener("change", syncSegmentUI);
     syncSegmentUI();
 
-    // ── İlan takibi (bu cihazdan gönderilenler) ──────────────────────────
-    const myKey = "emlakai.myListings";
-    const mine = () => { try { return JSON.parse(localStorage.getItem(myKey) || "[]"); } catch (e) { return []; } };
-    function trackAdd(id, title) {
-      const all = mine().filter((x) => x.id !== id);
-      all.unshift({ id, title, date: new Date().toISOString() });
-      try { localStorage.setItem(myKey, JSON.stringify(all.slice(0, 50))); } catch (e) {}
-      renderTrack();
+    // Hesap bilgileri ön-doldurulur (kullanıcı değiştirebilir)
+    if (me) {
+      if (!$("#pSellerName").value) $("#pSellerName").value = me.name || "";
+      if (!$("#pPhone").value && me.phone) $("#pPhone").value = me.phone.display || "";
     }
-    const TRACK_STATUS = {
-      active: ["Yayında", "var(--deal)"], pending: ["Onay bekliyor", "var(--accent)"],
-      rejected: ["Yayınlanmadı", "var(--over)"],
-    };
-    async function renderTrack() {
-      const list = mine();
-      const wrap = $("#trackWrap");
-      if (!wrap || !list.length || !D.hasServer()) return;
-      wrap.style.display = "";
-      const rows = await Promise.all(list.map(async (x) => {
-        const st = await D.statusOf(x.id);
-        const [label, color] = (st && TRACK_STATUS[st.status]) || ["Bulunamadı", "var(--muted)"];
-        const title = (st && st.title) || x.title || x.id;
-        return `<tr><td><b>${esc(title)}</b><br><small style="color:var(--muted)">${esc(x.id)} · ${new Date(x.date).toLocaleDateString("tr-TR")}${st && st.views ? " · 👁 " + fmt(st.views) : ""}</small></td>
-          <td style="text-align:right"><span style="color:${color};font-weight:700">${label}</span>${st && st.status === "active" ? `<br><a href="ilan.html?id=${encodeURIComponent(x.id)}">İlanı gör →</a>` : ""}</td></tr>`;
-      }));
-      $("#trackList").innerHTML = rows.join("");
-    }
-    renderTrack();
 
     // Fotoğraf yükleme: canvas ile küçültülür; sunucu varsa dosya olarak saklanır
     const photos = [];
@@ -910,10 +1057,13 @@
         try {
           const r = await D.submit(l, adminToken());
           if (r && r.ok) {
-            trackAdd(r.id, l.title);
             if (r.status === "active") { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
-            $("#suggestOut").innerHTML = `<b style="color:var(--deal)">İlanınız alındı ✓</b> İlan numaranız <b>${esc(r.id)}</b>. Yönetici onayından sonra yayına girecek; durumu aşağıdaki “İlanlarım” bölümünden izleyebilirsiniz.`;
+            $("#suggestOut").innerHTML = `<b style="color:var(--deal)">İlanınız alındı ✓</b> İlan numaranız <b>${esc(r.id)}</b>. Yönetici onayından sonra yayına girecek; durumunu <a href="hesap.html">Hesabım › İlanlarım</a> sayfasından izleyebilirsiniz.`;
             btn.textContent = "İlan Gönderildi ✓";
+            return;
+          }
+          if (r && r.error && /giriş/i.test(r.error)) {
+            location.href = "giris.html?next=ilan-ver.html";
             return;
           }
           $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "İlan gönderilemedi, lütfen tekrar deneyin.")}</span>`;
@@ -930,6 +1080,190 @@
       }
       location.href = "ilan.html?id=" + encodeURIComponent(saved.id);
     });
+  }
+
+  // ── Giriş / Üye ol ──────────────────────────────────────────────────────
+  function pageGiris() {
+    const next = new URLSearchParams(location.search).get("next");
+    const goNext = () => { location.href = /^[a-z-]+\.html$/.test(next || "") ? next : "hesap.html"; };
+    if (!D.hasServer()) {
+      $("#authStatic").style.display = "";
+      $("#loginForm").style.display = "none";
+      $("#registerForm").style.display = "none";
+      $("#authTabs").style.display = "none";
+      return;
+    }
+    if (A.user()) { goNext(); return; }
+    if (new URLSearchParams(location.search).get("kayit") === "1") selectTab("register");
+
+    function selectTab(name) {
+      $$("#authTabs .tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+      $("#loginForm").style.display = name === "login" ? "" : "none";
+      $("#registerForm").style.display = name === "register" ? "" : "none";
+    }
+    $$("#authTabs .tab-btn").forEach((b) => b.addEventListener("click", () => selectTab(b.dataset.tab)));
+
+    async function run(btn, outEl, fn) {
+      const out = $(outEl), b = $(btn);
+      const label = b.textContent;
+      b.disabled = true; b.textContent = "Lütfen bekleyin…";
+      try {
+        const r = await fn();
+        if (r && r.token) { goNext(); return; }
+        out.innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "İşlem tamamlanamadı.")}</span>`;
+      } catch (e) {
+        out.innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı, lütfen tekrar deneyin.</span>';
+      }
+      b.disabled = false; b.textContent = label;
+    }
+
+    $("#loginSubmit").addEventListener("click", () => {
+      const email = $("#lEmail").value.trim(), pass = $("#lPass").value;
+      if (!email || !pass) {
+        $("#loginOut").innerHTML = '<span style="color:var(--over)">E-posta ve şifrenizi girin.</span>';
+        return;
+      }
+      run("#loginSubmit", "#loginOut", () => A.login(email, pass));
+    });
+    $("#lPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#loginSubmit").click(); });
+
+    $("#registerSubmit").addEventListener("click", () => {
+      const payload = {
+        name: $("#rName").value.trim(), email: $("#rEmail").value.trim(),
+        phone: $("#rPhone").value.trim(), password: $("#rPass").value,
+      };
+      const out = $("#registerOut");
+      if (!payload.name || !payload.email || !payload.phone || !payload.password) {
+        out.innerHTML = '<span style="color:var(--over)">Tüm alanları doldurun.</span>'; return;
+      }
+      if (payload.password.length < 8) {
+        out.innerHTML = '<span style="color:var(--over)">Şifre en az 8 karakter olmalı.</span>'; return;
+      }
+      if (!normPhone(payload.phone)) {
+        out.innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz (örn. 0543 743 42 09).</span>'; return;
+      }
+      if (!$("#rTerms").checked) {
+        out.innerHTML = '<span style="color:var(--over)">Devam etmek için onay kutusunu işaretleyin.</span>'; return;
+      }
+      run("#registerSubmit", "#registerOut", () => A.register(payload));
+    });
+    $("#rPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#registerSubmit").click(); });
+  }
+
+  // ── Hesabım: ilanlarım, mesajlarım, hesap bilgileri ─────────────────────
+  function pageHesap() {
+    if (!D.hasServer() || !A.user()) {
+      $("#hesapGate").style.display = "";
+      return;
+    }
+    $("#hesapWrap").style.display = "";
+    const STATUS = {
+      active: ["Yayında", "var(--deal)"], pending: ["Onay Bekliyor", "var(--accent)"],
+      rejected: ["Yayınlanmadı", "var(--over)"],
+    };
+    let listings = [], messages = [];
+
+    async function refresh() {
+      const [a, b] = await Promise.all([A.myListings(), A.myMessages()]);
+      if (!a || a.error) { // oturum düştü
+        $("#hesapWrap").style.display = "none";
+        $("#hesapGate").style.display = "";
+        return;
+      }
+      listings = a.listings || [];
+      messages = (b && b.messages) || [];
+      const u = A.user() || {};
+      $("#hesapWelcome").textContent = (u.name || "") + " · " + (u.email || "");
+      $("#myStats").innerHTML = [
+        ["Yayında", listings.filter((l) => l.status === "active").length],
+        ["Onay Bekleyen", listings.filter((l) => l.status === "pending").length],
+        ["Toplam Görüntülenme", listings.reduce((t, l) => t + (l.views || 0), 0)],
+        ["Mesaj", messages.length],
+      ].map(([k, v]) => `<div class="stat-box"><b>${fmt(v)}</b><span>${esc(k)}</span></div>`).join("");
+      $("#myMsgBadge").textContent = messages.length ? "(" + messages.length + ")" : "";
+      renderListings();
+      renderMessages();
+      $("#uName").value = u.name || "";
+      $("#uPhone").value = (u.phone && u.phone.display) || "";
+      $("#uEmail").value = u.email || "";
+    }
+
+    function renderListings() {
+      $("#myCount").textContent = listings.length + " ilan";
+      $("#myTable").innerHTML = '<tr><th>İlan</th><th>Fiyat</th><th>Durum</th><th style="text-align:right">İşlem</th></tr>' +
+        (listings.length ? listings.map((l) => {
+          const [sl, sc] = STATUS[l.status] || ["—", "var(--muted)"];
+          return `<tr>
+            <td>${l.status === "active" ? `<a href="ilan.html?id=${encodeURIComponent(l.id)}"><b>${esc(l.title)}</b></a>` : `<b>${esc(l.title)}</b>`}<br>
+              <small style="color:var(--muted)">${esc(l.id)} · ${esc(l.city)}/${esc(l.district)} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐" : ""}</small></td>
+            <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
+            <td><span style="color:${sc};font-weight:700">${sl}</span></td>
+            <td style="text-align:right;white-space:nowrap">
+              <button class="btn ghost sm" data-my="edit" data-id="${esc(l.id)}">Düzenle</button>
+              <button class="btn ghost sm" data-my="remove" data-id="${esc(l.id)}" style="color:var(--over);border-color:var(--over)">Sil</button>
+            </td></tr>`;
+        }).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Henüz ilanınız yok. <a href="ilan-ver.html">İlk ilanınızı verin →</a></td></tr>');
+      $$("#myTable [data-my]").forEach((btn) => btn.addEventListener("click", async () => {
+        const l = listings.find((x) => x.id === btn.dataset.id);
+        if (!l) return;
+        if (btn.dataset.my === "remove") {
+          if (!confirm("İlan kalıcı olarak silinecek. Emin misiniz?")) return;
+          const r = await A.myAction(l.id, "remove");
+          if (r && r.error) alert(r.error);
+          refresh();
+          return;
+        }
+        openListingEditor(l, (patch) => A.myAction(l.id, "edit", patch).then((r) => {
+          if (!r || !r.error) {
+            refresh();
+            if (r && r.status === "pending") {
+              alert("İlan güncellendi. Değişiklik yönetici onayından sonra yayına girecek.");
+            }
+          }
+          return r;
+        }));
+      }));
+    }
+
+    function renderMessages() {
+      $("#myMsgTable").innerHTML = '<tr><th>Gönderen</th><th>Mesaj</th><th style="text-align:right">İşlem</th></tr>' +
+        (messages.length ? messages.map((m) => `<tr>
+          <td><b>${esc(m.name)}</b><br><a href="tel:${esc(String(m.phone).replace(/[^\d+]/g, ""))}">${esc(m.phone)}</a>
+            ${m.email ? `<br><a href="mailto:${esc(m.email)}">${esc(m.email)}</a>` : ""}
+            <br><small style="color:var(--muted)">${new Date(m.date).toLocaleString("tr-TR")}</small></td>
+          <td>${esc(m.message)}<br><small style="color:var(--muted)">İlan: ${esc(m.listingTitle || m.listingId)}</small></td>
+          <td style="text-align:right"><a class="btn sm" style="background:#25d366" target="_blank" rel="noopener"
+            href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}">WhatsApp</a></td></tr>`).join("")
+          : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">Henüz mesajınız yok.</td></tr>');
+    }
+
+    $$("#myTabs .tab-btn").forEach((b) => b.addEventListener("click", () => {
+      $$("#myTabs .tab-btn").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      $("#myListingsTab").style.display = b.dataset.tab === "listings" ? "" : "none";
+      $("#myMessagesTab").style.display = b.dataset.tab === "messages" ? "" : "none";
+      $("#myProfileTab").style.display = b.dataset.tab === "profile" ? "" : "none";
+    }));
+
+    $("#uSave").addEventListener("click", async () => {
+      const out = $("#uOut");
+      const r = await A.update({ name: $("#uName").value.trim(), phone: $("#uPhone").value.trim() });
+      out.innerHTML = r && r.ok
+        ? '<b style="color:var(--deal)">Bilgileriniz güncellendi ✓</b>'
+        : `<span style="color:var(--over)">${esc((r && r.error) || "Güncellenemedi.")}</span>`;
+      if (r && r.ok) { const a = $("#authLink"); if (a) a.textContent = "👤 " + (r.user.name || "").split(" ")[0]; }
+    });
+    $("#uPassSave").addEventListener("click", async () => {
+      const out = $("#uPassOut");
+      const r = await A.update({ currentPassword: $("#uPass0").value, newPassword: $("#uPass1").value });
+      out.innerHTML = r && r.ok
+        ? '<b style="color:var(--deal)">Şifreniz güncellendi ✓</b>'
+        : `<span style="color:var(--over)">${esc((r && r.error) || "Güncellenemedi.")}</span>`;
+      if (r && r.ok) { $("#uPass0").value = ""; $("#uPass1").value = ""; }
+    });
+    $("#uLogout").addEventListener("click", () => { A.logout(); location.href = "index.html"; });
+
+    refresh();
   }
 
   // ── Değerleme ───────────────────────────────────────────────────────────
@@ -1124,7 +1458,7 @@
       if (r.status === 401) { sessionStorage.removeItem(adminTokKey); show(false); throw new Error("unauthorized"); }
       return r.json();
     }
-    let rows = [], msgs = [];
+    let rows = [], msgs = [], users = [];
     const STATUS = { active: ["Yayında", "var(--deal)"], pending: ["Onay Bekliyor", "var(--accent)"], rejected: ["Reddedildi", "var(--over)"] };
 
     async function refresh() {
@@ -1140,6 +1474,10 @@
         const m = await api("api/admin/messages", { method: "GET" });
         msgs = m.messages || [];
       } catch (e) { msgs = []; }
+      try {
+        const uu = await api("api/admin/users", { method: "GET" });
+        users = uu.users || [];
+      } catch (e) { users = []; }
       const unread = msgs.filter((m) => !m.read).length;
       const stats = [
         ["Yayında", rows.filter((l) => l.status === "active").length],
@@ -1147,11 +1485,20 @@
         ["Öne Çıkan", rows.filter((l) => l.featured && l.status === "active").length],
         ["Toplam Görüntülenme", rows.reduce((a, l) => a + (l.views || 0), 0)],
         ["Okunmamış Mesaj", unread],
+        ["Üye", users.length],
       ];
       $("#adminStats").innerHTML = stats.map(([k, v]) => `<div class="stat-box"><b>${fmt(v)}</b><span>${esc(k)}</span></div>`).join("");
       $("#msgBadge").textContent = unread ? "(" + unread + ")" : "";
+      $("#userBadge").textContent = users.length ? "(" + users.length + ")" : "";
       render();
       renderMsgs();
+      renderUsers();
+    }
+
+    // İlan sahibi etiketi: üye hesabı varsa adı/e-postası, yoksa yönetici girişi
+    function ownerLabel(l) {
+      const u = users.find((x) => x.uid === l.ownerId);
+      return u ? u.name + " (" + u.email + ")" : (l.ownerId ? "üye silinmiş" : "yönetici");
     }
 
     // ── İlan listesi ─────────────────────────────────────────────────────
@@ -1166,7 +1513,7 @@
           const [sl, sc] = STATUS[l.status] || ["—", "var(--muted)"];
           return `<tr>
             <td><a href="ilan.html?id=${encodeURIComponent(l.id)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b></a><br>
-              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small></td>
+              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${esc(ownerLabel(l))} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small></td>
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
@@ -1179,7 +1526,13 @@
         }).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Bu durumda ilan yok.</td></tr>');
       $$("#adminTable [data-act]").forEach((b) => b.addEventListener("click", async () => {
         const act = b.dataset.act, id = b.dataset.id;
-        if (act === "edit") { openEdit(rows.find((l) => l.id === id)); return; }
+        if (act === "edit") {
+          const l = rows.find((x) => x.id === id);
+          openListingEditor(l, (patch) =>
+            api("api/admin/action", { method: "POST", body: JSON.stringify({ id: l.id, action: "edit", value: patch }) })
+              .then((r) => { if (!r || !r.error) refresh().catch(() => {}); return r; }));
+          return;
+        }
         if (act === "remove" && !confirm("İlan kalıcı olarak silinecek. Emin misiniz?")) return;
         try {
           const r = await api("api/admin/action", { method: "POST", body: JSON.stringify({ id, action: act }) });
@@ -1187,150 +1540,6 @@
         } catch (e) { /* 401 → giriş ekranına döner */ }
         refresh().catch(() => {});
       }));
-    }
-
-    // ── İlan düzenleme penceresi ─────────────────────────────────────────
-    function openEdit(l) {
-      if (!l) return;
-      const seg = l.segment === "vasita" ? "vasita" : "emlak";
-      let photos = (l.photos || []).slice();
-      const kindOpts = D.kinds.map((k) => `<option value="${k.kind}"${k.kind === l.kind ? " selected" : ""}>${esc(k.label)}</option>`).join("");
-      const sel = (arr, v) => arr.map((x) => `<option${x === v ? " selected" : ""}>${esc(x)}</option>`).join("");
-      const numField = (id, label, val, extra) => `<div><label for="${id}">${esc(label)}</label><input id="${id}" type="number" ${extra || ""} value="${val == null ? "" : val}"></div>`;
-      const modal = $("#editModal");
-      modal.innerHTML = `<div class="modal-back" id="editBack">
-        <div class="modal-card" role="dialog" aria-modal="true" aria-label="İlanı düzenle">
-          <div class="modal-head"><b>İlanı Düzenle — ${esc(l.id)}</b>
-            <button class="icon-btn" id="editClose" aria-label="Kapat">✕</button></div>
-          <div class="form-grid">
-            <div class="full"><label for="eTitle">Başlık</label><input id="eTitle" type="text" maxlength="200" value="${esc(l.title)}"></div>
-            <div><label for="eCat">Kategori</label><select id="eCat">
-              <option value="satilik"${l.category === "satilik" ? " selected" : ""}>Satılık</option>
-              <option value="kiralik"${l.category === "kiralik" ? " selected" : ""}>Kiralık</option></select></div>
-            ${numField("ePrice", "Fiyat (₺)", l.price, 'min="0"')}
-            <div><label for="eCity">Şehir</label><select id="eCity"></select></div>
-            <div><label for="eDistrict">İlçe</label><select id="eDistrict"></select></div>
-            ${seg === "emlak" ? `
-              <div><label for="eKind">Tür</label><select id="eKind">${kindOpts}</select></div>
-              ${numField("eM2", "Brüt m²", l.m2, 'min="0"')}
-              ${numField("eM2Net", "Net m²", l.m2Net, 'min="0"')}
-              <div><label for="eRooms">Oda</label><input id="eRooms" type="text" maxlength="10" value="${esc(l.rooms || "")}"></div>
-              ${numField("eBath", "Banyo", l.bath, 'min="0"')}
-              ${numField("eAge", "Bina Yaşı", l.age, 'min="0"')}
-              ${numField("eFloor", "Kat", l.floor, "")}
-              ${numField("eTotalFloors", "Kat Sayısı", l.totalFloors, 'min="0"')}
-              ${numField("eDues", "Aidat (₺/ay)", l.dues, 'min="0"')}
-              <div><label for="eHeating">Isıtma</label><input id="eHeating" type="text" maxlength="40" value="${esc(l.heating || "")}"></div>
-              <div><label for="eKitchen">Mutfak</label><input id="eKitchen" type="text" maxlength="60" value="${esc(l.kitchen || "")}"></div>
-              <div><label for="eDeed">Tapu Durumu</label><input id="eDeed" type="text" maxlength="60" value="${esc(l.deed || "")}"></div>
-              <div class="full"><label for="eLocality">Mahalle / Site</label><input id="eLocality" type="text" maxlength="120" value="${esc(l.locality || "")}"></div>
-              <div><label style="display:flex;gap:8px;align-items:center"><input id="eSwap" type="checkbox" style="width:auto"${l.swap ? " checked" : ""}> Takas</label></div>
-              <div><label style="display:flex;gap:8px;align-items:center"><input id="eCredit" type="checkbox" style="width:auto"${l.creditOk ? " checked" : ""}> Krediye uygun</label></div>
-              <div class="full"><label>Özellikler</label><div class="check-grid" id="eFeats">${Object.keys(C.valuation.features).map((f) => `<label><input type="checkbox" value="${esc(f)}"${(l.features || []).includes(f) ? " checked" : ""}> ${esc(f)}</label>`).join("")}</div></div>
-            ` : `
-              <div><label for="eBrand">Marka</label><select id="eBrand">${sel(D.brands, l.brand)}</select></div>
-              <div><label for="eModel">Model</label><select id="eModel"></select></div>
-              ${numField("eYear", "Model Yılı", l.year, 'min="1950"')}
-              ${numField("eKm", "Kilometre", l.km, 'min="0"')}
-              <div><label for="eFuel">Yakıt</label><select id="eFuel">${sel(C.vehicles.fuels, l.fuel)}</select></div>
-              <div><label for="eGear">Vites</label><select id="eGear">${sel(C.vehicles.gears, l.gear)}</select></div>
-            `}
-            <div><label for="eSellerName">İlan Sahibi</label><input id="eSellerName" type="text" maxlength="80" value="${esc((l.seller || {}).name || "")}"></div>
-            <div><label for="eSellerType">Satıcı Tipi</label><select id="eSellerType">
-              <option value="sahibinden"${(l.seller || {}).type !== "ofis" ? " selected" : ""}>Sahibinden</option>
-              <option value="ofis"${(l.seller || {}).type === "ofis" ? " selected" : ""}>Ofis / Galeri</option></select></div>
-            <div class="full"><label for="ePhone">İlan Telefonu</label><input id="ePhone" type="tel" maxlength="25" value="${esc((l.phone || {}).display || "")}" placeholder="Boş = site telefonu"></div>
-            <div class="full"><label for="eDesc">Açıklama</label><textarea id="eDesc" rows="7" maxlength="4000">${esc(l.desc || "")}</textarea></div>
-            <div class="full"><label>Fotoğraflar</label>
-              <div id="ePhotos" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
-              <input id="ePhotoFile" type="file" accept="image/*" multiple>
-            </div>
-            <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn" id="eSave" type="button">Değişiklikleri Kaydet</button>
-              <button class="btn ghost" id="eCancel" type="button">Vazgeç</button>
-              <span class="notice" id="eOut" style="flex:1"></span>
-            </div>
-          </div>
-        </div></div>`;
-      fillCitySelect($("#eCity"), false);
-      $("#eCity").value = l.city || $("#eCity").value;
-      fillDistrictSelect($("#eDistrict"), $("#eCity").value, false);
-      $("#eDistrict").value = l.district || $("#eDistrict").value;
-      $("#eCity").addEventListener("change", () => fillDistrictSelect($("#eDistrict"), $("#eCity").value, false));
-      if (seg === "vasita") {
-        const fillM = () => {
-          $("#eModel").innerHTML = D.modelsOf($("#eBrand").value).map((m) => `<option${m === l.model ? " selected" : ""}>${esc(m)}</option>`).join("");
-        };
-        fillM();
-        $("#eBrand").addEventListener("change", fillM);
-      }
-      function renderPhotos() {
-        $("#ePhotos").innerHTML = photos.map((p, i) =>
-          `<span style="position:relative;display:inline-block"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}" style="width:110px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
-           <button type="button" data-rm="${i}" aria-label="Fotoğrafı kaldır" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:22px;height:22px;line-height:1">✕</button></span>`).join("") ||
-          '<small style="color:var(--muted)">Fotoğraf yok — ilan kartında otomatik görsel kullanılır.</small>';
-        $$("#ePhotos [data-rm]").forEach((b) => b.addEventListener("click", () => { photos.splice(+b.dataset.rm, 1); renderPhotos(); }));
-      }
-      renderPhotos();
-      $("#ePhotoFile").addEventListener("change", async (e) => {
-        const files = Array.from(e.target.files || []).slice(0, 8 - photos.length);
-        e.target.value = "";
-        for (const file of files) {
-          const data = await resizePhoto(file, 1400);
-          if (data) photos.push(data);
-          renderPhotos();
-        }
-      });
-      const close = () => { modal.innerHTML = ""; };
-      $("#editClose").addEventListener("click", close);
-      $("#eCancel").addEventListener("click", close);
-      $("#editBack").addEventListener("click", (e) => { if (e.target.id === "editBack") close(); });
-      $("#eSave").addEventListener("click", async () => {
-        const val = (id) => { const el = $("#" + id); return el ? el.value.trim() : ""; };
-        const numv = (id) => { const v = val(id); return v === "" ? null : +v; };
-        const patch = {
-          title: val("eTitle"), category: $("#eCat").value,
-          price: +val("ePrice") || 0, city: $("#eCity").value, district: $("#eDistrict").value,
-          desc: val("eDesc"), photos: photos.slice(),
-          seller: { name: val("eSellerName") || "Sahibinden", type: $("#eSellerType").value },
-          phone: val("ePhone") ? normPhone(val("ePhone")) : null,
-        };
-        if (val("ePhone") && !patch.phone) { $("#eOut").innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz.</span>'; return; }
-        if (seg === "emlak") {
-          const kind = $("#eKind").value;
-          Object.assign(patch, {
-            kind, kindLabel: (D.kinds.find((k) => k.kind === kind) || {}).label || kind,
-            m2: numv("eM2"), m2Net: numv("eM2Net"), rooms: val("eRooms") || null,
-            bath: numv("eBath"), age: numv("eAge"), floor: numv("eFloor"),
-            totalFloors: numv("eTotalFloors"), dues: numv("eDues"),
-            heating: val("eHeating") || null, kitchen: val("eKitchen") || undefined,
-            deed: val("eDeed") || undefined, locality: val("eLocality") || undefined,
-            swap: $("#eSwap").checked, creditOk: $("#eCredit").checked,
-            features: $$("#eFeats input:checked").map((i) => i.value),
-          });
-        } else {
-          Object.assign(patch, {
-            brand: $("#eBrand").value, model: $("#eModel").value,
-            year: numv("eYear"), km: numv("eKm"),
-            fuel: $("#eFuel").value, gear: $("#eGear").value,
-          });
-        }
-        const btn = $("#eSave");
-        btn.disabled = true; btn.textContent = "Kaydediliyor…";
-        try {
-          const r = await api("api/admin/action", { method: "POST", body: JSON.stringify({ id: l.id, action: "edit", value: patch }) });
-          if (r && r.error) {
-            $("#eOut").innerHTML = `<span style="color:var(--over)">${esc(r.error)}</span>`;
-            btn.disabled = false; btn.textContent = "Değişiklikleri Kaydet";
-            return;
-          }
-          close();
-          refresh().catch(() => {});
-        } catch (e) {
-          $("#eOut").innerHTML = '<span style="color:var(--over)">Kaydedilemedi.</span>';
-          btn.disabled = false; btn.textContent = "Değişiklikleri Kaydet";
-        }
-      });
     }
 
     // ── Mesajlar ─────────────────────────────────────────────────────────
@@ -1360,13 +1569,51 @@
       }));
     }
 
+    // ── Üyeler ───────────────────────────────────────────────────────────
+    function renderUsers() {
+      const q = $("#userSearch").value.trim().toLocaleLowerCase("tr");
+      const list = users.filter((u) => !q ||
+        (u.name || "").toLocaleLowerCase("tr").includes(q) || (u.email || "").includes(q));
+      $("#userCount").textContent = list.length + " üye";
+      $("#userTable").innerHTML = '<tr><th>Üye</th><th>İlan</th><th>Durum</th><th style="text-align:right">İşlem</th></tr>' +
+        (list.length ? list.map((u) => `<tr>
+          <td><b>${esc(u.name)}</b>${u.role === "admin" ? ' <span class="chip" style="padding:2px 8px">yönetici</span>' : ""}<br>
+            <small style="color:var(--muted)"><a href="mailto:${esc(u.email)}">${esc(u.email)}</a>${u.phone && u.phone.display ? " · " + esc(u.phone.display) : ""}<br>
+            Kayıt: ${new Date(u.created).toLocaleDateString("tr-TR")}${u.lastLogin ? " · Son giriş: " + new Date(u.lastLogin).toLocaleDateString("tr-TR") : ""}</small></td>
+          <td>${fmt(u.listings)}</td>
+          <td><span style="color:${u.banned ? "var(--over)" : "var(--deal)"};font-weight:700">${u.banned ? "Askıda" : "Aktif"}</span></td>
+          <td style="text-align:right;white-space:nowrap">
+            <button class="btn ghost sm" data-user="${esc(u.uid)}" data-uact="${u.banned ? "unban" : "ban"}">${u.banned ? "Askıyı kaldır" : "Askıya al"}</button>
+            <button class="btn ghost sm" data-user="${esc(u.uid)}" data-uact="password">Şifre ata</button>
+            <button class="btn ghost sm" data-user="${esc(u.uid)}" data-uact="remove" style="color:var(--over);border-color:var(--over)">Sil</button>
+          </td></tr>`).join("")
+          : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Henüz üye yok.</td></tr>');
+      $$("#userTable [data-user]").forEach((b) => b.addEventListener("click", async () => {
+        const act = b.dataset.uact;
+        let value;
+        if (act === "password") {
+          value = prompt("Bu üye için yeni şifre (en az 8 karakter):");
+          if (!value) return;
+        }
+        if (act === "remove" && !confirm("Üye ve TÜM ilanları kalıcı olarak silinecek. Emin misiniz?")) return;
+        try {
+          const r = await api("api/admin/user", { method: "POST", body: JSON.stringify({ id: b.dataset.user, action: act, value }) });
+          if (r && r.error) alert(r.error);
+          else if (act === "password") alert("Yeni şifre atandı. Üyeye güvenli bir kanaldan iletin.");
+        } catch (e) { /* 401 */ }
+        refresh().catch(() => {});
+      }));
+    }
+
     // Sekmeler
     $$("#adminTabs .tab-btn").forEach((b) => b.addEventListener("click", () => {
       $$("#adminTabs .tab-btn").forEach((x) => x.classList.remove("active"));
       b.classList.add("active");
       $("#tabListings").style.display = b.dataset.tab === "listings" ? "" : "none";
       $("#tabMessages").style.display = b.dataset.tab === "messages" ? "" : "none";
+      $("#tabUsers").style.display = b.dataset.tab === "users" ? "" : "none";
     }));
+    $("#userSearch").addEventListener("input", renderUsers);
 
     $("#adminFilter").addEventListener("change", render);
     $("#adminSearch").addEventListener("input", render);
@@ -1416,11 +1663,14 @@
   // ── Başlat ──────────────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", async () => {
     await D.init(); // sunucu API'si varsa ilanları oradan yükle
+    // Oturum sunucuda hâlâ geçerli mi? (süre dolumu / askıya alınma)
+    if (D.hasServer() && A.token()) await A.refresh();
     initChrome();
     const page = document.body.dataset.page;
     const routes = {
       index: pageIndex, ilanlar: pageIlanlar, ilan: pageIlan,
       "ilan-ver": pageIlanVer, degerleme: pageDegerleme,
+      giris: pageGiris, hesap: pageHesap,
       asistan: pageAsistan, favoriler: pageFavoriler, admin: pageAdmin,
     };
     if (routes[page]) routes[page]();

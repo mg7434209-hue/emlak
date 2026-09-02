@@ -170,6 +170,7 @@ const staticPages = [
   ["asistan.html", "0.7", "weekly"],
   ["rehber.html", "0.8", "weekly"],
   ["ilan-ver.html", "0.7", "monthly"],
+  ["giris.html", "0.4", "monthly"],
 ];
 // Repoya işlenen gerçek ilanlar (Node ortamında localStorage boş → yalnız REAL)
 const listingUrls = EMLAK.data.all().map((l) => `  <url><loc>${URL0}/ilan.html?id=${encodeURIComponent(l.id)}</loc><lastmod>${String(l.date).slice(0, 10)}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`);
@@ -188,6 +189,7 @@ fs.writeFileSync(path.join(__dirname, "robots.txt"),
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /hesap.html
 Disallow: /api/
 
 # AI arama/asistan tarayıcıları açıkça hoş karşılanır (AEO)

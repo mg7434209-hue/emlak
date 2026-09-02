@@ -6,6 +6,13 @@
  *   POST /api/login              {pass} → {token}    (admin girişi)
  *   GET  /api/listings           → {listings:[...aktif...]}  (herkese açık)
  *   POST /api/listings           ilan gönder → pending (admin token'la → active)
+ *   POST /api/auth/register      {name,email,phone,password} → {token,user}
+ *   POST /api/auth/login         {email,password} → {token,user}
+ *   GET  /api/auth/me            (X-User-Token) → {user}
+ *   POST /api/auth/update        (X-User-Token) profil / şifre değiştirme
+ *   GET  /api/my/listings        (X-User-Token) → kendi ilanları (tüm durumlar)
+ *   POST /api/my/action          (X-User-Token) {id, action: edit|remove}
+ *   GET  /api/my/messages        (X-User-Token) → kendi ilanlarına gelen mesajlar
  *   GET  /api/listing?id=        → {status} (ilan takibi: gönderilen ilanın durumu)
  *   POST /api/view               {id} → görüntülenme sayacı (IP+ilan başına 12 saat)
  *   POST /api/messages           {id, name, phone, message} → satıcıya mesaj (lead)
@@ -15,6 +22,8 @@
  *   GET  /api/admin/messages     (token) → gelen mesajlar
  *   POST /api/admin/message      (token) {id, action: read|remove}
  *   POST /api/admin/import       (token) {listings} → yedekten geri yükle
+ *   GET  /api/admin/users        (token) → üyeler
+ *   POST /api/admin/user         (token) {id, action: ban|unban|remove|admin|unadmin|password}
  *
  * Fotoğraflar: istemci base64 gönderir, sunucu DATA_DIR/uploads altına dosya
  * olarak yazar ve ilanda `u/<dosya>` yolunu tutar (/u/... ile servis edilir).
@@ -104,6 +113,76 @@ function saveMessages(list) {
 }
 let MESSAGES = loadMessages();
 
+// ── Üyelik: kullanıcı hesapları (kayıt + giriş) ───────────────────────────
+// Şifreler scrypt ile tuzlanarak saklanır; oturum jetonu HMAC ile imzalanır
+// (sunucu yeniden başlayınca kullanıcılar düşmez, gizli anahtar DATA_DIR'de).
+const USER_STORE = path.join(DATA_DIR, "users.json");
+function loadUsers() {
+  try { return JSON.parse(fs.readFileSync(USER_STORE, "utf8")); } catch (e) { return []; }
+}
+function saveUsers(list) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const tmp = USER_STORE + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(list, null, 1));
+  fs.renameSync(tmp, USER_STORE);
+}
+let USERS = loadUsers();
+
+const SECRET_FILE = path.join(DATA_DIR, "session.key");
+function loadSecret() {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  try { return fs.readFileSync(SECRET_FILE, "utf8").trim(); } catch (e) {}
+  const key = crypto.randomBytes(32).toString("hex");
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(SECRET_FILE, key, { mode: 0o600 });
+  } catch (e) { /* yazılamadı: jetonlar yeniden başlatmada geçersiz olur */ }
+  return key;
+}
+const SESSION_SECRET = loadSecret();
+const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 gün
+
+function hashPassword(pw) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  return "scrypt$" + salt + "$" + crypto.scryptSync(pw, salt, 64).toString("hex");
+}
+function verifyPassword(pw, stored) {
+  const parts = String(stored || "").split("$");
+  if (parts.length !== 3 || parts[0] !== "scrypt") return false;
+  const calc = crypto.scryptSync(pw, parts[1], 64).toString("hex");
+  return timingSafeEq(calc, parts[2]);
+}
+function signSession(uid) {
+  const payload = uid + "." + (Date.now() + SESSION_TTL);
+  const sig = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex").slice(0, 32);
+  return payload + "." + sig;
+}
+function userFromToken(token) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3) return null;
+  const payload = parts[0] + "." + parts[1];
+  const sig = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex").slice(0, 32);
+  if (!timingSafeEq(sig, parts[2])) return null;
+  if (!(+parts[1] > Date.now())) return null;
+  const u = USERS.find((x) => x.uid === parts[0]);
+  return u && !u.banned ? u : null;
+}
+const currentUser = (req) => userFromToken(req.headers["x-user-token"] || "");
+const publicUser = (u) => ({ uid: u.uid, name: u.name, email: u.email, phone: u.phone || "", role: u.role || "user" });
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@.]+(\.[^\s@.]+)+$/;
+const normEmail = (v) => String(v || "").trim().toLowerCase().slice(0, 120);
+// Telefonu normalize eder: "0543 743 42 09" → {display, intl, wa} (yoksa null)
+function normPhoneSrv(raw) {
+  let d = String(raw || "").replace(/\D/g, "");
+  if (d.startsWith("90")) d = d.slice(2);
+  if (d.startsWith("0")) d = d.slice(1);
+  if (d.length !== 10) return null;
+  return {
+    display: "0" + d.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, "$1 $2 $3 $4"),
+    intl: "+90" + d, wa: "90" + d,
+  };
+}
+
 // ── Basit hız sınırı (bellek içi; IP + kova başına saatlik) ───────────────
 const HITS = new Map(); // "kova|ip" → [zaman damgaları]
 function rateLimit(req, bucket, max, windowMs) {
@@ -165,6 +244,80 @@ function readBody(req, limit) {
 }
 
 async function handleApi(req, res, urlPath) {
+  // ── Üyelik uçları ─────────────────────────────────────────────────────
+  // POST /api/auth/register — yeni hesap
+  if (urlPath === "/api/auth/register" && req.method === "POST") {
+    if (!rateLimit(req, "reg", 5, 60 * 60 * 1000)) {
+      return sendJson(res, 429, { error: "Çok fazla kayıt denemesi. Daha sonra tekrar deneyin." });
+    }
+    const b = await readBody(req, 8192);
+    const name = str(b.name, 80), email = normEmail(b.email), pw = String(b.password || "");
+    const phone = normPhoneSrv(b.phone);
+    if (name.length < 2) return sendJson(res, 400, { error: "Ad soyad en az 2 karakter olmalı." });
+    if (!EMAIL_RE.test(email)) return sendJson(res, 400, { error: "Geçerli bir e-posta girin." });
+    if (pw.length < 8) return sendJson(res, 400, { error: "Şifre en az 8 karakter olmalı." });
+    if (!phone) return sendJson(res, 400, { error: "Geçerli bir telefon girin (örn. 0543 743 42 09)." });
+    if (USERS.some((u) => u.email === email)) return sendJson(res, 409, { error: "Bu e-posta ile zaten bir hesap var. Giriş yapın." });
+    if (USERS.length >= 5000) return sendJson(res, 429, { error: "Üye kapasitesi dolu." });
+    const u = {
+      uid: "U" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase(),
+      name, email, phone, pass: hashPassword(pw), role: "user",
+      created: new Date().toISOString(),
+    };
+    USERS.push(u);
+    saveUsers(USERS);
+    return sendJson(res, 200, { ok: true, token: signSession(u.uid), user: publicUser(u) });
+  }
+
+  // POST /api/auth/login — e-posta + şifre
+  if (urlPath === "/api/auth/login" && req.method === "POST") {
+    if (!rateLimit(req, "ulogin", 10, 15 * 60 * 1000)) {
+      return sendJson(res, 429, { error: "Çok fazla deneme. 15 dakika sonra tekrar deneyin." });
+    }
+    const b = await readBody(req, 4096);
+    const u = USERS.find((x) => x.email === normEmail(b.email));
+    if (!u || !verifyPassword(String(b.password || ""), u.pass)) {
+      return sendJson(res, 401, { error: "E-posta ya da şifre hatalı." });
+    }
+    if (u.banned) return sendJson(res, 403, { error: "Hesabınız askıya alınmış. Bizimle iletişime geçin." });
+    u.lastLogin = new Date().toISOString();
+    saveUsers(USERS);
+    return sendJson(res, 200, { ok: true, token: signSession(u.uid), user: publicUser(u) });
+  }
+
+  // GET /api/auth/me — oturum doğrulama
+  if (urlPath === "/api/auth/me" && req.method === "GET") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    return sendJson(res, 200, { user: publicUser(u) });
+  }
+
+  // POST /api/auth/update — profil ve şifre güncelleme
+  if (urlPath === "/api/auth/update" && req.method === "POST") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    const b = await readBody(req, 8192);
+    if (b.newPassword != null) {
+      if (!verifyPassword(String(b.currentPassword || ""), u.pass)) {
+        return sendJson(res, 401, { error: "Mevcut şifre hatalı." });
+      }
+      if (String(b.newPassword).length < 8) return sendJson(res, 400, { error: "Yeni şifre en az 8 karakter olmalı." });
+      u.pass = hashPassword(String(b.newPassword));
+    }
+    if (b.name != null) {
+      const name = str(b.name, 80);
+      if (name.length < 2) return sendJson(res, 400, { error: "Ad soyad en az 2 karakter olmalı." });
+      u.name = name;
+    }
+    if (b.phone != null) {
+      const ph = normPhoneSrv(b.phone);
+      if (!ph) return sendJson(res, 400, { error: "Geçerli bir telefon girin." });
+      u.phone = ph;
+    }
+    saveUsers(USERS);
+    return sendJson(res, 200, { ok: true, user: publicUser(u) });
+  }
+
   // POST /api/login — admin girişi
   if (urlPath === "/api/login" && req.method === "POST") {
     if (!rateLimit(req, "login", 10, 15 * 60 * 1000)) {
@@ -187,7 +340,12 @@ async function handleApi(req, res, urlPath) {
   // POST /api/listings — ilan gönder (herkes; admin token'la doğrudan aktif)
   if (urlPath === "/api/listings" && req.method === "POST") {
     const isAdmin = checkToken(req);
-    if (!isAdmin && !rateLimit(req, "post", 5, 60 * 60 * 1000)) {
+    const user = isAdmin ? null : currentUser(req);
+    // İlan vermek üyelik ister (yönetici oturumu hariç)
+    if (!isAdmin && !user) {
+      return sendJson(res, 401, { error: "İlan vermek için giriş yapın ya da ücretsiz hesap oluşturun." });
+    }
+    if (!isAdmin && !rateLimit(req, "post", 10, 60 * 60 * 1000)) {
       return sendJson(res, 429, { error: "Saatlik ilan sınırına ulaştınız. Daha sonra tekrar deneyin." });
     }
     const b = await readBody(req, 12 * 1024 * 1024); // fotoğraflar base64 (≤5 × ~300KB)
@@ -200,6 +358,15 @@ async function handleApi(req, res, urlPath) {
     l.date = new Date().toISOString();
     l.status = isAdmin ? "active" : "pending";
     l.views = 0; l.favCount = 0;
+    if (user) {
+      // İlan sahibi hesaba bağlanır; ad ve telefon boş bırakılırsa hesaptan alınır
+      // (NORMALIZE boş adı "Sahibinden"e çevirdiği için ham gövdeye bakılır).
+      const rawSeller = b.seller && typeof b.seller === "object" ? b.seller : {};
+      const rawName = str(rawSeller.name, 80);
+      l.ownerId = user.uid;
+      l.seller = { name: rawName || user.name, type: rawSeller.type === "ofis" ? "ofis" : "sahibinden" };
+      if (!l.phone && user.phone) l.phone = user.phone;
+    }
     l.photos = persistPhotos(l.id, b.photos); // base64 → DATA_DIR/uploads dosyaları
     if (!isAdmin) l.featured = false; // öne çıkarma yalnızca admin kararıyla
     LISTINGS.unshift(l);
@@ -257,6 +424,59 @@ async function handleApi(req, res, urlPath) {
     return sendJson(res, 200, { ok: true });
   }
 
+  // ── Üyenin kendi ilanları ve mesajları ────────────────────────────────
+  if (urlPath === "/api/my/listings" && req.method === "GET") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    return sendJson(res, 200, { listings: LISTINGS.filter((l) => l.ownerId === u.uid) });
+  }
+
+  if (urlPath === "/api/my/messages" && req.method === "GET") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    const own = new Set(LISTINGS.filter((l) => l.ownerId === u.uid).map((l) => l.id));
+    return sendJson(res, 200, { messages: MESSAGES.filter((m) => own.has(m.listingId)) });
+  }
+
+  // POST /api/my/action — {id, action: edit|remove}
+  if (urlPath === "/api/my/action" && req.method === "POST") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    const b = await readBody(req, 12 * 1024 * 1024);
+    const i = LISTINGS.findIndex((l) => l.id === b.id && l.ownerId === u.uid);
+    if (i < 0) return sendJson(res, 404, { error: "İlan bulunamadı." });
+    const l = LISTINGS[i];
+    if (b.action === "remove") {
+      dropPhotos(l.photos);
+      LISTINGS.splice(i, 1);
+      saveListings(LISTINGS);
+      return sendJson(res, 200, { ok: true });
+    }
+    if (b.action !== "edit") return sendJson(res, 400, { error: "Bilinmeyen eylem." });
+    const patch = b.value && typeof b.value === "object" ? b.value : null;
+    if (!patch) return sendJson(res, 400, { error: "Geçersiz düzenleme verisi." });
+    const merged = NORMALIZE(Object.assign({}, l, patch));
+    if (!merged || !merged.title || !merged.price || !merged.district) {
+      return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
+    }
+    const keptPhotos = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos) : l.photos;
+    if (Array.isArray(patch.photos)) {
+      dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
+    }
+    pushPriceHistory(l, merged.price);
+    const hist = l.priceHistory;
+    Object.assign(l, merged, {
+      id: l.id, date: l.date, ownerId: l.ownerId, views: l.views || 0,
+      favCount: l.favCount || 0, photos: keptPhotos, priceHistory: hist,
+      // Düzenlenen ilan yeniden yönetici onayından geçer (yalnız fiyat
+      // indirimi anında yayında kalır — alıcı için önemli olan bilgi).
+      status: onlyPriceDrop(l, merged, patch) ? l.status : "pending",
+      featured: l.featured, updated: new Date().toISOString(),
+    });
+    saveListings(LISTINGS);
+    return sendJson(res, 200, { ok: true, status: l.status });
+  }
+
   // Buradan sonrası admin ister
   if (!checkToken(req)) return sendJson(res, 401, { error: "Yetkisiz." });
 
@@ -300,7 +520,7 @@ async function handleApi(req, res, urlPath) {
         pushPriceHistory(l, merged.price);
         const hist = l.priceHistory;
         Object.assign(l, merged, {
-          id: l.id, date: l.date, status: l.status, views: l.views || 0,
+          id: l.id, date: l.date, status: l.status, ownerId: l.ownerId, views: l.views || 0,
           favCount: l.favCount || 0, photos: keptPhotos, priceHistory: hist,
           updated: new Date().toISOString(),
         });
@@ -330,6 +550,48 @@ async function handleApi(req, res, urlPath) {
     return sendJson(res, 200, { ok: true });
   }
 
+  // GET /api/admin/users — üye listesi (şifre özeti ASLA dönmez)
+  if (urlPath === "/api/admin/users" && req.method === "GET") {
+    return sendJson(res, 200, {
+      users: USERS.map((u) => Object.assign(publicUser(u), {
+        created: u.created, lastLogin: u.lastLogin || null, banned: !!u.banned,
+        listings: LISTINGS.filter((l) => l.ownerId === u.uid).length,
+      })),
+    });
+  }
+
+  // POST /api/admin/user — {id, action: ban|unban|remove|admin|unadmin|password}
+  if (urlPath === "/api/admin/user" && req.method === "POST") {
+    const b = await readBody(req, 4096);
+    const i = USERS.findIndex((u) => u.uid === b.id);
+    if (i < 0) return sendJson(res, 404, { error: "Üye bulunamadı." });
+    const u = USERS[i];
+    switch (b.action) {
+      case "ban": u.banned = true; break;
+      case "unban": u.banned = false; break;
+      case "admin": u.role = "admin"; break;
+      case "unadmin": u.role = "user"; break;
+      case "password": {
+        const pw = String(b.value || "");
+        if (pw.length < 8) return sendJson(res, 400, { error: "Şifre en az 8 karakter olmalı." });
+        u.pass = hashPassword(pw);
+        break;
+      }
+      case "remove": {
+        // Üye silinince ilanları da kaldırılır (fotoğraflarıyla birlikte)
+        for (let k = LISTINGS.length - 1; k >= 0; k--) {
+          if (LISTINGS[k].ownerId === u.uid) { dropPhotos(LISTINGS[k].photos); LISTINGS.splice(k, 1); }
+        }
+        USERS.splice(i, 1);
+        saveListings(LISTINGS);
+        break;
+      }
+      default: return sendJson(res, 400, { error: "Bilinmeyen eylem." });
+    }
+    saveUsers(USERS);
+    return sendJson(res, 200, { ok: true });
+  }
+
   // POST /api/admin/import — JSON yedeğinden geri yükleme (depoyu değiştirir)
   if (urlPath === "/api/admin/import" && req.method === "POST") {
     const b = await readBody(req, 24 * 1024 * 1024);
@@ -352,6 +614,16 @@ async function handleApi(req, res, urlPath) {
   return sendJson(res, 404, { error: "Bulunamadı." });
 }
 
+// Üye düzenlemesi yalnızca fiyat indiriminden mi ibaret? (öyleyse ilan
+// yeniden onaya düşmez — metin/fotoğraf değişmediği için moderasyon gerekmez)
+function onlyPriceDrop(before, merged, patch) {
+  if (merged.price >= before.price) return false;
+  if (Array.isArray(patch.photos)) return false;
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  return ["title", "desc", "city", "district", "category", "kind", "features", "seller"]
+    .every((k) => same(before[k], merged[k]));
+}
+
 // Fiyat geçmişi: değişiklikte eski fiyat kaydedilir (detayda "fiyat düştü").
 function pushPriceHistory(l, newPrice) {
   if (!Number.isFinite(newPrice) || newPrice === l.price) return;
@@ -363,7 +635,8 @@ function pushPriceHistory(l, newPrice) {
 function sitemapXml() {
   const base = (CONF.seo.siteUrl || "").replace(/\/$/, "");
   const pages = ["", "/ilanlar.html", "/degerleme.html", "/ilan-ver.html",
-    "/bolge-fiyatlari.html", "/rehber.html", "/asistan.html", "/favoriler.html"];
+    "/bolge-fiyatlari.html", "/rehber.html", "/asistan.html", "/favoriler.html",
+    "/giris.html"];
   const esc = (u) => u.replace(/&/g, "&amp;");
   const urls = pages.map((u) => `  <url><loc>${esc(base + (u || "/"))}</loc><changefreq>daily</changefreq></url>`)
     .concat(LISTINGS.filter((l) => l.status === "active").map((l) =>
