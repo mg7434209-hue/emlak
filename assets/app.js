@@ -64,8 +64,9 @@
     daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", dukkan: "🏪", ofis: "🏛️", arsa: "🌳",
     otomobil: "🚗",
   };
-  // Fotoğraf kaynağı beyaz listesi: yalnızca base64 görsel ya da repo içi yol
-  const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+)$/;
+  // Fotoğraf kaynağı beyaz listesi: base64 görsel, repo içi yol ya da
+  // sunucunun yazdığı yükleme dosyası (`u/<dosya>`).
+  const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+|u\/[\w.-]+)$/;
   const safePhoto = (p) => (typeof p === "string" && SAFE_PHOTO.test(p) ? p : "");
   function thumbHTML(l, big) {
     const p = safePhoto(l.photos && l.photos[0]);
@@ -108,6 +109,24 @@
       intl: "+90" + d,
       wa: "90" + d,
     };
+  }
+
+  // Fotoğrafı tarayıcıda küçültüp base64'e çevirir (sunucu dosya olarak saklar)
+  function resizePhoto(file, maxW) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, (maxW || 1400) / img.width);
+        const cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * scale);
+        cv.height = Math.round(img.height * scale);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(img.src);
+        resolve(cv.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(img.src); resolve(null); };
+      img.src = URL.createObjectURL(file);
+    });
   }
 
   // ── İlan kartı ──────────────────────────────────────────────────────────
@@ -380,7 +399,10 @@
       }
       return g;
     }
-    function run() {
+    const PER_PAGE = 24; // sayfa başına ilan (sahibinden benzeri sayfalama)
+    let page = Math.max(1, +qs.get("sayfa") || 1);
+    function run(keepPage) {
+      if (!keepPage) page = 1;
       let list = AI.applyFilters(D.all(), currentFilters());
       const sort = $("#fSort").value;
       if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
@@ -394,13 +416,39 @@
         list.sort((a, b) => new Date(b.date) - new Date(a.date));
         list = AI.rank(list); // öne çıkan ilanlar varsayılan sıralamada önce gelir
       }
-      $("#count").textContent = fmt(list.length) + " ilan bulundu";
+      const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+      if (page > pages) page = pages;
+      const slice = list.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+      $("#count").textContent = fmt(list.length) + " ilan bulundu" +
+        (pages > 1 ? ` · sayfa ${page}/${pages}` : "");
       // Boş durum mesajı: segmentte hiç ilan yoksa filtre önerme, ilan vermeye yönlendir
       const seg = $("#fSeg").value;
       const segCount = D.all().filter((x) => (x.segment || "emlak") === seg).length;
-      renderCards($("#grid"), list, segCount === 0
+      renderPager(pages);
+      renderCards($("#grid"), slice, segCount === 0
         ? (seg === "vasita" ? "Araç" : "Taşınmaz") + " segmentinde henüz yayında ilan yok. İlk ilanı siz verebilirsiniz — İlan Ver sayfası bir dakikanızı alır."
         : "Bu kriterlere uygun ilan bulunamadı. Filtreleri genişletmeyi deneyin.");
+    }
+    // Sayfalama düğmeleri: ‹ önceki · 1 2 3 … · sonraki ›
+    function renderPager(pages) {
+      const el = $("#pager");
+      if (!el) return;
+      if (pages < 2) { el.innerHTML = ""; return; }
+      const nums = [];
+      for (let i = 1; i <= pages; i++) {
+        if (i === 1 || i === pages || Math.abs(i - page) <= 2) nums.push(i);
+        else if (nums[nums.length - 1] !== "…") nums.push("…");
+      }
+      el.innerHTML =
+        `<button class="btn ghost sm" data-p="${page - 1}"${page === 1 ? " disabled" : ""}>‹ Önceki</button>` +
+        nums.map((n) => n === "…" ? '<span class="pager-gap">…</span>'
+          : `<button class="btn ${n === page ? "" : "ghost"} sm" data-p="${n}" aria-current="${n === page}">${n}</button>`).join("") +
+        `<button class="btn ghost sm" data-p="${page + 1}"${page === pages ? " disabled" : ""}>Sonraki ›</button>`;
+      $$("#pager [data-p]").forEach((b) => b.addEventListener("click", () => {
+        page = Math.min(pages, Math.max(1, +b.dataset.p));
+        run(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }));
     }
     $("#fSeg").addEventListener("change", () => { syncSegmentUI(); run(); });
     const ft = $("#filtersToggle");
@@ -411,11 +459,11 @@
         ft.setAttribute("aria-expanded", open);
       });
     }
-    $("#applyBtn").addEventListener("click", run);
-    $("#fSort").addEventListener("change", run);
+    $("#applyBtn").addEventListener("click", () => run());
+    $("#fSort").addEventListener("change", () => run());
     $("#clearBtn").addEventListener("click", () => { location.href = "ilanlar.html?segment=" + $("#fSeg").value; });
-    ["fCat", "fCity", "fDistrict", "fKind", "fRooms", "fBrand", "fModel", "fFuel", "fGear"].forEach((id) => $("#" + id).addEventListener("change", run));
-    run();
+    ["fCat", "fCity", "fDistrict", "fKind", "fRooms", "fBrand", "fModel", "fFuel", "fGear"].forEach((id) => $("#" + id).addEventListener("change", () => run()));
+    run(true);
   }
 
   // ── İlan detay ──────────────────────────────────────────────────────────
@@ -521,9 +569,14 @@
 
     const dotPos = est ? Math.max(4, Math.min(96, 50 + ((l.price / est.mid - 1) / 0.25) * 50)) : 50;
     const contact = l.phone || C.company.phone; // ilana özel telefon varsa o kullanılır
-    // İstatistikler: taban (kaynak ilan) + bu cihazdaki görüntülenme/favori
-    const totalViews = (l.views || 0) + bumpViews(l.id);
+    // İstatistikler: sunucu varsa görüntülenme sunucuda sayılır (IP başına
+    // 12 saatte bir); statik yayında cihaz içi sayaç ilanın tabanına eklenir.
+    let totalViews = (l.views || 0) + (D.hasServer() ? 0 : bumpViews(l.id));
     const statHTML = () => `👁 ${fmt(totalViews)} görüntülenme &nbsp;·&nbsp; ❤️ ${fmt((l.favCount || 0) + (favs().includes(l.id) ? 1 : 0))} favori`;
+    // Fiyat geçmişi: son değişiklikte fiyat düştüyse rozet göster (sahibinden mantığı)
+    const prevPrice = (l.priceHistory || []).length ? l.priceHistory[l.priceHistory.length - 1].price : null;
+    const priceDrop = prevPrice && prevPrice > l.price
+      ? { old: prevPrice, pct: Math.round((1 - l.price / prevPrice) * 100) } : null;
     const wa = "https://wa.me/" + contact.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`);
 
     root.innerHTML = `
@@ -549,6 +602,21 @@
             <h2>${esc(l.district)} Fiyat Eğilimi</h2>
             <div id="trendChart"></div>
           </div>` : ""}
+          <div class="detail-card" id="msgCard" style="display:none">
+            <h2>Satıcıya Mesaj Gönder</h2>
+            <p class="notice" style="margin-bottom:12px">Bilgileriniz yalnızca bu ilan için ilan sahibine iletilir; en kısa sürede size dönüş yapılır.</p>
+            <div class="form-grid">
+              <div><label for="mName">Adınız Soyadınız</label><input id="mName" type="text" maxlength="80" autocomplete="name"></div>
+              <div><label for="mPhone">Telefonunuz</label><input id="mPhone" type="tel" maxlength="25" autocomplete="tel" placeholder="örn. 0543 743 42 09"></div>
+              <div class="full"><label for="mMail">E-posta (isteğe bağlı)</label><input id="mMail" type="email" maxlength="120" autocomplete="email"></div>
+              <div class="full"><label for="mText">Mesajınız</label><textarea id="mText" rows="4" maxlength="1200"></textarea></div>
+              <div class="full" style="position:absolute;left:-9999px" aria-hidden="true">
+                <label for="mHp">Bu alanı boş bırakın</label><input id="mHp" type="text" tabindex="-1" autocomplete="off">
+              </div>
+              <div class="full"><button class="btn" id="msgSend" type="button" style="width:100%">Mesajı Gönder</button></div>
+              <div class="full notice" id="msgOut"></div>
+            </div>
+          </div>
           <div class="detail-card">
             <h2>Benzer İlanlar</h2>
             <div class="grid" id="similarGrid"></div>
@@ -556,6 +624,7 @@
         </div>
         <aside class="side-card">
           <div class="price">${fmtPrice(l)}</div>
+          ${priceDrop ? `<div class="price-drop">↓ Fiyat düştü — eski fiyat <s>${fmt(priceDrop.old)} ₺</s> (%${priceDrop.pct} indirim)</div>` : ""}
           <div class="stat-line" id="statLine">${statHTML()}</div>
           ${l.featured ? `<span class="chip" style="border-color:var(--accent);color:var(--accent);font-weight:700">${C.featured.label} İlan</span>` : ""}
           ${b ? `<span class="chip" style="border-color:currentColor;color:${b.key === "firsat" ? "var(--deal)" : b.key === "ustu" ? "var(--over)" : "var(--fair)"}">${b.label}${b.pct ? " — piyasadan %" + b.pct + (b.key === "firsat" ? " ucuz" : " pahalı") : ""}</span>` : ""}
@@ -587,6 +656,40 @@
           </div>`; })() : ""}
         </aside>
       </div>`;
+
+    // Sunucu varsa görüntülenmeyi sunucuda say ve güncel değeri göster
+    if (D.hasServer()) {
+      D.countView(l.id).then((v) => {
+        if (v != null) { totalViews = v; $("#statLine").innerHTML = statHTML(); }
+      });
+      const msgCard = $("#msgCard", root);
+      msgCard.style.display = "";
+      $("#msgSend", root).addEventListener("click", async () => {
+        const out = $("#msgOut", root), btn = $("#msgSend", root);
+        const payload = {
+          id: l.id, name: $("#mName", root).value.trim(),
+          phone: $("#mPhone", root).value.trim(), email: $("#mMail", root).value.trim(),
+          message: $("#mText", root).value.trim(), hp: $("#mHp", root).value,
+        };
+        if (!payload.name || !payload.phone || !payload.message) {
+          out.innerHTML = '<span style="color:var(--over)">Ad, telefon ve mesaj alanlarını doldurun.</span>';
+          return;
+        }
+        btn.disabled = true; btn.textContent = "Gönderiliyor…";
+        try {
+          const r = await D.sendMessage(payload);
+          if (r && r.ok) {
+            out.innerHTML = '<b style="color:var(--deal)">Mesajınız iletildi ✓</b> İlan sahibi en kısa sürede size dönecek.';
+            btn.textContent = "Gönderildi ✓";
+            return;
+          }
+          out.innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "Mesaj gönderilemedi.")}</span>`;
+        } catch (e) {
+          out.innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı, lütfen tekrar deneyin.</span>';
+        }
+        btn.disabled = false; btn.textContent = "Mesajı Gönder";
+      });
+    }
 
     sparkline($("#trendChart"), AI.trend(l.city, l.district), l.city + " / " + l.district);
     renderCards($("#similarGrid"), AI.similar(l, D.all(), 4));
@@ -659,25 +762,49 @@
     $("#pSeg").addEventListener("change", syncSegmentUI);
     syncSegmentUI();
 
-    // Fotoğraf yükleme: canvas ile küçültülüp base64 olarak ilana gömülür
+    // ── İlan takibi (bu cihazdan gönderilenler) ──────────────────────────
+    const myKey = "emlakai.myListings";
+    const mine = () => { try { return JSON.parse(localStorage.getItem(myKey) || "[]"); } catch (e) { return []; } };
+    function trackAdd(id, title) {
+      const all = mine().filter((x) => x.id !== id);
+      all.unshift({ id, title, date: new Date().toISOString() });
+      try { localStorage.setItem(myKey, JSON.stringify(all.slice(0, 50))); } catch (e) {}
+      renderTrack();
+    }
+    const TRACK_STATUS = {
+      active: ["Yayında", "var(--deal)"], pending: ["Onay bekliyor", "var(--accent)"],
+      rejected: ["Yayınlanmadı", "var(--over)"],
+    };
+    async function renderTrack() {
+      const list = mine();
+      const wrap = $("#trackWrap");
+      if (!wrap || !list.length || !D.hasServer()) return;
+      wrap.style.display = "";
+      const rows = await Promise.all(list.map(async (x) => {
+        const st = await D.statusOf(x.id);
+        const [label, color] = (st && TRACK_STATUS[st.status]) || ["Bulunamadı", "var(--muted)"];
+        const title = (st && st.title) || x.title || x.id;
+        return `<tr><td><b>${esc(title)}</b><br><small style="color:var(--muted)">${esc(x.id)} · ${new Date(x.date).toLocaleDateString("tr-TR")}${st && st.views ? " · 👁 " + fmt(st.views) : ""}</small></td>
+          <td style="text-align:right"><span style="color:${color};font-weight:700">${label}</span>${st && st.status === "active" ? `<br><a href="ilan.html?id=${encodeURIComponent(x.id)}">İlanı gör →</a>` : ""}</td></tr>`;
+      }));
+      $("#trackList").innerHTML = rows.join("");
+    }
+    renderTrack();
+
+    // Fotoğraf yükleme: canvas ile küçültülür; sunucu varsa dosya olarak saklanır
     const photos = [];
-    $("#pPhotos").addEventListener("change", (e) => {
-      const files = Array.from(e.target.files || []).slice(0, 5 - photos.length);
-      files.forEach((file) => {
-        const img = new Image();
-        img.onload = () => {
-          const scale = Math.min(1, 900 / img.width);
-          const cv = document.createElement("canvas");
-          cv.width = Math.round(img.width * scale);
-          cv.height = Math.round(img.height * scale);
-          cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-          photos.push(cv.toDataURL("image/jpeg", 0.8));
-          URL.revokeObjectURL(img.src);
-          renderPhotoPreview();
-        };
-        img.src = URL.createObjectURL(file);
-      });
+    const MAX_PHOTOS = 8;
+    $("#pPhotos").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, MAX_PHOTOS - photos.length);
       e.target.value = "";
+      // Sunucu fotoğrafı dosya olarak saklar → daha büyük çözünürlük;
+      // statik yayında localStorage'a sığması için küçük tutulur.
+      const maxW = D.hasServer() ? 1400 : 900;
+      for (const file of files) {
+        const data = await resizePhoto(file, maxW);
+        if (data) photos.push(data);
+        renderPhotoPreview();
+      }
     });
     function renderPhotoPreview() {
       $("#photoPreview").innerHTML = photos.map((p, i) =>
@@ -783,8 +910,9 @@
         try {
           const r = await D.submit(l, adminToken());
           if (r && r.ok) {
+            trackAdd(r.id, l.title);
             if (r.status === "active") { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
-            $("#suggestOut").innerHTML = '<b style="color:var(--deal)">İlanınız alındı ✓</b> Yönetici onayından sonra yayına girecek.';
+            $("#suggestOut").innerHTML = `<b style="color:var(--deal)">İlanınız alındı ✓</b> İlan numaranız <b>${esc(r.id)}</b>. Yönetici onayından sonra yayına girecek; durumu aşağıdaki “İlanlarım” bölümünden izleyebilirsiniz.`;
             btn.textContent = "İlan Gönderildi ✓";
             return;
           }
@@ -996,57 +1124,253 @@
       if (r.status === 401) { sessionStorage.removeItem(adminTokKey); show(false); throw new Error("unauthorized"); }
       return r.json();
     }
-    let rows = [];
+    let rows = [], msgs = [];
     const STATUS = { active: ["Yayında", "var(--deal)"], pending: ["Onay Bekliyor", "var(--accent)"], rejected: ["Reddedildi", "var(--over)"] };
+
     async function refresh() {
       const j = await api("api/admin/listings", { method: "GET" });
       rows = j.listings || [];
+      // Kalıcılık uyarısı: Railway'de Volume + DATA_DIR yoksa her dağıtımda
+      // ilanlar/mesajlar sıfırlanır — yedek almak şart.
+      const warn = $("#persistWarn");
+      if (warn) {
+        warn.style.display = j.persistent === false ? "" : "none";
+      }
+      try {
+        const m = await api("api/admin/messages", { method: "GET" });
+        msgs = m.messages || [];
+      } catch (e) { msgs = []; }
+      const unread = msgs.filter((m) => !m.read).length;
       const stats = [
         ["Yayında", rows.filter((l) => l.status === "active").length],
         ["Onay Bekleyen", rows.filter((l) => l.status === "pending").length],
         ["Öne Çıkan", rows.filter((l) => l.featured && l.status === "active").length],
-        ["Toplam", rows.length],
+        ["Toplam Görüntülenme", rows.reduce((a, l) => a + (l.views || 0), 0)],
+        ["Okunmamış Mesaj", unread],
       ];
-      $("#adminStats").innerHTML = stats.map(([k, v]) => `<div class="stat-box"><b>${v}</b><span>${esc(k)}</span></div>`).join("");
+      $("#adminStats").innerHTML = stats.map(([k, v]) => `<div class="stat-box"><b>${fmt(v)}</b><span>${esc(k)}</span></div>`).join("");
+      $("#msgBadge").textContent = unread ? "(" + unread + ")" : "";
       render();
+      renderMsgs();
     }
+
+    // ── İlan listesi ─────────────────────────────────────────────────────
     function render() {
       const f = $("#adminFilter").value;
-      const list = rows.filter((l) => !f || l.status === f);
+      const q = $("#adminSearch").value.trim().toLocaleLowerCase("tr");
+      const list = rows.filter((l) => (!f || l.status === f) &&
+        (!q || (l.title || "").toLocaleLowerCase("tr").includes(q) || l.id.toLowerCase().includes(q)));
       $("#adminCount").textContent = list.length + " ilan";
       $("#adminTable").innerHTML = '<tr><th>İlan</th><th>Fiyat</th><th>Durum</th><th style="text-align:right">İşlem</th></tr>' +
         (list.length ? list.map((l) => {
           const [sl, sc] = STATUS[l.status] || ["—", "var(--muted)"];
           return `<tr>
             <td><a href="ilan.html?id=${encodeURIComponent(l.id)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b></a><br>
-              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${new Date(l.date).toLocaleDateString("tr-TR")}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small></td>
+              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small></td>
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
               ${l.status !== "active" ? `<button class="btn sm" data-act="approve" data-id="${esc(l.id)}">Onayla</button>` : ""}
               ${l.status === "pending" ? `<button class="btn ghost sm" data-act="reject" data-id="${esc(l.id)}">Reddet</button>` : ""}
               ${l.status === "active" ? `<button class="btn ghost sm" data-act="${l.featured ? "unfeature" : "feature"}" data-id="${esc(l.id)}">${l.featured ? "⭐ Kaldır" : "⭐ Öne Çıkar"}</button>` : ""}
-              <button class="btn ghost sm" data-act="price" data-id="${esc(l.id)}">Fiyat</button>
+              <button class="btn ghost sm" data-act="edit" data-id="${esc(l.id)}">Düzenle</button>
               <button class="btn ghost sm" data-act="remove" data-id="${esc(l.id)}" style="color:var(--over);border-color:var(--over)">Sil</button>
             </td></tr>`;
         }).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Bu durumda ilan yok.</td></tr>');
       $$("#adminTable [data-act]").forEach((b) => b.addEventListener("click", async () => {
         const act = b.dataset.act, id = b.dataset.id;
-        let value;
-        if (act === "price") {
-          const v = prompt("Yeni fiyat (₺):");
-          if (v == null) return;
-          value = +String(v).replace(/[^\d]/g, "");
-        }
+        if (act === "edit") { openEdit(rows.find((l) => l.id === id)); return; }
         if (act === "remove" && !confirm("İlan kalıcı olarak silinecek. Emin misiniz?")) return;
         try {
-          const r = await api("api/admin/action", { method: "POST", body: JSON.stringify({ id, action: act, value }) });
+          const r = await api("api/admin/action", { method: "POST", body: JSON.stringify({ id, action: act }) });
           if (r && r.error) alert(r.error);
         } catch (e) { /* 401 → giriş ekranına döner */ }
         refresh().catch(() => {});
       }));
     }
+
+    // ── İlan düzenleme penceresi ─────────────────────────────────────────
+    function openEdit(l) {
+      if (!l) return;
+      const seg = l.segment === "vasita" ? "vasita" : "emlak";
+      let photos = (l.photos || []).slice();
+      const kindOpts = D.kinds.map((k) => `<option value="${k.kind}"${k.kind === l.kind ? " selected" : ""}>${esc(k.label)}</option>`).join("");
+      const sel = (arr, v) => arr.map((x) => `<option${x === v ? " selected" : ""}>${esc(x)}</option>`).join("");
+      const numField = (id, label, val, extra) => `<div><label for="${id}">${esc(label)}</label><input id="${id}" type="number" ${extra || ""} value="${val == null ? "" : val}"></div>`;
+      const modal = $("#editModal");
+      modal.innerHTML = `<div class="modal-back" id="editBack">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-label="İlanı düzenle">
+          <div class="modal-head"><b>İlanı Düzenle — ${esc(l.id)}</b>
+            <button class="icon-btn" id="editClose" aria-label="Kapat">✕</button></div>
+          <div class="form-grid">
+            <div class="full"><label for="eTitle">Başlık</label><input id="eTitle" type="text" maxlength="200" value="${esc(l.title)}"></div>
+            <div><label for="eCat">Kategori</label><select id="eCat">
+              <option value="satilik"${l.category === "satilik" ? " selected" : ""}>Satılık</option>
+              <option value="kiralik"${l.category === "kiralik" ? " selected" : ""}>Kiralık</option></select></div>
+            ${numField("ePrice", "Fiyat (₺)", l.price, 'min="0"')}
+            <div><label for="eCity">Şehir</label><select id="eCity"></select></div>
+            <div><label for="eDistrict">İlçe</label><select id="eDistrict"></select></div>
+            ${seg === "emlak" ? `
+              <div><label for="eKind">Tür</label><select id="eKind">${kindOpts}</select></div>
+              ${numField("eM2", "Brüt m²", l.m2, 'min="0"')}
+              ${numField("eM2Net", "Net m²", l.m2Net, 'min="0"')}
+              <div><label for="eRooms">Oda</label><input id="eRooms" type="text" maxlength="10" value="${esc(l.rooms || "")}"></div>
+              ${numField("eBath", "Banyo", l.bath, 'min="0"')}
+              ${numField("eAge", "Bina Yaşı", l.age, 'min="0"')}
+              ${numField("eFloor", "Kat", l.floor, "")}
+              ${numField("eTotalFloors", "Kat Sayısı", l.totalFloors, 'min="0"')}
+              ${numField("eDues", "Aidat (₺/ay)", l.dues, 'min="0"')}
+              <div><label for="eHeating">Isıtma</label><input id="eHeating" type="text" maxlength="40" value="${esc(l.heating || "")}"></div>
+              <div><label for="eKitchen">Mutfak</label><input id="eKitchen" type="text" maxlength="60" value="${esc(l.kitchen || "")}"></div>
+              <div><label for="eDeed">Tapu Durumu</label><input id="eDeed" type="text" maxlength="60" value="${esc(l.deed || "")}"></div>
+              <div class="full"><label for="eLocality">Mahalle / Site</label><input id="eLocality" type="text" maxlength="120" value="${esc(l.locality || "")}"></div>
+              <div><label style="display:flex;gap:8px;align-items:center"><input id="eSwap" type="checkbox" style="width:auto"${l.swap ? " checked" : ""}> Takas</label></div>
+              <div><label style="display:flex;gap:8px;align-items:center"><input id="eCredit" type="checkbox" style="width:auto"${l.creditOk ? " checked" : ""}> Krediye uygun</label></div>
+              <div class="full"><label>Özellikler</label><div class="check-grid" id="eFeats">${Object.keys(C.valuation.features).map((f) => `<label><input type="checkbox" value="${esc(f)}"${(l.features || []).includes(f) ? " checked" : ""}> ${esc(f)}</label>`).join("")}</div></div>
+            ` : `
+              <div><label for="eBrand">Marka</label><select id="eBrand">${sel(D.brands, l.brand)}</select></div>
+              <div><label for="eModel">Model</label><select id="eModel"></select></div>
+              ${numField("eYear", "Model Yılı", l.year, 'min="1950"')}
+              ${numField("eKm", "Kilometre", l.km, 'min="0"')}
+              <div><label for="eFuel">Yakıt</label><select id="eFuel">${sel(C.vehicles.fuels, l.fuel)}</select></div>
+              <div><label for="eGear">Vites</label><select id="eGear">${sel(C.vehicles.gears, l.gear)}</select></div>
+            `}
+            <div><label for="eSellerName">İlan Sahibi</label><input id="eSellerName" type="text" maxlength="80" value="${esc((l.seller || {}).name || "")}"></div>
+            <div><label for="eSellerType">Satıcı Tipi</label><select id="eSellerType">
+              <option value="sahibinden"${(l.seller || {}).type !== "ofis" ? " selected" : ""}>Sahibinden</option>
+              <option value="ofis"${(l.seller || {}).type === "ofis" ? " selected" : ""}>Ofis / Galeri</option></select></div>
+            <div class="full"><label for="ePhone">İlan Telefonu</label><input id="ePhone" type="tel" maxlength="25" value="${esc((l.phone || {}).display || "")}" placeholder="Boş = site telefonu"></div>
+            <div class="full"><label for="eDesc">Açıklama</label><textarea id="eDesc" rows="7" maxlength="4000">${esc(l.desc || "")}</textarea></div>
+            <div class="full"><label>Fotoğraflar</label>
+              <div id="ePhotos" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
+              <input id="ePhotoFile" type="file" accept="image/*" multiple>
+            </div>
+            <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn" id="eSave" type="button">Değişiklikleri Kaydet</button>
+              <button class="btn ghost" id="eCancel" type="button">Vazgeç</button>
+              <span class="notice" id="eOut" style="flex:1"></span>
+            </div>
+          </div>
+        </div></div>`;
+      fillCitySelect($("#eCity"), false);
+      $("#eCity").value = l.city || $("#eCity").value;
+      fillDistrictSelect($("#eDistrict"), $("#eCity").value, false);
+      $("#eDistrict").value = l.district || $("#eDistrict").value;
+      $("#eCity").addEventListener("change", () => fillDistrictSelect($("#eDistrict"), $("#eCity").value, false));
+      if (seg === "vasita") {
+        const fillM = () => {
+          $("#eModel").innerHTML = D.modelsOf($("#eBrand").value).map((m) => `<option${m === l.model ? " selected" : ""}>${esc(m)}</option>`).join("");
+        };
+        fillM();
+        $("#eBrand").addEventListener("change", fillM);
+      }
+      function renderPhotos() {
+        $("#ePhotos").innerHTML = photos.map((p, i) =>
+          `<span style="position:relative;display:inline-block"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}" style="width:110px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+           <button type="button" data-rm="${i}" aria-label="Fotoğrafı kaldır" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:22px;height:22px;line-height:1">✕</button></span>`).join("") ||
+          '<small style="color:var(--muted)">Fotoğraf yok — ilan kartında otomatik görsel kullanılır.</small>';
+        $$("#ePhotos [data-rm]").forEach((b) => b.addEventListener("click", () => { photos.splice(+b.dataset.rm, 1); renderPhotos(); }));
+      }
+      renderPhotos();
+      $("#ePhotoFile").addEventListener("change", async (e) => {
+        const files = Array.from(e.target.files || []).slice(0, 8 - photos.length);
+        e.target.value = "";
+        for (const file of files) {
+          const data = await resizePhoto(file, 1400);
+          if (data) photos.push(data);
+          renderPhotos();
+        }
+      });
+      const close = () => { modal.innerHTML = ""; };
+      $("#editClose").addEventListener("click", close);
+      $("#eCancel").addEventListener("click", close);
+      $("#editBack").addEventListener("click", (e) => { if (e.target.id === "editBack") close(); });
+      $("#eSave").addEventListener("click", async () => {
+        const val = (id) => { const el = $("#" + id); return el ? el.value.trim() : ""; };
+        const numv = (id) => { const v = val(id); return v === "" ? null : +v; };
+        const patch = {
+          title: val("eTitle"), category: $("#eCat").value,
+          price: +val("ePrice") || 0, city: $("#eCity").value, district: $("#eDistrict").value,
+          desc: val("eDesc"), photos: photos.slice(),
+          seller: { name: val("eSellerName") || "Sahibinden", type: $("#eSellerType").value },
+          phone: val("ePhone") ? normPhone(val("ePhone")) : null,
+        };
+        if (val("ePhone") && !patch.phone) { $("#eOut").innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz.</span>'; return; }
+        if (seg === "emlak") {
+          const kind = $("#eKind").value;
+          Object.assign(patch, {
+            kind, kindLabel: (D.kinds.find((k) => k.kind === kind) || {}).label || kind,
+            m2: numv("eM2"), m2Net: numv("eM2Net"), rooms: val("eRooms") || null,
+            bath: numv("eBath"), age: numv("eAge"), floor: numv("eFloor"),
+            totalFloors: numv("eTotalFloors"), dues: numv("eDues"),
+            heating: val("eHeating") || null, kitchen: val("eKitchen") || undefined,
+            deed: val("eDeed") || undefined, locality: val("eLocality") || undefined,
+            swap: $("#eSwap").checked, creditOk: $("#eCredit").checked,
+            features: $$("#eFeats input:checked").map((i) => i.value),
+          });
+        } else {
+          Object.assign(patch, {
+            brand: $("#eBrand").value, model: $("#eModel").value,
+            year: numv("eYear"), km: numv("eKm"),
+            fuel: $("#eFuel").value, gear: $("#eGear").value,
+          });
+        }
+        const btn = $("#eSave");
+        btn.disabled = true; btn.textContent = "Kaydediliyor…";
+        try {
+          const r = await api("api/admin/action", { method: "POST", body: JSON.stringify({ id: l.id, action: "edit", value: patch }) });
+          if (r && r.error) {
+            $("#eOut").innerHTML = `<span style="color:var(--over)">${esc(r.error)}</span>`;
+            btn.disabled = false; btn.textContent = "Değişiklikleri Kaydet";
+            return;
+          }
+          close();
+          refresh().catch(() => {});
+        } catch (e) {
+          $("#eOut").innerHTML = '<span style="color:var(--over)">Kaydedilemedi.</span>';
+          btn.disabled = false; btn.textContent = "Değişiklikleri Kaydet";
+        }
+      });
+    }
+
+    // ── Mesajlar ─────────────────────────────────────────────────────────
+    function renderMsgs() {
+      const only = $("#msgFilter").value;
+      const list = msgs.filter((m) => (only !== "new" || !m.read));
+      $("#msgCount").textContent = list.length + " mesaj";
+      $("#msgTable").innerHTML = '<tr><th>Gönderen</th><th>Mesaj</th><th style="text-align:right">İşlem</th></tr>' +
+        (list.length ? list.map((m) => `<tr${m.read ? "" : ' style="background:color-mix(in srgb, var(--primary) 6%, transparent)"'}>
+          <td><b>${esc(m.name)}</b><br>
+            <a href="tel:${esc(String(m.phone).replace(/[^\d+]/g, ""))}">${esc(m.phone)}</a>
+            ${m.email ? `<br><a href="mailto:${esc(m.email)}">${esc(m.email)}</a>` : ""}
+            <br><small style="color:var(--muted)">${new Date(m.date).toLocaleString("tr-TR")}</small></td>
+          <td>${esc(m.message)}<br><small style="color:var(--muted)">İlan: <a href="ilan.html?id=${encodeURIComponent(m.listingId)}" target="_blank" rel="noopener">${esc(m.listingTitle || m.listingId)}</a></small></td>
+          <td style="text-align:right;white-space:nowrap">
+            <a class="btn sm" href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}" target="_blank" rel="noopener" style="background:#25d366">WhatsApp</a>
+            <button class="btn ghost sm" data-msg="${esc(m.mid)}" data-mact="${m.read ? "unread" : "read"}">${m.read ? "Okunmadı" : "Okundu"}</button>
+            <button class="btn ghost sm" data-msg="${esc(m.mid)}" data-mact="remove" style="color:var(--over);border-color:var(--over)">Sil</button>
+          </td></tr>`).join("")
+          : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">Henüz mesaj yok.</td></tr>');
+      $$("#msgTable [data-msg]").forEach((b) => b.addEventListener("click", async () => {
+        if (b.dataset.mact === "remove" && !confirm("Mesaj silinecek. Emin misiniz?")) return;
+        try {
+          await api("api/admin/message", { method: "POST", body: JSON.stringify({ id: b.dataset.msg, action: b.dataset.mact }) });
+        } catch (e) { /* 401 */ }
+        refresh().catch(() => {});
+      }));
+    }
+
+    // Sekmeler
+    $$("#adminTabs .tab-btn").forEach((b) => b.addEventListener("click", () => {
+      $$("#adminTabs .tab-btn").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      $("#tabListings").style.display = b.dataset.tab === "listings" ? "" : "none";
+      $("#tabMessages").style.display = b.dataset.tab === "messages" ? "" : "none";
+    }));
+
     $("#adminFilter").addEventListener("change", render);
+    $("#adminSearch").addEventListener("input", render);
+    $("#msgFilter").addEventListener("change", renderMsgs);
     $("#loginBtn").addEventListener("click", async () => {
       try {
         const r = await fetch("api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pass: $("#adminPass").value }) });
@@ -1069,6 +1393,22 @@
       a.download = "emlakai-ilanlar-yedek.json";
       a.click();
       URL.revokeObjectURL(a.href);
+    });
+    // Yedekten geri yükleme (Volume yoksa dağıtım sonrası ilanları geri getirir)
+    $("#importBtn").addEventListener("click", () => $("#importFile").click());
+    $("#importFile").addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      if (!confirm("Yedekteki ilanlar mevcut ilan listesinin YERİNE yüklenecek. Devam edilsin mi?")) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        const listings = Array.isArray(parsed) ? parsed : parsed.listings;
+        const r = await api("api/admin/import", { method: "POST", body: JSON.stringify({ listings }) });
+        if (r && r.error) alert(r.error);
+        else alert(r.count + " ilan geri yüklendi.");
+      } catch (err) { alert("Yedek dosyası okunamadı."); }
+      refresh().catch(() => {});
     });
     if (adminToken()) { show(true); refresh().catch(() => show(false)); } else show(false);
   }

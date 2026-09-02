@@ -55,7 +55,9 @@
   // tahrif edilmiş olabilir. Okurken her kayıt normalize edilir; geçersiz
   // tipler güvenli varsayılanlara çekilir (XSS ve TypeError'lara karşı).
   const LS_KEY = "emlakai.userListings";
-  const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+)$/;
+  // Fotoğraf beyaz listesi: base64 (form önizlemesi), repo içi görsel ya da
+  // sunucunun yazdığı yükleme dosyası (`u/<dosya>` → /u/... ile servis edilir).
+  const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+|u\/[\w.-]+)$/;
   const str = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
   const num = (v) => (Number.isFinite(+v) ? +v : null);
   function normalizeListing(l) {
@@ -84,7 +86,7 @@
       year: num(l.year), km: num(l.km),
       fuel: str(l.fuel, 20) || undefined, gear: str(l.gear, 20) || undefined,
       features: (Array.isArray(l.features) ? l.features : []).map((f) => str(f, 40)).filter(Boolean).slice(0, 20),
-      photos: (Array.isArray(l.photos) ? l.photos : []).filter((p) => typeof p === "string" && SAFE_PHOTO.test(p)).slice(0, 5),
+      photos: (Array.isArray(l.photos) ? l.photos : []).filter((p) => typeof p === "string" && SAFE_PHOTO.test(p)).slice(0, 8),
       seller: { name: str(seller.name, 80) || "Sahibinden", type: seller.type === "ofis" ? "ofis" : "sahibinden" },
       phone,
       // İsteğe bağlı detay alanları (detay sayfası varsa gösterir)
@@ -97,6 +99,11 @@
       kitchen: str(l.kitchen, 60) || undefined,
       status: ["active", "pending", "rejected"].includes(l.status) ? l.status : undefined,
       date: str(l.date, 40) || new Date(0).toISOString(),
+      updated: str(l.updated, 40) || undefined,
+      // Fiyat geçmişi (sunucu tutar): [{price, date}] — detayda "fiyat düştü"
+      priceHistory: (Array.isArray(l.priceHistory) ? l.priceHistory : [])
+        .filter((h) => h && Number.isFinite(+h.price))
+        .map((h) => ({ price: +h.price, date: str(h.date, 40) })).slice(-10),
       views: num(l.views) || 0, favCount: num(l.favCount) || 0,
       featured: !!l.featured,
     };
@@ -144,6 +151,32 @@
       }
     } catch (e) { /* statik yayın — yerel veriye düş */ }
   }
+  // İlan takibi: gönderilen ilanın yayın durumunu sorgular (sunucu varsa).
+  async function statusOf(id) {
+    try {
+      const r = await fetch("api/listing?id=" + encodeURIComponent(id));
+      return r.ok ? await r.json() : null;
+    } catch (e) { return null; }
+  }
+  // Gerçek görüntülenme sayacı (sunucu tarafında IP başına 12 saatte bir sayar)
+  async function countView(id) {
+    try {
+      const r = await fetch("api/view", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const j = await r.json();
+      return j && j.ok ? j.views : null;
+    } catch (e) { return null; }
+  }
+  // İlana mesaj/talep bırakma (yönetim panelinde görünür)
+  async function sendMessage(payload) {
+    const r = await fetch("api/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return r.json();
+  }
   async function submit(l, adminToken) {
     const headers = { "Content-Type": "application/json" };
     if (adminToken) headers["X-Admin-Token"] = adminToken;
@@ -154,6 +187,9 @@
   EMLAK.data = {
     init,
     submit,
+    statusOf,
+    countView,
+    sendMessage,
     hasServer: () => remote !== null,
     all: () => {
       const base = remote || REAL;

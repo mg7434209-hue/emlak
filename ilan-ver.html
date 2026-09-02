@@ -70,7 +70,7 @@
           <div><label for="pSellerName">Ad / Ofis Adı</label><input id="pSellerName" type="text" placeholder="örn. Akdeniz Gayrimenkul"></div>
           <div><label for="pPhone">İlan Telefonu (isteğe bağlı)</label><input id="pPhone" type="tel" placeholder="örn. 0543 743 42 09"></div>
           <div class="full">
-            <label for="pPhotos">Fotoğraflar (en fazla 5 — bu tarayıcıda saklanır)</label>
+            <label for="pPhotos">Fotoğraflar (en fazla 8)</label>
             <input id="pPhotos" type="file" accept="image/*" multiple>
             <div id="photoPreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
           </div>
@@ -86,6 +86,15 @@
           </label></div>
           <div class="full"><button class="btn" id="publishBtn" type="button" style="width:100%;padding:14px">İlanı Yayınla</button></div>
         </div>
+      </div>
+    </div>
+
+    <!-- İlan takibi: bu cihazdan gönderilen ilanların yayın durumu -->
+    <div class="container section" id="trackWrap" style="display:none;padding-top:0">
+      <div class="detail-card">
+        <h2>İlanlarım</h2>
+        <p class="notice" style="margin-bottom:12px">Bu cihazdan gönderdiğiniz ilanlar ve yayın durumları. İlan numaranızı not alın.</p>
+        <table class="spec-table" id="trackList"></table>
       </div>
     </div>
   </main>

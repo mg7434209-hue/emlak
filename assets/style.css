@@ -332,6 +332,33 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
 .reveal.in { opacity: 1; transform: none; }
 .notice { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; color: var(--muted); }
 
+/* ── Sayfalama (ilan listesi) ───────────────────────── */
+.pager { display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 26px 0 6px; }
+.pager .btn { min-width: 40px; }
+.pager .btn[disabled] { opacity: 0.45; pointer-events: none; }
+.pager-gap { color: var(--muted); padding: 0 2px; }
+
+/* ── Fiyat düştü rozeti (ilan detayı) ───────────────── */
+.price-drop {
+  background: color-mix(in srgb, var(--deal) 14%, transparent);
+  color: var(--deal); border-radius: 10px; padding: 8px 12px;
+  font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;
+}
+.price-drop s { opacity: 0.75; font-weight: 500; }
+
+/* ── Düzenleme penceresi (yönetim paneli) ───────────── */
+.modal-back {
+  position: fixed; inset: 0; background: rgba(8, 12, 22, 0.55);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px 14px; overflow-y: auto; z-index: 50;
+}
+.modal-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); padding: 22px; width: min(880px, 100%);
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-head b { font-size: 1.05rem; }
+
 /* ── Yazdırma: ilan detayı temiz A4 sayfası olur ────── */
 @media print {
   .site-header, .site-footer, .fab, .breadcrumb, .photo-strip,

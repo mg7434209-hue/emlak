@@ -43,27 +43,62 @@
 
     <!-- Panel -->
     <div class="container section" id="panelWrap" style="display:none;padding-top:18px">
+      <div class="notice" id="persistWarn" style="display:none;border:1px solid var(--over);color:var(--over);margin-bottom:14px">
+        <b>Dikkat:</b> Sunucuda kalıcı disk tanımlı değil (<code>DATA_DIR</code> yok). İlanlar, fotoğraflar ve mesajlar
+        her yeni dağıtımda silinir. Railway'de bir Volume bağlayıp <code>DATA_DIR</code> değişkenini ona yönlendirin;
+        o zamana kadar “JSON Yedek İndir” ile düzenli yedek alın.
+      </div>
       <div class="admin-stats" id="adminStats"></div>
 
-      <div class="toolbar" style="margin-top:22px">
-        <span class="count" id="adminCount"></span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <select id="adminFilter">
-            <option value="">Tüm Durumlar</option>
-            <option value="pending">Onay Bekleyen</option>
-            <option value="active">Yayında</option>
-            <option value="rejected">Reddedilen</option>
+      <div class="g-tabs" style="margin-top:22px" id="adminTabs">
+        <button class="tab-btn active" data-tab="listings" type="button">İlanlar</button>
+        <button class="tab-btn" data-tab="messages" type="button">Mesajlar <span id="msgBadge"></span></button>
+      </div>
+
+      <!-- İlanlar sekmesi -->
+      <div id="tabListings">
+        <div class="toolbar" style="margin-top:12px">
+          <span class="count" id="adminCount"></span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="adminSearch" type="search" placeholder="Başlık / ilan no ara" style="width:auto">
+            <select id="adminFilter">
+              <option value="">Tüm Durumlar</option>
+              <option value="pending">Onay Bekleyen</option>
+              <option value="active">Yayında</option>
+              <option value="rejected">Reddedilen</option>
+            </select>
+            <a class="btn sm" href="ilan-ver.html">+ Yeni İlan</a>
+            <button class="btn ghost sm" id="exportBtn" type="button">JSON Yedek İndir</button>
+            <button class="btn ghost sm" id="importBtn" type="button">Yedekten Yükle</button>
+            <input id="importFile" type="file" accept="application/json" hidden>
+            <button class="btn ghost sm" id="logoutBtn" type="button">Çıkış</button>
+          </div>
+        </div>
+
+        <div class="detail-card" style="margin-top:12px">
+          <table class="spec-table admin-table" id="adminTable"></table>
+        </div>
+        <p class="notice" style="margin-top:14px">Yeni ilan eklemek için <a href="ilan-ver.html">İlan Ver</a> sayfasını kullanın —
+        yönetici oturumu açıkken verdiğiniz ilanlar onay beklemeden doğrudan yayına alınır. Yayındaki bir ilanı
+        <b>Düzenle</b> ile güncelleyebilir, fotoğraf ekleyip çıkarabilirsiniz.</p>
+      </div>
+
+      <!-- Mesajlar sekmesi -->
+      <div id="tabMessages" style="display:none">
+        <div class="toolbar" style="margin-top:12px">
+          <span class="count" id="msgCount"></span>
+          <select id="msgFilter" style="width:auto">
+            <option value="">Tüm Mesajlar</option>
+            <option value="new">Okunmamış</option>
           </select>
-          <button class="btn ghost sm" id="exportBtn" type="button">JSON Yedek İndir</button>
-          <button class="btn ghost sm" id="logoutBtn" type="button">Çıkış</button>
+        </div>
+        <div class="detail-card" style="margin-top:12px">
+          <table class="spec-table admin-table" id="msgTable"></table>
         </div>
       </div>
 
-      <div class="detail-card" style="margin-top:12px">
-        <table class="spec-table admin-table" id="adminTable"></table>
-      </div>
-      <p class="notice" style="margin-top:14px">Yeni ilan eklemek için <a href="ilan-ver.html">İlan Ver</a> sayfasını kullanın —
-      yönetici oturumu açıkken verdiğiniz ilanlar onay beklemeden doğrudan yayına alınır.</p>
+      <!-- Düzenleme penceresi (JS doldurur) -->
+      <div id="editModal"></div>
     </div>
 
     <!-- Statik yayın uyarısı -->

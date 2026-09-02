@@ -13,11 +13,13 @@ ana sayfa yalnızca logo + tek arama kutusu + segment seçimi + 4 hızlı bağla
 Sayfalar (kök dizinde):
 `index.html` (Google tarzı merkez arama; kart/vitrin YOK) · `ilanlar.html`
 (segment seçicili filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır;
-araçta marka/model/yıl/km/yakıt/vites filtreleri) · `ilan.html?id=`
+araçta marka/model/yıl/km/yakıt/vites filtreleri; sayfa başına 24 ilan +
+`.pager` sayfalama — filtre/sıralama değişince 1. sayfaya döner) · `ilan.html?id=`
 (detay: açıklama, değerleme bandı, trend (yalnız emlak), benzer ilanlar,
-konut/taşıt kredisi; dinamik canonical + JSON-LD) · `ilan-ver.html` (segment
-seçimli form; AI fiyat önerisi + AI başlık/açıklama yazarı + fotoğraf +
-⭐ öne çıkarma) ·
+konut/taşıt kredisi, fiyat düştüyse `.price-drop` rozeti, sunucu varken
+"Satıcıya Mesaj Gönder" formu; dinamik canonical + JSON-LD) · `ilan-ver.html`
+(segment seçimli form; AI fiyat önerisi + AI başlık/açıklama yazarı + en fazla
+8 fotoğraf + ⭐ öne çıkarma + sunucu varken "İlanlarım" ilan takibi) ·
 `degerleme.html` (AI değerleme: taşınmaz + araç, kredi) · `asistan.html` (EVA) ·
 `rehber.html` (SSS/rehber, FAQPage JSON-LD — elle yazılır) ·
 `bolge-fiyatlari.html` (ÜRETİLİR, elle düzenlenmez) · `favoriler.html` ·
@@ -52,7 +54,8 @@ gömme; değişiklik = config.
   commit) ve localStorage `emlakai.userListings` (yalnız o cihaz). localStorage
   bir GÜVEN SINIRIDIR: `normalizeListing` okurken her kaydı doğrular (tipler,
   fotoğraf beyaz listesi `SAFE_PHOTO`), tahrif edilmiş veriyi zararsız kılar.
-  Fotoğraflar `assets/img/ilanlar/` altında, `photos` dizisinde göreli yol.
+  Fotoğraflar `assets/img/ilanlar/` altında ya da sunucunun yazdığı `u/<dosya>`
+  yolunda (`SAFE_PHOTO` üç biçimi kabul eder: base64 · assets/img · u/).
   İlana özel `phone` alanı ara/WhatsApp düğmelerini o numaraya yönlendirir;
   `locality`, `m2Net`, `dues`, `deed`, `swap`, `creditOk`, `kitchen` isteğe
   bağlı alanlar detayda gösterilir. `views`/`favCount` taban sayılardır; detay
@@ -77,16 +80,34 @@ gömme; değişiklik = config.
 
 ## Sunucu API'si & Yönetim Paneli (server.js + admin.html)
 `server.js` statik sunucuya ek olarak ilan API'si taşır (bağımlılıksız):
-- `GET/POST /api/listings` (herkese açık liste / ilan gönderme),
-  `POST /api/login`, `GET /api/admin/listings`, `POST /api/admin/action`.
+- Açık uçlar: `GET/POST /api/listings`, `GET /api/listing?id=` (ilan takibi),
+  `POST /api/view` (görüntülenme), `POST /api/messages` (ilana talep/mesaj),
+  `POST /api/login`.
+- Admin uçları (`X-Admin-Token`): `GET /api/admin/listings`,
+  `POST /api/admin/action` (`approve|reject|remove|feature|unfeature|price|edit`),
+  `GET /api/admin/messages`, `POST /api/admin/message`, `POST /api/admin/import`.
 - Akış sahibinden benzeri: ziyaretçi ilanı `pending` düşer; admin onaylayınca
   `active` olur ve HERKESE görünür. Admin oturumu açıkken verilen ilan
   doğrudan `active`.
-- Depolama: `DATA_DIR` (Railway Volume önerilir) ya da `./data/listings.json`
-  (gitignore'da). İlk açılışta `data.js` REAL[] listesinden tohumlanır —
-  Railway'de Volume yoksa her dağıtımda depo REAL'e sıfırlanır; kalıcı ilan =
-  REAL'e işle + commit, ya da Volume bağla.
+- HIZ SINIRI (bellek içi, IP başına): ilan 5/saat, mesaj 10/saat, giriş
+  10/15 dk. Admin token'ı ilan sınırını atlar; mesaj formunda bal küpü alanı var.
+- FOTOĞRAF: istemci base64 gönderir, sunucu `DATA_DIR/uploads` altına dosya
+  yazar ve ilanda `u/<dosya>` tutar; `/u/<dosya>` uzun önbellekle servis edilir.
+  İlan silinince/fotoğraf çıkarılınca dosya da silinir. Fotoğrafı ASLA
+  listings.json'a base64 gömme.
+- FİYAT GEÇMİŞİ: fiyat değişince eski fiyat `priceHistory`'ye yazılır; detay
+  sayfası son düşüşü rozetle gösterir.
+- `GET /sitemap.xml` sunucuda DİNAMİK üretilir (statik dosyayı ezer; yayındaki
+  ilanları da içerir). `build-seo.js`'in ürettiği statik sitemap Pages içindir.
+- Depolama: `DATA_DIR` (Railway Volume önerilir) ya da `./data` (gitignore'da):
+  `listings.json`, `messages.json`, `uploads/`. İlk açılışta `data.js` REAL[]
+  listesinden tohumlanır — Volume yoksa her dağıtımda sıfırlanır; panel bunu
+  kırmızı uyarıyla söyler (`persistent:false`). Kalıcı ilan = Volume bağla ya
+  da REAL'e işleyip commit'le; panelden JSON yedek al / yedekten yükle.
 - Şifre: `ADMIN_PASS` ortam değişkeni (yoksa `config.admin.pass` — değiştir!).
+- Panel iki sekmelidir: İlanlar (arama + durum filtresi, onay/red, tam
+  düzenleme penceresi `.modal-back`, öne çıkarma, fiyat, silme, yedek al/yükle)
+  ve Mesajlar (ara/WhatsApp, okundu, sil).
 - İstemci: `data.js` `init()` API'yi yoklar; yoksa (GitHub Pages) REAL +
   localStorage'a düşer, `admin.html` "statik yayın" uyarısı gösterir.
 
