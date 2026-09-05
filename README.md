@@ -58,11 +58,28 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 - Yönetici panelinden üye yönetimi: askıya alma, geçici şifre atama, silme
   (üyeyle birlikte ilanları ve fotoğrafları da silinir)
 
+## 📸 Fotoğraf yükleme
+
+- Kurallar tek yerde (`config.upload`): ilan başına **6 fotoğraf**, yalnızca
+  **JPG · PNG · WEBP**, dosya başına 15 MB; yüklemeden önce tarayıcıda 1600 px'e
+  küçültülüp sıkıştırılır, sunucuda dosya olarak saklanır
+- Eklenemeyen her dosya için **açık gerekçe** gösterilir (HEIC, desteklenmeyen
+  biçim, çok büyük, bozuk dosya, adet sınırı) — sessizce atlanmaz
+- iPhone HEIC fotoğrafları tarayıcılar açamaz; kullanıcıya Ayarlar › Kamera ›
+  Biçimler › "En Uyumlu" önerilir
+- Sunucu fotoğrafı diske yazamazsa ilan yine kaydedilir ama kullanıcı uyarılır
+  ve panelde kırmızı "Fotoğraflar kaydedilemiyor" bandı çıkar
+
 ## Yönetim Paneli (admin.html)
 
 Sahibinden benzeri onaylı yayın akışı — sunucu (Railway) üzerinde çalışır:
 
 - Ziyaretçi ilan verir → **onay bekler**; admin onaylayınca **herkese yayınlanır**
+- İki giriş yolu: **yönetici şifresi** ya da **yönetici yetkili üye hesabı**
+  (üyeyi "Üyeler" sekmesinden "Yönetici yap" ile yetkilendirin; `ADMIN_EMAIL`
+  ortam değişkenindeki e-posta kayıt/girişte otomatik yönetici olur).
+  Yönetici üyeler menüde "🛡 Yönetim" bağlantısını görür ve ilanları onay
+  beklemeden yayınlanır
 - `admin.html`: şifreli giriş (12 saat oturum), arama + durum filtresi, ilan
   onaylama/reddetme, **tam düzenleme** (tüm alanlar + fotoğraf ekleme/çıkarma),
   öne çıkarma, fiyat güncelleme, silme, JSON yedek indirme ve **yedekten yükleme**

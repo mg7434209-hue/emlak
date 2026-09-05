@@ -41,6 +41,7 @@
 
   // ── Yönetici oturumu (sessionStorage; sunucu 12 saat geçerli sayar) ────
   const adminTokKey = "emlakai.adminToken";
+  const adminLogoutKey = "emlakai.adminPanelClosed";
   const adminToken = () => sessionStorage.getItem(adminTokKey) || "";
 
   // ── Görüntülenme sayacı (cihaz bazlı; ilanın taban sayısına eklenir) ───
@@ -111,22 +112,93 @@
     };
   }
 
-  // Fotoğrafı tarayıcıda küçültüp base64'e çevirir (sunucu dosya olarak saklar)
-  function resizePhoto(file, maxW) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, (maxW || 1400) / img.width);
-        const cv = document.createElement("canvas");
-        cv.width = Math.round(img.width * scale);
-        cv.height = Math.round(img.height * scale);
-        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-        URL.revokeObjectURL(img.src);
-        resolve(cv.toDataURL("image/jpeg", 0.82));
-      };
-      img.onerror = () => { URL.revokeObjectURL(img.src); resolve(null); };
-      img.src = URL.createObjectURL(file);
+  // ── Fotoğraf yükleme ────────────────────────────────────────────────────
+  // Kurallar TEK KAYNAK config.upload'tan gelir (adet, biçim, boyut, çözünürlük).
+  const UPC = C.upload || {};
+  const UP_MAX = UPC.maxPhotos || 6;
+  const UP_TYPES = UPC.accept || ["image/jpeg", "image/png", "image/webp"];
+  const UP_LABEL = UPC.acceptLabel || "JPG · PNG · WEBP";
+  const UP_MAX_MB = UPC.maxFileMB || 15;
+  const photoAccept = () => UP_TYPES.join(",");
+  const photoRuleText = (n) =>
+    `${n} / ${UP_MAX} fotoğraf · İzin verilen biçimler: ${UP_LABEL} · dosya başına en fazla ${UP_MAX_MB} MB`;
+
+  // Dosyayı çözer. DİKKAT: `URL.createObjectURL` KULLANILMAZ — sunucunun
+  // CSP başlığı `img-src 'self' data:` olduğu için blob: adresleri engellenir
+  // ve fotoğraflar sessizce kaybolurdu. Önce createImageBitmap (hızlı, adres
+  // gerektirmez), olmazsa FileReader ile data: URL'ye düşülür.
+  async function decodeImage(file) {
+    if (typeof createImageBitmap === "function") {
+      try { return await createImageBitmap(file); } catch (e) { /* yedek yola geç */ }
+    }
+    const dataUrl = await new Promise((resolve) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => resolve(null);
+      try { fr.readAsDataURL(file); } catch (e) { resolve(null); }
     });
+    if (typeof dataUrl !== "string") return null;
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    });
+  }
+
+  // Fotoğrafı küçültüp base64'e çevirir; çözülemezse null döner (çağıran uyarır).
+  async function resizePhoto(file, maxW) {
+    const src = await decodeImage(file);
+    if (!src || !src.width) return null;
+    try {
+      const scale = Math.min(1, (maxW || UPC.maxWidth || 1600) / src.width);
+      const cv = document.createElement("canvas");
+      cv.width = Math.max(1, Math.round(src.width * scale));
+      cv.height = Math.max(1, Math.round(src.height * scale));
+      cv.getContext("2d").drawImage(src, 0, 0, cv.width, cv.height);
+      const out = cv.toDataURL("image/jpeg", UPC.quality || 0.82);
+      if (src.close) src.close(); // ImageBitmap belleğini bırak
+      return out;
+    } catch (e) {
+      if (src.close) src.close();
+      return null; // güvenlik/bellek hatası
+    }
+  }
+
+  // Seçilen dosyaları doğrular, küçültür ve `photos` dizisine ekler.
+  // Dönüş: hata metinleri dizisi — HİÇBİR dosya sessizce atlanmaz.
+  async function addPhotoFiles(fileList, photos, onEach) {
+    const errors = [];
+    const files = Array.from(fileList || []);
+    for (const file of files) {
+      if (photos.length >= UP_MAX) {
+        errors.push(`En fazla ${UP_MAX} fotoğraf eklenebilir; “${file.name}” ve sonrası eklenmedi.`);
+        break;
+      }
+      const name = file.name || "dosya";
+      if (/\.(heic|heif)$/i.test(name) || /heic|heif/i.test(file.type || "")) {
+        errors.push(`“${name}” iPhone HEIC biçiminde — tarayıcılar bunu açamıyor. Telefonunuzda Ayarlar › Kamera › Biçimler › “En Uyumlu” seçip yeniden çekin ya da fotoğrafı JPG olarak kaydedip ekleyin.`);
+        continue;
+      }
+      const type = (file.type || "").toLowerCase();
+      const extOk = /\.(jpe?g|png|webp)$/i.test(name);
+      if (type ? UP_TYPES.indexOf(type) < 0 : !extOk) {
+        errors.push(`“${name}” desteklenmeyen bir biçimde. İzin verilenler: ${UP_LABEL}.`);
+        continue;
+      }
+      if (file.size > UP_MAX_MB * 1024 * 1024) {
+        errors.push(`“${name}” çok büyük (${(file.size / 1024 / 1024).toFixed(1)} MB). Dosya başına sınır ${UP_MAX_MB} MB.`);
+        continue;
+      }
+      const data = await resizePhoto(file, D.hasServer() ? (UPC.maxWidth || 1600) : 900);
+      if (!data) {
+        errors.push(`“${name}” açılamadı — dosya bozuk olabilir. Başka bir fotoğraf deneyin.`);
+        continue;
+      }
+      photos.push(data);
+      if (onEach) onEach();
+    }
+    return errors;
   }
 
   // ── İlan düzenleme penceresi (yönetim paneli + hesabım sayfası) ───────
@@ -182,9 +254,10 @@
             <option value="ofis"${(l.seller || {}).type === "ofis" ? " selected" : ""}>Ofis / Galeri</option></select></div>
           <div class="full"><label for="ePhone">İlan Telefonu</label><input id="ePhone" type="tel" maxlength="25" value="${esc((l.phone || {}).display || "")}" placeholder="Boş = site telefonu"></div>
           <div class="full"><label for="eDesc">Açıklama</label><textarea id="eDesc" rows="7" maxlength="4000">${esc(l.desc || "")}</textarea></div>
-          <div class="full"><label>Fotoğraflar</label>
+          <div class="full"><label for="ePhotoFile">Fotoğraflar</label>
             <div id="ePhotos" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
-            <input id="ePhotoFile" type="file" accept="image/*" multiple>
+            <input id="ePhotoFile" type="file" accept="${photoAccept()}" multiple>
+            <div class="notice" id="ePhotoStatus" style="margin-top:8px"></div>
           </div>
           <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn" id="eSave" type="button">Değişiklikleri Kaydet</button>
@@ -210,17 +283,30 @@
         `<span style="position:relative;display:inline-block"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}" style="width:110px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
          <button type="button" data-rm="${i}" aria-label="Fotoğrafı kaldır" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:22px;height:22px;line-height:1">✕</button></span>`).join("") ||
         '<small style="color:var(--muted)">Fotoğraf yok — ilan kartında otomatik görsel kullanılır.</small>';
-      $$("#ePhotos [data-rm]").forEach((b) => b.addEventListener("click", () => { photos.splice(+b.dataset.rm, 1); renderPhotos(); }));
+      $$("#ePhotos [data-rm]").forEach((b) => b.addEventListener("click", () => {
+        photos.splice(+b.dataset.rm, 1);
+        renderPhotos();
+        ePhotoStatus();
+      }));
     }
     renderPhotos();
+    function ePhotoStatus(errors) {
+      const el = $("#ePhotoStatus");
+      if (!el) return;
+      el.innerHTML = `<span>${esc(photoRuleText(photos.length))}</span>` +
+        ((errors && errors.length)
+          ? `<ul style="margin:8px 0 0 18px;color:var(--over)">${errors.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`
+          : "");
+    }
+    ePhotoStatus();
     $("#ePhotoFile").addEventListener("change", async (e) => {
-      const files = Array.from(e.target.files || []).slice(0, 8 - photos.length);
+      const files = Array.from(e.target.files || []);
       e.target.value = "";
-      for (const file of files) {
-        const data = await resizePhoto(file, 1400);
-        if (data) photos.push(data);
-        renderPhotos();
-      }
+      const el = $("#ePhotoStatus");
+      if (el) el.textContent = "Fotoğraflar işleniyor…";
+      const errors = await addPhotoFiles(files, photos, renderPhotos);
+      renderPhotos();
+      ePhotoStatus(errors);
     });
     const close = () => { modal.innerHTML = ""; };
     $("#editClose").addEventListener("click", close);
@@ -265,6 +351,7 @@
           btn.disabled = false; btn.textContent = "Değişiklikleri Kaydet";
           return;
         }
+        if (r && r.photoWarning) alert("⚠ " + r.photoWarning);
         close(); // kaydeden taraf (panel / hesabım) listeyi kendisi tazeler
       } catch (e) {
         const out = $("#eOut"); // pencere kapandıysa uyarı yazacak yer kalmaz
@@ -383,6 +470,15 @@
     if (document.body.dataset.page === (u ? "hesap" : "giris")) a.classList.add("active");
     const cta = nav.querySelector("a.cta");
     nav.insertBefore(a, cta || null);
+    // Yönetici yetkili üyeye panel kısayolu (diğer ziyaretçilere görünmez)
+    if (u && u.role === "admin" && !$("#adminLink")) {
+      const ad = document.createElement("a");
+      ad.id = "adminLink";
+      ad.href = "admin.html";
+      ad.textContent = "🛡 Yönetim";
+      if (document.body.dataset.page === "admin") ad.classList.add("active");
+      nav.insertBefore(ad, a);
+    }
   }
 
   function injectSiteJsonLd() {
@@ -938,26 +1034,39 @@
       if (!$("#pPhone").value && me.phone) $("#pPhone").value = me.phone.display || "";
     }
 
-    // Fotoğraf yükleme: canvas ile küçültülür; sunucu varsa dosya olarak saklanır
+    // Fotoğraf yükleme: kurallar config.upload'tan; atlanan her dosya bildirilir
     const photos = [];
-    const MAX_PHOTOS = 8;
-    $("#pPhotos").addEventListener("change", async (e) => {
-      const files = Array.from(e.target.files || []).slice(0, MAX_PHOTOS - photos.length);
+    const pInput = $("#pPhotos");
+    pInput.accept = photoAccept();
+    const pLabel = document.querySelector('label[for="pPhotos"]');
+    if (pLabel) pLabel.textContent = `Fotoğraflar (en fazla ${UP_MAX} adet · ${UP_LABEL})`;
+    function photoStatus(errors) {
+      const el = $("#photoStatus");
+      if (!el) return;
+      el.innerHTML = `<span>${esc(photoRuleText(photos.length))}</span>` +
+        ((errors && errors.length)
+          ? `<ul style="margin:8px 0 0 18px;color:var(--over)">${errors.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`
+          : "");
+    }
+    pInput.addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []);
       e.target.value = "";
-      // Sunucu fotoğrafı dosya olarak saklar → daha büyük çözünürlük;
-      // statik yayında localStorage'a sığması için küçük tutulur.
-      const maxW = D.hasServer() ? 1400 : 900;
-      for (const file of files) {
-        const data = await resizePhoto(file, maxW);
-        if (data) photos.push(data);
-        renderPhotoPreview();
-      }
+      const el = $("#photoStatus");
+      if (el) el.textContent = "Fotoğraflar işleniyor…";
+      const errors = await addPhotoFiles(files, photos, renderPhotoPreview);
+      renderPhotoPreview();
+      photoStatus(errors);
     });
+    photoStatus();
     function renderPhotoPreview() {
       $("#photoPreview").innerHTML = photos.map((p, i) =>
         `<span style="position:relative;display:inline-block"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}" style="width:90px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
          <button type="button" data-rm="${i}" aria-label="Fotoğraf ${i + 1}'i kaldır" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:20px;height:20px;font-size:11px;line-height:1">✕</button></span>`).join("");
-      $$("#photoPreview [data-rm]").forEach((b) => b.addEventListener("click", () => { photos.splice(+b.dataset.rm, 1); renderPhotoPreview(); }));
+      $$("#photoPreview [data-rm]").forEach((b) => b.addEventListener("click", () => {
+        photos.splice(+b.dataset.rm, 1);
+        renderPhotoPreview();
+        photoStatus();
+      }));
     }
 
     function collect() {
@@ -1057,8 +1166,12 @@
         try {
           const r = await D.submit(l, adminToken());
           if (r && r.ok) {
-            if (r.status === "active") { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
-            $("#suggestOut").innerHTML = `<b style="color:var(--deal)">İlanınız alındı ✓</b> İlan numaranız <b>${esc(r.id)}</b>. Yönetici onayından sonra yayına girecek; durumunu <a href="hesap.html">Hesabım › İlanlarım</a> sayfasından izleyebilirsiniz.`;
+            // Sunucu bazı fotoğrafları kaydedemediyse SESSİZ kalma, söyle
+            const warn = r.photoWarning ? `<br><span style="color:var(--over)">⚠ ${esc(r.photoWarning)}</span>` : "";
+            if (r.status === "active" && !warn) { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
+            $("#suggestOut").innerHTML = r.status === "active"
+              ? `<b style="color:var(--deal)">İlanınız yayında ✓</b> <a href="ilan.html?id=${encodeURIComponent(r.id)}">İlanı gör →</a>${warn}`
+              : `<b style="color:var(--deal)">İlanınız alındı ✓</b> İlan numaranız <b>${esc(r.id)}</b>${r.photosSaved ? ` · ${r.photosSaved} fotoğraf yüklendi` : ""}. Yönetici onayından sonra yayına girecek; durumunu <a href="hesap.html">Hesabım › İlanlarım</a> sayfasından izleyebilirsiniz.${warn}`;
             btn.textContent = "İlan Gönderildi ✓";
             return;
           }
@@ -1452,10 +1565,16 @@
       $("#panelWrap").style.display = logged ? "" : "none";
     };
     async function api(pathname, opts) {
+      // Yetki iki kaynaktan gelebilir: admin şifre jetonu ya da yönetici üye oturumu
       const r = await fetch(pathname, Object.assign({
-        headers: { "Content-Type": "application/json", "X-Admin-Token": adminToken() },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Token": adminToken(),
+          "X-User-Token": A.token(),
+        },
       }, opts));
       if (r.status === 401) { sessionStorage.removeItem(adminTokKey); show(false); throw new Error("unauthorized"); }
+
       return r.json();
     }
     let rows = [], msgs = [], users = [];
@@ -1467,8 +1586,13 @@
       // Kalıcılık uyarısı: Railway'de Volume + DATA_DIR yoksa her dağıtımda
       // ilanlar/mesajlar sıfırlanır — yedek almak şart.
       const warn = $("#persistWarn");
-      if (warn) {
-        warn.style.display = j.persistent === false ? "" : "none";
+      if (warn) warn.style.display = j.persistent === false ? "" : "none";
+      // Fotoğraf dizini yazılamıyorsa en tepede kırmızı uyarı
+      const uw = $("#uploadWarn");
+      if (uw) {
+        uw.style.display = j.uploadsOk === false ? "" : "none";
+        const ue = $("#uploadErr");
+        if (ue) ue.textContent = (j.uploadsError || "bilinmiyor") + " · " + (j.uploadDir || "");
       }
       try {
         const m = await api("api/admin/messages", { method: "GET" });
@@ -1583,6 +1707,7 @@
           <td>${fmt(u.listings)}</td>
           <td><span style="color:${u.banned ? "var(--over)" : "var(--deal)"};font-weight:700">${u.banned ? "Askıda" : "Aktif"}</span></td>
           <td style="text-align:right;white-space:nowrap">
+            <button class="btn ghost sm" data-user="${esc(u.uid)}" data-uact="${u.role === "admin" ? "unadmin" : "admin"}">${u.role === "admin" ? "Yetkiyi al" : "Yönetici yap"}</button>
             <button class="btn ghost sm" data-user="${esc(u.uid)}" data-uact="${u.banned ? "unban" : "ban"}">${u.banned ? "Askıyı kaldır" : "Askıya al"}</button>
             <button class="btn ghost sm" data-user="${esc(u.uid)}" data-uact="password">Şifre ata</button>
             <button class="btn ghost sm" data-user="${esc(u.uid)}" data-uact="remove" style="color:var(--over);border-color:var(--over)">Sil</button>
@@ -1595,6 +1720,7 @@
           value = prompt("Bu üye için yeni şifre (en az 8 karakter):");
           if (!value) return;
         }
+        if (act === "admin" && !confirm("Bu üyeye YÖNETİCİ yetkisi verilecek: ilanları onaylayabilir, silebilir ve üyeleri yönetebilir. Emin misiniz?")) return;
         if (act === "remove" && !confirm("Üye ve TÜM ilanları kalıcı olarak silinecek. Emin misiniz?")) return;
         try {
           const r = await api("api/admin/user", { method: "POST", body: JSON.stringify({ id: b.dataset.user, action: act, value }) });
@@ -1632,7 +1758,47 @@
       }
     });
     $("#adminPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#loginBtn").click(); });
-    $("#logoutBtn").addEventListener("click", () => { sessionStorage.removeItem(adminTokKey); show(false); });
+
+    // Giriş yolu seçimi: yönetici şifresi ↔ yönetici yetkili üye hesabı
+    $$("#adminLoginTabs .tab-btn").forEach((b) => b.addEventListener("click", () => {
+      $$("#adminLoginTabs .tab-btn").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      $("#passLogin").style.display = b.dataset.mode === "pass" ? "" : "none";
+      $("#userLogin").style.display = b.dataset.mode === "user" ? "" : "none";
+    }));
+
+    // Üye hesabıyla giriş: rolü "admin" olan hesaplar panele girer
+    async function userLogin() {
+      const out = $("#userLoginOut"), btn = $("#userLoginBtn");
+      const email = $("#admEmail").value.trim(), pass = $("#admPass2").value;
+      if (!email || !pass) { out.innerHTML = '<span style="color:var(--over)">E-posta ve şifrenizi girin.</span>'; return; }
+      btn.disabled = true; btn.textContent = "Giriş yapılıyor…";
+      try {
+        const r = await A.login(email, pass);
+        if (!r || !r.token) {
+          out.innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "Giriş başarısız.")}</span>`;
+        } else if ((r.user || {}).role !== "admin") {
+          out.innerHTML = '<span style="color:var(--over)">Bu hesabın yönetici yetkisi yok. Yetkiyi mevcut bir yönetici “Üyeler” sekmesinden verebilir.</span>';
+        } else {
+          sessionStorage.removeItem(adminLogoutKey);
+          $("#admPass2").value = "";
+          show(true);
+          refresh().catch(() => {});
+        }
+      } catch (e) {
+        out.innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı.</span>';
+      }
+      btn.disabled = false; btn.textContent = "Hesabımla Giriş Yap";
+    }
+    $("#userLoginBtn").addEventListener("click", userLogin);
+    $("#admPass2").addEventListener("keydown", (e) => { if (e.key === "Enter") userLogin(); });
+
+    $("#logoutBtn").addEventListener("click", () => {
+      sessionStorage.removeItem(adminTokKey);
+      // Yönetici üye oturumu site genelinde açık kalır; panel kapanır
+      sessionStorage.setItem(adminLogoutKey, "1");
+      show(false);
+    });
     $("#exportBtn").addEventListener("click", () => {
       const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
@@ -1657,7 +1823,19 @@
       } catch (err) { alert("Yedek dosyası okunamadı."); }
       refresh().catch(() => {});
     });
-    if (adminToken()) { show(true); refresh().catch(() => show(false)); } else show(false);
+    const isAdminUser = () => ((A.user() || {}).role === "admin");
+    const panelClosed = () => sessionStorage.getItem(adminLogoutKey) === "1";
+    if ((adminToken() || isAdminUser()) && !panelClosed()) {
+      show(true);
+      refresh().catch(() => show(false));
+    } else {
+      show(false);
+      if (isAdminUser()) { // hesabı zaten yönetici: "Hesabımla Giriş" sekmesini öne al
+        const tab = document.querySelector('#adminLoginTabs [data-mode="user"]');
+        if (tab) tab.click();
+        $("#admEmail").value = (A.user() || {}).email || "";
+      }
+    }
   }
 
   // ── Başlat ──────────────────────────────────────────────────────────────

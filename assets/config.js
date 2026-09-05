@@ -131,6 +131,18 @@ EMLAK.config = {
     vehicle: { defaultRate: 3.15, maxLtv: 0.7, terms: [12, 24, 36, 48] },
   },
 
+  // ── Fotoğraf yükleme kuralları (ilan-ver + yönetim düzenleyicisi) ───────
+  // Sunucu da bu değerleri okur (maxPhotos / maxStoredKB) — tek kaynak burasıdır.
+  upload: {
+    maxPhotos: 6,            // ilan başına en fazla fotoğraf
+    maxFileMB: 15,           // seçilebilecek TEK dosyanın ham boyutu
+    maxWidth: 1600,          // yüklemeden önce küçültülen uzun kenar (px)
+    quality: 0.82,           // JPEG sıkıştırma kalitesi
+    maxStoredKB: 1800,       // sunucuda saklanan tek dosya üst sınırı
+    accept: ["image/jpeg", "image/png", "image/webp"],
+    acceptLabel: "JPG · PNG · WEBP",
+  },
+
   // ── AI asistan ayarları ─────────────────────────────────────────────────
   assistant: { name: "EVA", maxResults: 6 },
 

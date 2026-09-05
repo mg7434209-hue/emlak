@@ -83,9 +83,10 @@
           <div><label for="pSellerName">Ad / Ofis Adı</label><input id="pSellerName" type="text" placeholder="örn. Akdeniz Gayrimenkul"></div>
           <div><label for="pPhone">İlan Telefonu (isteğe bağlı)</label><input id="pPhone" type="tel" placeholder="örn. 0543 743 42 09"></div>
           <div class="full">
-            <label for="pPhotos">Fotoğraflar (en fazla 8)</label>
-            <input id="pPhotos" type="file" accept="image/*" multiple>
+            <label for="pPhotos">Fotoğraflar</label>
+            <input id="pPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
             <div id="photoPreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
+            <div class="notice" id="photoStatus" style="margin-top:10px"></div>
           </div>
           <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn warn" id="suggestBtn" type="button">AI Fiyat Önerisi Al</button>

@@ -18,8 +18,8 @@ araçta marka/model/yıl/km/yakıt/vites filtreleri; sayfa başına 24 ilan +
 (detay: açıklama, değerleme bandı, trend (yalnız emlak), benzer ilanlar,
 konut/taşıt kredisi, fiyat düştüyse `.price-drop` rozeti, sunucu varken
 "Satıcıya Mesaj Gönder" formu; dinamik canonical + JSON-LD) · `ilan-ver.html`
-(segment seçimli form; AI fiyat önerisi + AI başlık/açıklama yazarı + en fazla
-8 fotoğraf + ⭐ öne çıkarma; sunucu varken ÜYELİK ister — giriş yoksa
+(segment seçimli form; AI fiyat önerisi + AI başlık/açıklama yazarı + fotoğraf
+yükleme + ⭐ öne çıkarma; sunucu varken ÜYELİK ister — giriş yoksa
 `#ilanVerGate` üyelik kapısı gösterilir) ·
 `giris.html` (üye girişi + ücretsiz kayıt; `?next=` ile geri dönüş, `?kayit=1`
 kayıt sekmesini açar) · `hesap.html` (Hesabım: ilanlarım · mesajlarım · profil/şifre;
@@ -83,6 +83,20 @@ gömme; değişiklik = config.
 - Yeni AI özelliği eklerken katsayıları `config.js`'e koy, koda gömme.
 - localStorage anahtarları `emlakai.` önekiyle başlar.
 
+## Fotoğraf yükleme (config.upload — TEK KAYNAK)
+Adet/biçim/boyut kuralları `config.upload`'tadır (maxPhotos, accept, maxFileMB,
+maxWidth, quality, maxStoredKB); `app.js` ve `server.js` AYNI değerleri okur.
+- **CSP TUZAĞI (tekrar düşme):** sunucu `img-src 'self' data:` gönderir, bu
+  yüzden `URL.createObjectURL()` (blob:) ile görsel ÇÖZÜLEMEZ. `decodeImage()`
+  önce `createImageBitmap`, olmazsa FileReader → data: URL kullanır. Fotoğraf
+  koduna blob: adres SOKMA (JSON yedeği indirmedeki blob: bağlantısı serbest).
+- Atlanan hiçbir dosya SESSİZ kalmaz: istemci her dosya için neden yazar
+  (HEIC/biçim/boyut/bozuk/adet), sunucu `photosDropped` + `photoWarning` döner
+  ve konsola yazar. Yeni bir atlama yolu eklersen mesajını da ekle.
+- Sunucu açılışta `UPLOAD_DIR`'e deneme dosyası yazar (`checkUploadDir`);
+  yazamıyorsa `uploadsOk:false` döner ve panel kırmızı `#uploadWarn` gösterir.
+- iPhone HEIC tarayıcıda açılmaz → kullanıcıya "En Uyumlu" ayarı önerilir.
+
 ## Üyelik (kayıt + giriş) — server.js + giris.html + hesap.html
 Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
 - Şifreler `crypto.scryptSync` ile tuzlanıp `users.json`'a `scrypt$tuz$özet`
@@ -96,8 +110,14 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
   alınır. Üye YALNIZCA kendi ilanını düzenler/siler (`/api/my/action`).
 - Üye düzenlemesi ilanı yeniden `pending` yapar; TEK istisna `onlyPriceDrop()`
   (yalnız fiyat indirimi) — ilan yayında kalır.
-- Yönetici üyeleri panelin "Üyeler" sekmesinden yönetir: askıya al/kaldır,
-  şifre ata, sil (üyenin ilanları ve fotoğrafları da silinir).
+- ROL: üyenin `role` alanı `user` | `admin`. `admin` rolü panele şifresiz girer
+  (`isAdminReq` = admin jetonu VEYA rolü admin oturum), ilanları doğrudan
+  yayınlar ve nav'da "🛡 Yönetim" bağlantısı görür. İlk yönetici: `ADMIN_EMAIL`
+  ortam değişkenindeki e-posta kayıt/girişte otomatik admin olur ya da şifreyle
+  giren yönetici "Üyeler" sekmesinden "Yönetici yap" der.
+- Yönetici kendi hesabını askıya alamaz/silemez/yetkisini düşüremez (sunucu engeli).
+- Yönetici üyeleri panelin "Üyeler" sekmesinden yönetir: yönetici yap/yetkiyi al,
+  askıya al/kaldır, şifre ata, sil (üyenin ilanları ve fotoğrafları da silinir).
 - Hız sınırı: kayıt 5/saat, üye girişi 10/15 dk.
 - Statik yayında (Pages) üyelik YOKTUR; `giris.html` uyarı gösterir, ilan verme
   eskisi gibi cihaz-yerel (localStorage) çalışır.
@@ -129,6 +149,9 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
   kırmızı uyarıyla söyler (`persistent:false`). Kalıcı ilan = Volume bağla ya
   da REAL'e işleyip commit'le; panelden JSON yedek al / yedekten yükle.
 - Şifre: `ADMIN_PASS` ortam değişkeni (yoksa `config.admin.pass` — değiştir!).
+  `admin.html` girişi İKİ SEKMELİDİR: "Yönetici Şifresi" ve "Hesabımla Giriş"
+  (yalnız `role:"admin"` üyeler). Panelden çıkış `emlakai.adminPanelClosed`
+  bayrağıyla işaretlenir — yönetici üyenin site oturumu düşmez.
 - Panel üç sekmelidir: İlanlar (arama + durum filtresi, onay/red, tam düzenleme
   penceresi `.modal-back`, öne çıkarma, fiyat, silme, yedek al/yükle), Mesajlar
   (ara/WhatsApp, okundu, sil) ve Üyeler (askıya al, şifre ata, sil).

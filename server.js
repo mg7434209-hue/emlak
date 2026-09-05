@@ -74,25 +74,64 @@ let LISTINGS = loadListings();
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const DATA_URI = /^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/;
 const EXT_OF = { png: ".png", jpg: ".jpg", jpeg: ".jpg", webp: ".webp" };
-const MAX_PHOTO_BYTES = 1.5 * 1024 * 1024;
+const UP = (CONF && CONF.upload) || {};
+const MAX_PHOTOS = UP.maxPhotos || 6;
+const MAX_PHOTO_BYTES = (UP.maxStoredKB || 1800) * 1024;
+
+// Yükleme dizini açılışta hazırlanır ve GERÇEKTEN yazılabilir mi denenir —
+// yazılamıyorsa fotoğraflar sessizce kaybolmasın, panel/istemci haber alsın.
+let UPLOADS_OK = false, UPLOADS_ERR = "";
+function checkUploadDir() {
+  try {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    const probe = path.join(UPLOAD_DIR, ".probe");
+    fs.writeFileSync(probe, "ok");
+    fs.unlinkSync(probe);
+    UPLOADS_OK = true; UPLOADS_ERR = "";
+  } catch (e) {
+    UPLOADS_OK = false; UPLOADS_ERR = e.code || String(e.message || e);
+    console.error("UYARI: fotoğraf dizini yazılamıyor (" + UPLOAD_DIR + "):", UPLOADS_ERR);
+  }
+  return UPLOADS_OK;
+}
+checkUploadDir();
+
+// base64 fotoğrafları dosyaya yazar.
+// Dönüş: { photos:[yollar], dropped:n, reason:"..."|null } — atlanan varsa
+// çağıran bunu istemciye BİLDİRİR (eskiden sessizce yutuluyordu).
 function persistPhotos(id, photos) {
   const out = [];
-  (photos || []).slice(0, 8).forEach((p, i) => {
-    if (typeof p !== "string") return;
+  let dropped = 0, reason = null;
+  const note = (r) => { dropped++; if (!reason) reason = r; };
+  (photos || []).slice(0, MAX_PHOTOS).forEach((p, i) => {
+    if (typeof p !== "string") { note("bicim"); return; }
     if (/^u\/[\w.-]+$/.test(p) || /^assets\/img\//.test(p)) { out.push(p); return; } // zaten dosya
     const m = DATA_URI.exec(p);
-    if (!m) return;
+    if (!m) { note("bicim"); return; }
     const buf = Buffer.from(m[2], "base64");
-    if (!buf.length || buf.length > MAX_PHOTO_BYTES) return;
+    if (!buf.length) { note("bicim"); return; }
+    if (buf.length > MAX_PHOTO_BYTES) { note("boyut"); return; }
     const name = id + "-" + (i + 1) + "-" + crypto.randomBytes(3).toString("hex") + (EXT_OF[m[1]] || ".jpg");
     try {
-      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+      if (!UPLOADS_OK && !checkUploadDir()) throw new Error(UPLOADS_ERR || "disk");
       fs.writeFileSync(path.join(UPLOAD_DIR, name), buf);
       out.push("u/" + name);
-    } catch (e) { /* disk yazılamadı — fotoğraf atlanır, ilan yine de kaydedilir */ }
+    } catch (e) {
+      UPLOADS_OK = false;
+      note("disk");
+      console.error("Fotoğraf yazılamadı:", name, e.code || e.message);
+    }
   });
-  return out;
+  if ((photos || []).length > MAX_PHOTOS) { dropped += photos.length - MAX_PHOTOS; if (!reason) reason = "adet"; }
+  return { photos: out, dropped, reason };
 }
+const PHOTO_MSG = {
+  disk: "Fotoğraflar sunucuya kaydedilemedi (depolama sorunu). İlan fotoğrafsız kaydedildi; yönetici depolamayı düzelttikten sonra fotoğraf ekleyebilirsiniz.",
+  boyut: "Bazı fotoğraflar çok büyük olduğu için eklenemedi.",
+  bicim: "Bazı dosyalar desteklenmeyen biçimde olduğu için eklenemedi (yalnızca JPG, PNG, WEBP).",
+  adet: "En fazla " + MAX_PHOTOS + " fotoğraf eklenebilir; fazlası atlandı.",
+};
+const photoWarning = (r) => (r.dropped ? { photosDropped: r.dropped, photoWarning: PHOTO_MSG[r.reason] || PHOTO_MSG.bicim } : null);
 function dropPhotos(photos) {
   (photos || []).forEach((p) => {
     if (!/^u\/[\w.-]+$/.test(p)) return;
@@ -168,6 +207,9 @@ function userFromToken(token) {
   return u && !u.banned ? u : null;
 }
 const currentUser = (req) => userFromToken(req.headers["x-user-token"] || "");
+// Panel yetkisi iki yoldan gelir: admin şifresiyle alınan jeton ya da rolü
+// "admin" olan üye oturumu (üyeler panelden yönetici yapılır).
+const isAdminReq = (req) => checkToken(req) || ((currentUser(req) || {}).role === "admin");
 const publicUser = (u) => ({ uid: u.uid, name: u.name, email: u.email, phone: u.phone || "", role: u.role || "user" });
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@.]+(\.[^\s@.]+)+$/;
 const normEmail = (v) => String(v || "").trim().toLowerCase().slice(0, 120);
@@ -205,6 +247,8 @@ const str = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 // ── Admin oturumları (bellek içi token; yeniden başlatınca sıfırlanır) ────
 const ADMIN_PASS = process.env.ADMIN_PASS || (CONF.admin && CONF.admin.pass) || "";
+// Bu e-posta ile açılan/giren hesap otomatik yönetici olur (ilk kurulum kolaylığı)
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
 const TOKENS = new Map(); // token → sonGeçerlilik (ms)
 const TOKEN_TTL = 12 * 60 * 60 * 1000; // 12 saat
 function checkToken(req) {
@@ -261,7 +305,8 @@ async function handleApi(req, res, urlPath) {
     if (USERS.length >= 5000) return sendJson(res, 429, { error: "Üye kapasitesi dolu." });
     const u = {
       uid: "U" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase(),
-      name, email, phone, pass: hashPassword(pw), role: "user",
+      name, email, phone, pass: hashPassword(pw),
+      role: ADMIN_EMAIL && email === ADMIN_EMAIL ? "admin" : "user",
       created: new Date().toISOString(),
     };
     USERS.push(u);
@@ -280,6 +325,7 @@ async function handleApi(req, res, urlPath) {
       return sendJson(res, 401, { error: "E-posta ya da şifre hatalı." });
     }
     if (u.banned) return sendJson(res, 403, { error: "Hesabınız askıya alınmış. Bizimle iletişime geçin." });
+    if (ADMIN_EMAIL && u.email === ADMIN_EMAIL) u.role = "admin";
     u.lastLogin = new Date().toISOString();
     saveUsers(USERS);
     return sendJson(res, 200, { ok: true, token: signSession(u.uid), user: publicUser(u) });
@@ -339,8 +385,8 @@ async function handleApi(req, res, urlPath) {
 
   // POST /api/listings — ilan gönder (herkes; admin token'la doğrudan aktif)
   if (urlPath === "/api/listings" && req.method === "POST") {
-    const isAdmin = checkToken(req);
-    const user = isAdmin ? null : currentUser(req);
+    const user = currentUser(req);
+    const isAdmin = checkToken(req) || (user && user.role === "admin");
     // İlan vermek üyelik ister (yönetici oturumu hariç)
     if (!isAdmin && !user) {
       return sendJson(res, 401, { error: "İlan vermek için giriş yapın ya da ücretsiz hesap oluşturun." });
@@ -348,7 +394,7 @@ async function handleApi(req, res, urlPath) {
     if (!isAdmin && !rateLimit(req, "post", 10, 60 * 60 * 1000)) {
       return sendJson(res, 429, { error: "Saatlik ilan sınırına ulaştınız. Daha sonra tekrar deneyin." });
     }
-    const b = await readBody(req, 12 * 1024 * 1024); // fotoğraflar base64 (≤5 × ~300KB)
+    const b = await readBody(req, 16 * 1024 * 1024); // fotoğraflar base64
     const l = NORMALIZE(b);
     if (!l) return sendJson(res, 400, { error: "Geçersiz ilan verisi." });
     if (!l.title || !l.price || !l.district) return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
@@ -367,11 +413,14 @@ async function handleApi(req, res, urlPath) {
       l.seller = { name: rawName || user.name, type: rawSeller.type === "ofis" ? "ofis" : "sahibinden" };
       if (!l.phone && user.phone) l.phone = user.phone;
     }
-    l.photos = persistPhotos(l.id, b.photos); // base64 → DATA_DIR/uploads dosyaları
+    const ph = persistPhotos(l.id, b.photos); // base64 → DATA_DIR/uploads dosyaları
+    l.photos = ph.photos;
     if (!isAdmin) l.featured = false; // öne çıkarma yalnızca admin kararıyla
     LISTINGS.unshift(l);
     saveListings(LISTINGS);
-    return sendJson(res, 200, { ok: true, id: l.id, status: l.status });
+    return sendJson(res, 200, Object.assign(
+      { ok: true, id: l.id, status: l.status, photosSaved: l.photos.length },
+      photoWarning(ph)));
   }
 
   // GET /api/listing?id= — ilan takibi: gönderilen ilanın yayın durumu
@@ -459,10 +508,9 @@ async function handleApi(req, res, urlPath) {
     if (!merged || !merged.title || !merged.price || !merged.district) {
       return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
     }
-    const keptPhotos = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos) : l.photos;
-    if (Array.isArray(patch.photos)) {
-      dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
-    }
+    const ph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos) : null;
+    const keptPhotos = ph ? ph.photos : l.photos;
+    if (ph) dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
     pushPriceHistory(l, merged.price);
     const hist = l.priceHistory;
     Object.assign(l, merged, {
@@ -474,21 +522,28 @@ async function handleApi(req, res, urlPath) {
       featured: l.featured, updated: new Date().toISOString(),
     });
     saveListings(LISTINGS);
-    return sendJson(res, 200, { ok: true, status: l.status });
+    return sendJson(res, 200, Object.assign(
+      { ok: true, status: l.status, photosSaved: l.photos.length },
+      ph ? photoWarning(ph) : null));
   }
 
-  // Buradan sonrası admin ister
-  if (!checkToken(req)) return sendJson(res, 401, { error: "Yetkisiz." });
+  // Buradan sonrası admin ister (şifre jetonu ya da yönetici rolü)
+  if (!isAdminReq(req)) return sendJson(res, 401, { error: "Yetkisiz." });
 
   // GET /api/admin/listings — tümü (pending/rejected dahil)
   if (urlPath === "/api/admin/listings" && req.method === "GET") {
     // persistent=false → DATA_DIR ayarlı değil: dağıtımda veriler silinebilir
-    return sendJson(res, 200, { listings: LISTINGS, persistent: !!process.env.DATA_DIR });
+    return sendJson(res, 200, {
+      listings: LISTINGS,
+      persistent: !!process.env.DATA_DIR,
+      uploadsOk: UPLOADS_OK, uploadsError: UPLOADS_ERR, uploadDir: UPLOAD_DIR,
+    });
   }
 
   // POST /api/admin/action — {id, action, value}
   if (urlPath === "/api/admin/action" && req.method === "POST") {
-    const b = await readBody(req, 4096);
+    const b = await readBody(req, 16 * 1024 * 1024); // "edit" fotoğraf taşıyabilir
+    let editPhotoResult = null;
     const i = LISTINGS.findIndex((l) => l.id === b.id);
     if (i < 0) return sendJson(res, 404, { error: "İlan bulunamadı." });
     const l = LISTINGS[i];
@@ -513,10 +568,10 @@ async function handleApi(req, res, urlPath) {
         if (!merged || !merged.title || !merged.price || !merged.district) {
           return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
         }
-        const keptPhotos = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos) : l.photos;
-        if (Array.isArray(patch.photos)) {
-          dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
-        }
+        const aph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos) : null;
+        const keptPhotos = aph ? aph.photos : l.photos;
+        if (aph) dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
+        editPhotoResult = aph;
         pushPriceHistory(l, merged.price);
         const hist = l.priceHistory;
         Object.assign(l, merged, {
@@ -529,7 +584,8 @@ async function handleApi(req, res, urlPath) {
       default: return sendJson(res, 400, { error: "Bilinmeyen eylem." });
     }
     saveListings(LISTINGS);
-    return sendJson(res, 200, { ok: true });
+    return sendJson(res, 200, Object.assign({ ok: true },
+      editPhotoResult ? photoWarning(editPhotoResult) : null));
   }
 
   // GET /api/admin/messages — gelen mesajlar
@@ -566,6 +622,11 @@ async function handleApi(req, res, urlPath) {
     const i = USERS.findIndex((u) => u.uid === b.id);
     if (i < 0) return sendJson(res, 404, { error: "Üye bulunamadı." });
     const u = USERS[i];
+    // Oturumdaki yönetici kendi yetkisini düşüremez / kendini silemez
+    const self = currentUser(req);
+    if (self && self.uid === u.uid && ["unadmin", "remove", "ban"].includes(b.action)) {
+      return sendJson(res, 400, { error: "Kendi hesabınız üzerinde bu işlemi yapamazsınız." });
+    }
     switch (b.action) {
       case "ban": u.banned = true; break;
       case "unban": u.banned = false; break;
