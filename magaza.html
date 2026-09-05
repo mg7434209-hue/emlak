@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mağaza | EmlakAI</title>
+  <meta name="description" content="Satıcının yayındaki tüm ilanları, iletişim bilgisi ve mağaza istatistikleri.">
+  <link rel="canonical" href="https://emlak-production.up.railway.app/magaza.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="EmlakAI">
+  <meta property="og:title" content="Mağaza | EmlakAI">
+  <meta property="og:description" content="Satıcının yayındaki tüm ilanları, iletişim bilgisi ve mağaza istatistikleri.">
+  <meta property="og:url" content="https://emlak-production.up.railway.app/magaza.html">
+  <meta property="og:image" content="https://emlak-production.up.railway.app/assets/img/og.png">
+  <meta property="og:locale" content="tr_TR">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body data-page="magaza">
+  <header class="site-header">
+    <div class="container header-in">
+      <a class="logo" href="index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></span>Emlak<span class="ai">AI</span></a>
+      <nav class="main-nav" id="mainNav">
+        <a href="index.html">Ana Sayfa</a>
+        <a href="ilanlar.html">İlanlar</a>
+        <a href="degerleme.html">Değerleme</a>
+        <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
+        <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
+      </nav>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="breadcrumb container" id="shopCrumb">
+      <a href="index.html">Ana Sayfa</a> › <a href="ilanlar.html">İlanlar</a> › Mağaza
+    </div>
+
+    <div class="container page-head">
+      <h1 id="shopName">Mağaza</h1>
+      <p id="shopMeta">Satıcının yayındaki tüm ilanları.</p>
+    </div>
+
+    <div class="container section" style="padding-top:8px">
+      <div class="admin-stats" id="shopStats"></div>
+      <div class="toolbar" style="margin-top:22px">
+        <span class="count" id="shopCount"></span>
+        <a class="btn ghost sm" id="shopCall" href="#" style="display:none">📞 Satıcıyı Ara</a>
+      </div>
+      <div class="grid" id="shopGrid"></div>
+      <div class="notice" id="shopEmpty" style="display:none;margin-top:16px">Bu satıcının yayında ilanı bulunmuyor.</div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
+        <a href="rehber.html">Rehber</a>
+        <a href="asistan.html">AI Asistan</a>
+        <a data-c-tel href="#">—</a>
+        <a data-c-mail href="#">—</a>
+      </div>
+      <div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
+    </div>
+  </footer>
+
+  <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
+  <script src="assets/config.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/ai.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

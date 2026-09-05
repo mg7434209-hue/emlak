@@ -23,6 +23,21 @@ satılık/kiralık) ilan platformu. Tamamı istemci tarafında çalışan yapay 
 | **AI Analizi** | Her ilanda artılar/dikkat listesi: m² birim fiyatı ilçe kıyası, bina yaşı, tapu/kredi durumu, tahmini kira, brüt getiri ve amortisman süresi |
 | **Gelişmiş doğal dil** | Özellik listesi, m² ve fiyat aralığı, "3+1 ve üstü", "5 yaşından yeni", krediye uygun/takaslı ve "en ucuz/fırsat" gibi sıralama niyeti |
 
+## 🏗️ Site kurgusu (kategori omurgası)
+
+- **Kategori/lokasyon sayfaları**: `/manavgat-satilik-villa`, `/antalya-kiralik-daire`,
+  `/satilik-arsa`, `/antalya` gibi temiz adresler. Her sayfanın kendi H1'i,
+  veriden üretilen özgün giriş metni (ilan sayısı, medyan fiyat, ortalama ₺/m²,
+  bölge ortalaması, kira tahmini), breadcrumb'ı ve iç bağlantı bloğu var;
+  farklı sıralı adresler 301 ile kanonik adrese yönlenir
+- **Satıcı mağazası** (`magaza.html?u=`): satıcının tüm ilanları, ofis/bireysel
+  rozeti, üyelik tarihi, toplam görüntülenme ve tek tıkla arama; ilan detayından
+  "Mağazasındaki tüm ilanlar" ve "Satıcının diğer ilanları" ile bağlanır
+- **Kayıtlı aramalar**: filtreleri kaydedin, kriterlerinize uyan **yeni ilan
+  sayısı** Hesabım › Aramalarım'da rozetle görünsün
+- **Aktif filtre çipleri**, **son gezdiğiniz ilanlar** ve ilan detayında
+  **fiyat geçmişi grafiği**
+
 ## 🔍 SEO & AI Görünürlüğü (AEO)
 
 - **Sunucu ön işlemesi**: `/ilan.html?id=` ve `/ilanlar.html` içeriği JS olmadan

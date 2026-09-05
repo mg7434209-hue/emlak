@@ -44,6 +44,14 @@
   const adminLogoutKey = "emlakai.adminPanelClosed";
   const adminToken = () => sessionStorage.getItem(adminTokKey) || "";
 
+  // ── Son gezilen ilanlar (yalnız bu cihazda; liste sayfasının altında) ──
+  const recentKey = "emlakai.recent";
+  const recentIds = () => { try { return JSON.parse(localStorage.getItem(recentKey) || "[]"); } catch (e) { return []; } };
+  function pushRecent(id) {
+    const all = [id].concat(recentIds().filter((x) => x !== id)).slice(0, 8);
+    try { localStorage.setItem(recentKey, JSON.stringify(all)); } catch (e) {}
+  }
+
   // ── Görüntülenme sayacı (cihaz bazlı; ilanın taban sayısına eklenir) ───
   const viewsKey = "emlakai.views";
   function bumpViews(id) {
@@ -510,7 +518,7 @@
   }
 
   // ── Trend grafiği (SVG sparkline) ───────────────────────────────────────
-  function sparkline(el, pts, label) {
+  function sparkline(el, pts, label, note) {
     if (!pts || !el) return;
     const w = 560, h = 130, pad = 8;
     const min = Math.min(...pts), max = Math.max(...pts);
@@ -521,7 +529,7 @@
       <path d="${path} L ${x(pts.length - 1)} ${h} L ${x(0)} ${h} Z" fill="color-mix(in srgb, var(--primary) 15%, transparent)"/>
       <path d="${path}" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"/>
       <circle cx="${x(pts.length - 1)}" cy="${y(pts[pts.length - 1])}" r="4" fill="var(--primary)"/>
-      <text x="${pad}" y="${h - 2}" font-size="11" fill="var(--muted)" font-family="system-ui">${esc(label || "")} — son 12 ay ₺/m²: ${fmt(pts[0])} → ${fmt(pts[pts.length - 1])}</text>
+      <text x="${pad}" y="${h - 2}" font-size="11" fill="var(--muted)" font-family="system-ui">${esc(label || "")} — ${esc(note || "son 12 ay ₺/m²")}: ${fmt(pts[0])} → ${fmt(pts[pts.length - 1])}</text>
     </svg>`;
   }
 
@@ -571,7 +579,11 @@
 
   // ── İlanlar ────────────────────────────────────────────────────────────
   function pageIlanlar() {
+    // SEO kategori sayfası (/manavgat-satilik-villa) filtreleri <meta> ile gelir
+    const seoMeta = document.querySelector('meta[name="ea-filters"]');
+    const seoQs = new URLSearchParams(seoMeta ? seoMeta.content : "");
     const qs = new URLSearchParams(location.search);
+    seoQs.forEach((v, k) => { if (!qs.has(k)) qs.set(k, v); });
     const f = {};
     ["segment", "category", "kind", "city", "district", "rooms", "feature", "brand", "model", "fuel", "gear"].forEach((k) => { if (qs.get(k)) f[k] = qs.get(k); });
     if (qs.get("min")) f.minPrice = +qs.get("min");
@@ -695,6 +707,57 @@
     }
     const PER_PAGE = 24; // sayfa başına ilan (sahibinden benzeri sayfalama)
     let page = Math.max(1, +qs.get("sayfa") || 1);
+    // Aktif filtreleri çip olarak göster; ✕ ile tek tek kaldırılabilir
+    function renderChips() {
+      const el = $("#activeChips");
+      if (!el) return;
+      const chips = [];
+      const add = (label, clear) => chips.push({ label, clear });
+      const L = {
+        fCat: { satilik: "Satılık", kiralik: "Kiralık" },
+      };
+      if ($("#fCat").value) add(L.fCat[$("#fCat").value], () => { $("#fCat").value = ""; });
+      if ($("#fCity").value) add($("#fCity").value, () => { $("#fCity").value = ""; fillDistrictSelect($("#fDistrict"), "", true); });
+      if ($("#fDistrict").value) add($("#fDistrict").value, () => { $("#fDistrict").value = ""; });
+      if ($("#fKind").value) add((D.kinds.find((k) => k.kind === $("#fKind").value) || {}).label, () => { $("#fKind").value = ""; });
+      if ($("#fRooms").value) add($("#fRooms").value, () => { $("#fRooms").value = ""; });
+      if ($("#fMin").value) add(fmt(+$("#fMin").value) + " ₺ üzeri", () => { $("#fMin").value = ""; });
+      if ($("#fMax").value) add(fmt(+$("#fMax").value) + " ₺ altı", () => { $("#fMax").value = ""; });
+      if ($("#fBrand").value) add($("#fBrand").value, () => { $("#fBrand").value = ""; });
+      if ($("#fModel").value) add($("#fModel").value, () => { $("#fModel").value = ""; });
+      if ($("#fFuel").value) add($("#fFuel").value, () => { $("#fFuel").value = ""; });
+      if ($("#fGear").value) add($("#fGear").value, () => { $("#fGear").value = ""; });
+      if ($("#fMinYear").value) add($("#fMinYear").value + "+ model", () => { $("#fMinYear").value = ""; });
+      if ($("#fMaxKm").value) add(fmt(+$("#fMaxKm").value) + " km altı", () => { $("#fMaxKm").value = ""; });
+      (extra.features || []).forEach((x) => add(x, () => { extra.features = extra.features.filter((y) => y !== x); }));
+      if (extra.minM2) add(extra.minM2 + " m² üzeri", () => { delete extra.minM2; });
+      if (extra.maxM2) add(extra.maxM2 + " m² altı", () => { delete extra.maxM2; });
+      if (extra.maxAge != null) add("en fazla " + extra.maxAge + " yaş", () => { delete extra.maxAge; });
+      if (extra.minRooms) add(extra.minRooms + " ve üstü", () => { delete extra.minRooms; });
+      if (extra.creditOk) add("Krediye uygun", () => { delete extra.creditOk; });
+      if (extra.swap) add("Takaslı", () => { delete extra.swap; });
+      el.innerHTML = chips.length
+        ? chips.map((c, i) => `<button class="chip" data-chip="${i}" type="button">${esc(c.label)} ✕</button>`).join("") +
+          `<button class="chip" data-chip="all" type="button" style="border-color:var(--over);color:var(--over)">Tümünü temizle</button>`
+        : "";
+      $$("#activeChips [data-chip]").forEach((b2) => b2.addEventListener("click", () => {
+        if (b2.dataset.chip === "all") { location.href = "ilanlar.html?segment=" + $("#fSeg").value; return; }
+        chips[+b2.dataset.chip].clear();
+        run();
+      }));
+    }
+
+    // Son gezdiğiniz ilanlar (bu cihazda)
+    function renderRecent() {
+      const ids = recentIds();
+      const wrap = $("#recentWrap");
+      if (!wrap || !ids.length) return;
+      const items = ids.map((id) => D.byId(id)).filter(Boolean).slice(0, 4);
+      if (!items.length) return;
+      wrap.style.display = "";
+      renderCards($("#recentGrid"), items);
+    }
+
     function run(keepPage) {
       if (!keepPage) page = 1;
       let list = AI.applyFilters(D.all(), currentFilters());
@@ -718,6 +781,7 @@
       // Boş durum mesajı: segmentte hiç ilan yoksa filtre önerme, ilan vermeye yönlendir
       const seg = $("#fSeg").value;
       const segCount = D.all().filter((x) => (x.segment || "emlak") === seg).length;
+      renderChips();
       renderPager(pages);
       renderCards($("#grid"), slice, segCount === 0
         ? (seg === "vasita" ? "Araç" : "Taşınmaz") + " segmentinde henüz yayında ilan yok. İlk ilanı siz verebilirsiniz — İlan Ver sayfası bir dakikanızı alır."
@@ -753,11 +817,34 @@
         ft.setAttribute("aria-expanded", open);
       });
     }
+    // Aramayı kaydet (üye girişi varsa): mevcut filtreler ada dönüştürülür
+    const ssBtn = $("#saveSearchBtn");
+    if (ssBtn && D.hasServer() && A.user()) {
+      ssBtn.style.display = "";
+      ssBtn.addEventListener("click", async () => {
+        const g = currentFilters();
+        const parts = [
+          g.city ? g.city + (g.district ? " / " + g.district : "") : "",
+          g.category === "kiralik" ? "Kiralık" : g.category === "satilik" ? "Satılık" : "",
+          g.kind ? (D.kinds.find((k) => k.kind === g.kind) || {}).label : (g.segment === "vasita" ? "Araç" : ""),
+          g.rooms || "", g.brand ? g.brand + (g.model ? " " + g.model : "") : "",
+          g.maxPrice ? fmt(g.maxPrice) + " ₺ altı" : "",
+        ].filter(Boolean);
+        const name = parts.join(" · ") || "Tüm ilanlar";
+        const qs = AI.filtersToQS(g);
+        ssBtn.disabled = true; ssBtn.textContent = "Kaydediliyor…";
+        const r = await A.saveSearch(name, qs);
+        ssBtn.textContent = r && r.ok ? "🔔 Kaydedildi ✓" : "🔔 Aramayı Kaydet";
+        if (r && r.error) alert(r.error);
+        ssBtn.disabled = !(r && r.error);
+      });
+    }
     $("#applyBtn").addEventListener("click", () => run());
     $("#fSort").addEventListener("change", () => run());
     $("#clearBtn").addEventListener("click", () => { location.href = "ilanlar.html?segment=" + $("#fSeg").value; });
     ["fCat", "fCity", "fDistrict", "fKind", "fRooms", "fBrand", "fModel", "fFuel", "fGear"].forEach((id) => $("#" + id).addEventListener("change", () => run()));
     run(true);
+    renderRecent();
   }
 
   // ── İlan detay ──────────────────────────────────────────────────────────
@@ -781,6 +868,7 @@
       return;
     }
     document.title = l.title + " — " + C.brand.name;
+    if (!preview) pushRecent(l.id);
     if (preview) { // önizleme herkese açık değil: arama motorlarına kapat
       const nx = document.createElement("meta");
       nx.name = "robots"; nx.content = "noindex, nofollow";
@@ -909,6 +997,14 @@
             <table class="spec-table">${specs.map(([k, v]) => `<tr><td>${esc(k)}</td><td><b>${esc(v)}</b></td></tr>`).join("")}</table>
             ${(l.features || []).length ? `<div class="tags" style="margin-top:14px">${l.features.map((f) => `<span class="chip">✓ ${esc(f)}</span>`).join("")}</div>` : ""}
           </div>
+          ${(l.priceHistory || []).length ? `<div class="detail-card">
+            <h2>Bu ilanın fiyat geçmişi</h2>
+            <div id="priceHistChart"></div>
+            <table class="spec-table" style="margin-top:10px">
+              ${l.priceHistory.map((h) => `<tr><td>${new Date(h.date).toLocaleDateString("tr-TR")}</td><td><b>${fmt(h.price)} ₺</b></td></tr>`).join("")}
+              <tr><td>Güncel</td><td><b>${fmt(l.price)} ₺</b></td></tr>
+            </table>
+          </div>` : ""}
           ${l.segment !== "vasita" ? `<div class="detail-card">
             <h2>${esc(l.district)} Fiyat Eğilimi</h2>
             <div id="trendChart"></div>
@@ -943,6 +1039,11 @@
               <div class="full notice" id="msgOut"></div>
             </div>
           </div>
+          ${l.ownerId ? `<div class="detail-card" id="sellerCard" style="display:none">
+            <h2>Satıcının diğer ilanları</h2>
+            <div class="grid" id="sellerGrid"></div>
+            <p style="margin-top:12px"><a class="btn ghost sm" href="magaza.html?u=${encodeURIComponent(l.ownerId)}">Mağazaya git →</a></p>
+          </div>` : ""}
           <div class="detail-card">
             <h2>Benzer İlanlar</h2>
             <div class="grid" id="similarGrid"></div>
@@ -963,7 +1064,8 @@
             </div>` : ""}
           <div class="seller">
             <div class="avatar">${esc(l.seller.name[0])}</div>
-            <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small></div>
+            <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small>
+              ${l.ownerId ? `<br><a href="magaza.html?u=${encodeURIComponent(l.ownerId)}" style="font-size:0.85rem">Mağazasındaki tüm ilanlar →</a>` : ""}</div>
           </div>
           <a class="btn" id="callBtn" href="tel:${esc(contact.intl)}">📞 ${esc(contact.display)}</a>
           <a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
@@ -1017,6 +1119,19 @@
       });
     }
 
+    // Satıcının diğer ilanları (mağaza vitrininden ilk 4)
+    if (l.ownerId && D.hasServer()) {
+      fetch("api/seller?u=" + encodeURIComponent(l.ownerId)).then((r) => r.json()).then((j) => {
+        const others = ((j && j.listings) || []).map(D.normalize).filter((x) => x && x.id !== l.id).slice(0, 4);
+        if (!others.length) return;
+        $("#sellerCard").style.display = "";
+        renderCards($("#sellerGrid"), others);
+      }).catch(() => {});
+    }
+
+    if ((l.priceHistory || []).length) {
+      sparkline($("#priceHistChart"), l.priceHistory.map((h) => h.price).concat(l.price), "İlan fiyatı", "₺ değişimi");
+    }
     sparkline($("#trendChart"), AI.trend(l.city, l.district), l.city + " / " + l.district);
     renderCards($("#similarGrid"), AI.similar(l, D.all(), 4));
     $$(".photo-strip img", root).forEach((im) => im.addEventListener("click", () => {
@@ -1343,10 +1458,11 @@
       active: ["Yayında", "var(--deal)"], pending: ["Onay Bekliyor", "var(--accent)"],
       rejected: ["Yayınlanmadı", "var(--over)"],
     };
-    let listings = [], messages = [];
+    let listings = [], messages = [], searches = [];
 
     async function refresh() {
-      const [a, b] = await Promise.all([A.myListings(), A.myMessages()]);
+      const [a, b, sr] = await Promise.all([A.myListings(), A.myMessages(), A.mySearches()]);
+      searches = (sr && sr.searches) || [];
       if (!a || a.error) { // oturum düştü
         $("#hesapWrap").style.display = "none";
         $("#hesapGate").style.display = "";
@@ -1361,10 +1477,14 @@
         ["Onay Bekleyen", listings.filter((l) => l.status === "pending").length],
         ["Toplam Görüntülenme", listings.reduce((t, l) => t + (l.views || 0), 0)],
         ["Mesaj", messages.length],
+        ["Kayıtlı Arama", searches.length],
       ].map(([k, v]) => `<div class="stat-box"><b>${fmt(v)}</b><span>${esc(k)}</span></div>`).join("");
       $("#myMsgBadge").textContent = messages.length ? "(" + messages.length + ")" : "";
+      const yeni = searches.reduce((t, x) => t + (x.newCount || 0), 0);
+      $("#mySearchBadge").textContent = yeni ? "(" + yeni + " yeni)" : (searches.length ? "(" + searches.length + ")" : "");
       renderListings();
       renderMessages();
+      renderSearches();
       $("#uName").value = u.name || "";
       $("#uPhone").value = (u.phone && u.phone.display) || "";
       $("#uEmail").value = u.email || "";
@@ -1426,8 +1546,30 @@
       b.classList.add("active");
       $("#myListingsTab").style.display = b.dataset.tab === "listings" ? "" : "none";
       $("#myMessagesTab").style.display = b.dataset.tab === "messages" ? "" : "none";
+      $("#mySearchesTab").style.display = b.dataset.tab === "searches" ? "" : "none";
       $("#myProfileTab").style.display = b.dataset.tab === "profile" ? "" : "none";
     }));
+
+    // Kayıtlı aramalar tablosu
+    function renderSearches() {
+      $("#mySearchTable").innerHTML = '<tr><th>Arama</th><th>Sonuç</th><th style="text-align:right">İşlem</th></tr>' +
+        (searches.length ? searches.map((x) => `<tr>
+          <td><b>${esc(x.name)}</b><br><small style="color:var(--muted)">${new Date(x.created).toLocaleDateString("tr-TR")} tarihinde kaydedildi</small></td>
+          <td>${fmt(x.total || 0)} ilan${x.newCount ? ` <span class="badge badge-deal" style="position:static;display:inline-block">${x.newCount} yeni</span>` : ""}</td>
+          <td style="text-align:right;white-space:nowrap">
+            <a class="btn sm" href="ilanlar.html?${esc(x.qs)}" data-seen="${esc(x.sid)}">Sonuçları Aç</a>
+            <button class="btn ghost sm" data-search="${esc(x.sid)}" style="color:var(--over);border-color:var(--over)">Sil</button>
+          </td></tr>`).join("")
+          : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">Kayıtlı aramanız yok. <a href="ilanlar.html">İlanlar</a> sayfasında filtreleyip “🔔 Aramayı Kaydet” deyin.</td></tr>');
+      $$("#mySearchTable [data-seen]").forEach((a2) => a2.addEventListener("click", () => {
+        A.searchAction(a2.dataset.seen, "seen"); // sonuçlar açıldı → "yeni" sayacı sıfırlanır
+      }));
+      $$("#mySearchTable [data-search]").forEach((b2) => b2.addEventListener("click", async () => {
+        if (!confirm("Kayıtlı arama silinsin mi?")) return;
+        await A.searchAction(b2.dataset.search, "remove");
+        refresh();
+      }));
+    }
 
     $("#uSave").addEventListener("click", async () => {
       const out = $("#uOut");
@@ -1448,6 +1590,50 @@
     $("#uLogout").addEventListener("click", () => { A.logout(); location.href = "index.html"; });
 
     refresh();
+  }
+
+  // ── Mağaza (satıcı profili) ─────────────────────────────────────────────
+  async function pageMagaza() {
+    const uid = new URLSearchParams(location.search).get("u");
+    const grid = $("#shopGrid");
+    if (!uid || !D.hasServer()) {
+      $("#shopEmpty").style.display = "";
+      $("#shopEmpty").textContent = "Mağaza bilgisi yalnızca canlı sitede görüntülenebilir.";
+      grid.innerHTML = "";
+      return;
+    }
+    let j = null;
+    try { j = await (await fetch("api/seller?u=" + encodeURIComponent(uid))).json(); } catch (e) { /* yok */ }
+    if (!j || !j.seller) {
+      document.title = "Mağaza bulunamadı — " + C.brand.name;
+      $("#shopName").textContent = "Mağaza bulunamadı";
+      $("#shopMeta").textContent = "Bu satıcı hesabı kaldırılmış ya da askıya alınmış olabilir.";
+      grid.innerHTML = "";
+      return;
+    }
+    const sel = j.seller;
+    const list = (j.listings || []).map(D.normalize).filter(Boolean);
+    const ofis = sel.type === "ofis";
+    document.title = `${sel.name} — ${ofis ? "Emlak Ofisi" : "Sahibinden"} | ${C.brand.name}`;
+    $("#shopName").textContent = sel.name;
+    $("#shopMeta").innerHTML = `${ofis ? "🏢 <b>Emlak Ofisi</b>" : "👤 <b>Bireysel Satıcı</b>"} · ` +
+      `Üyelik: ${new Date(sel.since).toLocaleDateString("tr-TR")} · ${fmt(sel.count)} yayında ilan`;
+    $("#shopCrumb").innerHTML = `<a href="index.html">Ana Sayfa</a> › <a href="ilanlar.html">İlanlar</a> › ${esc(sel.name)}`;
+    $("#shopStats").innerHTML = [
+      ["Yayında İlan", fmt(sel.count)],
+      ["Toplam Görüntülenme", fmt(sel.views || 0)],
+      ["Şehir", [...new Set(list.map((l) => l.city))].join(", ") || "—"],
+      ["Üyelik", new Date(sel.since).getFullYear()],
+    ].map(([k, v]) => `<div class="stat-box"><b>${esc(String(v))}</b><span>${esc(k)}</span></div>`).join("");
+    $("#shopCount").textContent = list.length + " ilan";
+    if (sel.phone && sel.phone.intl) {
+      const btn = $("#shopCall");
+      btn.style.display = "";
+      btn.href = "tel:" + sel.phone.intl;
+      btn.textContent = "📞 " + sel.phone.display;
+    }
+    if (!list.length) $("#shopEmpty").style.display = "";
+    renderCards(grid, AI.rank(list.slice()), "Bu satıcının yayında ilanı bulunmuyor.");
   }
 
   // ── Değerleme ───────────────────────────────────────────────────────────
@@ -1927,7 +2113,7 @@
     const routes = {
       index: pageIndex, ilanlar: pageIlanlar, ilan: pageIlan,
       "ilan-ver": pageIlanVer, degerleme: pageDegerleme,
-      giris: pageGiris, hesap: pageHesap,
+      giris: pageGiris, hesap: pageHesap, magaza: pageMagaza,
       asistan: pageAsistan, favoriler: pageFavoriler, admin: pageAdmin,
     };
     if (routes[page]) routes[page]();

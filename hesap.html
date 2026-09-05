@@ -37,6 +37,7 @@
       <div class="g-tabs" style="margin-top:22px" id="myTabs">
         <button class="tab-btn active" data-tab="listings" type="button">İlanlarım</button>
         <button class="tab-btn" data-tab="messages" type="button">Mesajlarım <span id="myMsgBadge"></span></button>
+        <button class="tab-btn" data-tab="searches" type="button">Aramalarım <span id="mySearchBadge"></span></button>
         <button class="tab-btn" data-tab="profile" type="button">Hesap Bilgileri</button>
       </div>
 
@@ -56,6 +57,15 @@
         <div class="detail-card" style="margin-top:12px">
           <table class="spec-table admin-table" id="myMsgTable"></table>
         </div>
+      </div>
+
+      <div id="mySearchesTab" style="display:none">
+        <div class="detail-card" style="margin-top:12px">
+          <table class="spec-table admin-table" id="mySearchTable"></table>
+        </div>
+        <p class="notice" style="margin-top:14px">Bir aramayı kaydetmek için <a href="ilanlar.html">İlanlar</a>
+        sayfasında filtreleri ayarlayıp <b>🔔 Aramayı Kaydet</b> düğmesine basın. Kriterlerinize uyan yeni ilan
+        yayınlandığında burada <b>yeni</b> rozetiyle görürsünüz.</p>
       </div>
 
       <div id="myProfileTab" style="display:none">

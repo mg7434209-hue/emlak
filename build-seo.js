@@ -193,6 +193,7 @@ const staticPages = [
   ["rehber.html", "0.8", "weekly"],
   ["ilan-ver.html", "0.7", "monthly"],
   ["giris.html", "0.4", "monthly"],
+  ["magaza.html", "0.3", "weekly"],
 ];
 // Repoya işlenen gerçek ilanlar (Node ortamında localStorage boş → yalnız REAL)
 const listingUrls = EMLAK.data.all().map((l) => `  <url><loc>${URL0}/ilan.html?id=${encodeURIComponent(l.id)}</loc><lastmod>${String(l.date).slice(0, 10)}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`);

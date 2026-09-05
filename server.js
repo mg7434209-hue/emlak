@@ -246,6 +246,45 @@ function normPhoneSrv(raw) {
   };
 }
 
+// ── Kayıtlı aramalar: üye bir aramayı kaydeder, YENİ ilan sayısını görür ─────
+const SEARCH_STORE = path.join(DATA_DIR, "searches.json");
+function loadSearches() {
+  try { return JSON.parse(fs.readFileSync(SEARCH_STORE, "utf8")); } catch (e) { return []; }
+}
+function saveSearches(list) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const tmp = SEARCH_STORE + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(list, null, 1));
+  fs.renameSync(tmp, SEARCH_STORE);
+}
+let SEARCHES = loadSearches();
+
+// Kayıtlı aramanın sorgu dizesini ilanla eşleştirir (istemcideki applyFilters'ın
+// sunucu karşılığı — yeni ilan sayacı bununla hesaplanır).
+function listingMatchesQuery(l, qs) {
+  const p = new URLSearchParams(qs || "");
+  const eq = (k, v) => !p.get(k) || p.get(k) === String(v == null ? "" : v);
+  if (!eq("segment", l.segment || "emlak")) return false;
+  if (!eq("category", l.category) || !eq("kind", l.kind)) return false;
+  if (!eq("city", l.city) || !eq("district", l.district) || !eq("rooms", l.rooms)) return false;
+  if (!eq("brand", l.brand) || !eq("model", l.model) || !eq("fuel", l.fuel) || !eq("gear", l.gear)) return false;
+  const num = (k) => (p.get(k) === null ? null : +p.get(k));
+  const min = num("min"), max = num("max"), minM2 = num("minM2"), maxM2 = num("maxM2");
+  const maxAge = num("maxAge"), minYear = num("minYear"), maxKm = num("maxKm");
+  if (min != null && !(l.price >= min)) return false;
+  if (max != null && !(l.price <= max)) return false;
+  if (minM2 != null && !(l.m2 >= minM2)) return false;
+  if (maxM2 != null && !(l.m2 <= maxM2)) return false;
+  if (maxAge != null && !(l.age != null && l.age <= maxAge)) return false;
+  if (minYear != null && !(l.year >= minYear)) return false;
+  if (maxKm != null && !(l.km <= maxKm)) return false;
+  if (p.get("creditOk") && l.creditOk !== true) return false;
+  if (p.get("swap") && l.swap !== true) return false;
+  const feats = (p.get("features") || p.get("feature") || "").split("|").filter(Boolean);
+  if (feats.length && !feats.every((f) => (l.features || []).includes(f))) return false;
+  return true;
+}
+
 // ── Basit hız sınırı (bellek içi; IP + kova başına saatlik) ───────────────
 const HITS = new Map(); // "kova|ip" → [zaman damgaları]
 function rateLimit(req, bucket, max, windowMs) {
@@ -466,6 +505,24 @@ async function handleApi(req, res, urlPath) {
     });
   }
 
+  // GET /api/seller?u= — satıcı mağaza profili (herkese açık, özel bilgi yok)
+  if (urlPath === "/api/seller" && req.method === "GET") {
+    const uid = String(req.__query.get("u") || "");
+    const u = USERS.find((x) => x.uid === uid && !x.banned);
+    const listings = LISTINGS.filter((l) => l.status === "active" && l.ownerId === uid);
+    if (!u) return sendJson(res, 404, { error: "Satıcı bulunamadı." });
+    const type = listings.some((l) => (l.seller || {}).type === "ofis") ? "ofis" : "sahibinden";
+    return sendJson(res, 200, {
+      seller: {
+        uid: u.uid, name: u.name, type,
+        since: u.created, count: listings.length,
+        views: listings.reduce((t, l) => t + (l.views || 0), 0),
+        phone: listings.length ? (listings[0].phone || u.phone || null) : null,
+      },
+      listings,
+    });
+  }
+
   // POST /api/view — görüntülenme sayacı (IP + ilan başına 12 saatte bir)
   if (urlPath === "/api/view" && req.method === "POST") {
     const b = await readBody(req, 512);
@@ -517,6 +574,50 @@ async function handleApi(req, res, urlPath) {
     if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
     const own = new Set(LISTINGS.filter((l) => l.ownerId === u.uid).map((l) => l.id));
     return sendJson(res, 200, { messages: MESSAGES.filter((m) => own.has(m.listingId)) });
+  }
+
+  // GET /api/my/searches — kayıtlı aramalar + her biri için YENİ ilan sayısı
+  if (urlPath === "/api/my/searches" && req.method === "GET") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    const active = LISTINGS.filter((l) => l.status === "active");
+    return sendJson(res, 200, {
+      searches: SEARCHES.filter((x) => x.uid === u.uid).map((x) => {
+        const hits = active.filter((l) => listingMatchesQuery(l, x.qs));
+        return Object.assign({}, x, {
+          total: hits.length,
+          newCount: hits.filter((l) => new Date(l.date) > new Date(x.lastSeen || x.created)).length,
+        });
+      }),
+    });
+  }
+
+  // POST /api/my/searches — {name, qs} kaydet · {sid, action:"seen"|"remove"}
+  if (urlPath === "/api/my/searches" && req.method === "POST") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    const b = await readBody(req, 8192);
+    if (b.action === "remove" || b.action === "seen") {
+      const i = SEARCHES.findIndex((x) => x.sid === b.sid && x.uid === u.uid);
+      if (i < 0) return sendJson(res, 404, { error: "Arama bulunamadı." });
+      if (b.action === "remove") SEARCHES.splice(i, 1);
+      else SEARCHES[i].lastSeen = new Date().toISOString();
+      saveSearches(SEARCHES);
+      return sendJson(res, 200, { ok: true });
+    }
+    const qs = str(b.qs, 500).replace(/^\?/, "");
+    const name = str(b.name, 80) || "Kayıtlı arama";
+    if (!qs) return sendJson(res, 400, { error: "Kaydedilecek arama ölçütü yok." });
+    if (SEARCHES.filter((x) => x.uid === u.uid).length >= 30) {
+      return sendJson(res, 429, { error: "En fazla 30 arama kaydedebilirsiniz." });
+    }
+    if (SEARCHES.some((x) => x.uid === u.uid && x.qs === qs)) {
+      return sendJson(res, 409, { error: "Bu arama zaten kayıtlı." });
+    }
+    const now = new Date().toISOString();
+    SEARCHES.push({ sid: "S" + Date.now().toString(36).toUpperCase(), uid: u.uid, name, qs, created: now, lastSeen: now });
+    saveSearches(SEARCHES);
+    return sendJson(res, 200, { ok: true });
   }
 
   // POST /api/my/action — {id, action: edit|remove}
@@ -675,6 +776,8 @@ async function handleApi(req, res, urlPath) {
         for (let k = LISTINGS.length - 1; k >= 0; k--) {
           if (LISTINGS[k].ownerId === u.uid) { dropPhotos(LISTINGS[k].photos); LISTINGS.splice(k, 1); }
         }
+        for (let k = SEARCHES.length - 1; k >= 0; k--) if (SEARCHES[k].uid === u.uid) SEARCHES.splice(k, 1);
+        saveSearches(SEARCHES);
         USERS.splice(i, 1);
         saveListings(LISTINGS);
         break;
@@ -873,7 +976,8 @@ function renderListHtml(html, list) {
   return html
     .replace("</head>", ld + "\n</head>")
     .replace('<div class="grid" id="grid"></div>', `<div class="grid" id="grid">${cards}</div>`)
-    .replace('<span class="count" id="count">—</span>', `<span class="count" id="count">${list.length} ilan bulundu</span>`);
+    .replace('<span class="count" id="count">—</span>', `<span class="count" id="count">${list.length} ilan bulundu</span>`)
+    .replace("</main>", popularLinksHtml("") + "\n  </main>");
 }
 
 // Ön işlenmiş HTML'i (gerekirse gzip'leyerek) gönderir
@@ -899,6 +1003,155 @@ function sendHtml(req, res, html) {
   res.end(html);
 }
 
+// ── SEO rotaları: /manavgat-satilik-villa gibi kategori + lokasyon sayfaları ─
+// Bunlar ilanlar.html'i filtreli ve kendine özgü metinle sunar; her biri arama
+// motorları için ayrı bir giriş kapısıdır (kategori omurgası).
+const slugify = (v) => String(v || "").toLocaleLowerCase("tr-TR")
+  .replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g")
+  .replace(/ü/g, "u").replace(/ö/g, "o").replace(/ç/g, "c")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+const KIND_SLUGS = {}; // slug → {kind,label}
+(global.EMLAK.data.kinds || []).forEach((k) => { KIND_SLUGS[slugify(k.label)] = k; });
+KIND_SLUGS["is-yeri"] = KIND_SLUGS["dukkan"];
+const CITY_SLUGS = {}, DISTRICT_SLUGS = {};
+Object.keys(CONF.market.cities).forEach((city) => {
+  CITY_SLUGS[slugify(city)] = city;
+  Object.keys(CONF.market.cities[city].districts).forEach((d) => {
+    DISTRICT_SLUGS[slugify(d)] = { city, district: d };
+  });
+});
+const CAT_SLUGS = { satilik: "satilik", kiralik: "kiralik" };
+
+// "/manavgat-satilik-villa" → {city, district, category, kind} (sırası önemsiz)
+function parseSeoSlug(slug) {
+  let rest = "-" + slug + "-";
+  const f = {};
+  const take = (key) => {
+    if (rest.includes("-" + key + "-")) { rest = rest.replace("-" + key + "-", "-"); return true; }
+    return false;
+  };
+  // Uzun eşleşmeler önce denenir (ör. "mustakil-ev" > "ev")
+  Object.keys(DISTRICT_SLUGS).sort((a, b) => b.length - a.length).forEach((k) => {
+    if (!f.district && take(k)) Object.assign(f, DISTRICT_SLUGS[k]);
+  });
+  Object.keys(CITY_SLUGS).sort((a, b) => b.length - a.length).forEach((k) => {
+    if (!f.city && take(k)) f.city = CITY_SLUGS[k];
+  });
+  Object.keys(KIND_SLUGS).sort((a, b) => b.length - a.length).forEach((k) => {
+    if (!f.kind && take(k)) { f.kind = KIND_SLUGS[k].kind; f.kindLabel = KIND_SLUGS[k].label; }
+  });
+  Object.keys(CAT_SLUGS).forEach((k) => { if (!f.category && take(k)) f.category = k; });
+  if (take("arac") || take("vasita")) f.segment = "vasita";
+  if (rest !== "-") return null;              // tanınmayan parça kaldıysa SEO sayfası değil
+  return Object.keys(f).length ? f : null;
+}
+
+// Filtrelerden kanonik adres üretir (aynı sayfaya tek URL: /ilce-kategori-tur)
+function seoSlugOf(f) {
+  return [f.district || f.city, f.category, f.kind ? slugify(f.kindLabel || f.kind) : (f.segment === "vasita" ? "arac" : "")]
+    .filter(Boolean).map(slugify).join("-");
+}
+
+const seoMatches = (f) => LISTINGS.filter((l) => l.status === "active" &&
+  (!f.city || l.city === f.city) && (!f.district || l.district === f.district) &&
+  (!f.category || l.category === f.category) && (!f.kind || l.kind === f.kind) &&
+  (!f.segment || (l.segment || "emlak") === f.segment));
+
+// Sayfaya özgü başlık/açıklama/giriş metni — veriden üretilir, her sayfa özgün
+function seoPageTexts(f, list) {
+  const yer = f.district ? `${f.district}, ${f.city}` : (f.city || "Türkiye geneli");
+  const tur = f.kindLabel || (f.segment === "vasita" ? "Araç" : "Taşınmaz");
+  const cat = f.category === "kiralik" ? "Kiralık" : f.category === "satilik" ? "Satılık" : "Satılık & Kiralık";
+  const h1 = `${f.district || f.city ? (f.district || f.city) + " " : ""}${cat} ${tur} İlanları`;
+  const prices = list.map((l) => l.price).filter(Boolean).sort((a, b) => a - b);
+  const med = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
+  const perM2 = (() => {
+    const v = list.filter((l) => l.m2 && l.category === "satilik").map((l) => l.price / l.m2);
+    return v.length ? Math.round(v.reduce((a, c) => a + c, 0) / v.length) : 0;
+  })();
+  const cityData = f.city && CONF.market.cities[f.city];
+  const bolge = cityData && f.district ? cityData.districts[f.district] : null;
+  const intro = [
+    `${yer} bölgesinde ${cat.toLocaleLowerCase("tr-TR")} ${tur.toLocaleLowerCase("tr-TR")} arayanlar için ` +
+    (list.length ? `şu anda <b>${list.length} ilan</b> yayında.` : "henüz yayında ilan bulunmuyor; ilk ilanı siz verebilirsiniz."),
+    med ? `Bu sayfadaki ilanların medyan fiyatı <b>${trNum(med)} ₺</b>${f.category === "kiralik" ? "/ay" : ""}.` : "",
+    perM2 ? `Ortalama birim fiyat <b>${trNum(perM2)} ₺/m²</b>.` : "",
+    bolge ? `${f.district} için piyasa ortalamamız <b>${trNum(bolge)} ₺/m²</b>; tahmini aylık kira ` +
+      `<b>${trNum(bolge * CONF.market.rentYieldMonthly)} ₺/m²</b>.` : "",
+    cityData ? `${f.city} genelinde yıllık reel değer artış eğilimi yaklaşık <b>%${cityData.yieldTrend}</b>.` : "",
+    `Her ilan yapay zekâ fiyat etiketiyle (Fırsat / Piyasa Uygunu / Piyasa Üstü) ve detay sayfasında AI analiziyle sunulur.`,
+  ].filter(Boolean).join(" ");
+  const title = `${h1}${list.length ? " (" + list.length + ")" : ""} | ${CONF.brand.name}`;
+  const desc = `${yer} ${cat.toLocaleLowerCase("tr-TR")} ${tur.toLocaleLowerCase("tr-TR")} ilanları` +
+    (med ? `, medyan fiyat ${trNum(med)} ₺` : "") +
+    (perM2 ? `, ortalama ${trNum(perM2)} ₺/m²` : "") +
+    ". AI fiyat analizi, doğal dil arama ve anında değerleme ile.";
+  return { h1, intro, title, desc: desc.slice(0, 300) };
+}
+
+// İç bağlantı bloğu: arama motorlarının kategori sayfalarını bulmasını sağlar
+// ve ziyaretçiye hızlı geçiş verir.
+function popularLinksHtml(current) {
+  const rows = seoRouteList().filter(([slug]) => slug !== current).slice(0, 24);
+  if (!rows.length) return "";
+  const label = (f) => [f.district || f.city, f.category === "kiralik" ? "Kiralık" : f.category === "satilik" ? "Satılık" : "",
+    f.kindLabel || (f.segment === "vasita" ? "Araç" : "")].filter(Boolean).join(" ");
+  return `<div class="container section" style="padding-top:0">
+      <div class="detail-card">
+        <h2 style="font-size:1.05rem">Popüler kategoriler ve bölgeler</h2>
+        <div class="tags" style="margin-top:10px">
+          ${rows.map(([slug, f]) => `<a class="chip" href="/${slug}">${htmlEsc(label(f))}</a>`).join("")}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderSeoPage(html, f, list) {
+  const t = seoPageTexts(f, list);
+  const url = SITE + "/" + seoSlugOf(f);
+  html = renderListHtml(html, list);       // kartlar + ItemList
+  html = setHead(html, { title: t.title, desc: t.desc, url, image: SITE + CONF.seo.ogImage });
+  const crumbs = [{ name: "Ana Sayfa", item: SITE + "/" }, { name: "İlanlar", item: SITE + "/ilanlar.html" }];
+  if (f.city) crumbs.push({ name: f.city, item: SITE + "/" + slugify(f.city) });
+  crumbs.push({ name: t.h1, item: url });
+  const ld = jsonLdTag({
+    "@context": "https://schema.org", "@type": "BreadcrumbList",
+    itemListElement: crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.name, item: c.item })),
+  });
+  // İstemci aynı filtreleri uygulasın diye (satır içi script CSP'de yasak)
+  const meta = `<meta name="ea-filters" content="${htmlEsc(new URLSearchParams(
+    Object.fromEntries(Object.entries({ segment: f.segment, category: f.category, kind: f.kind, city: f.city, district: f.district })
+      .filter(([, v]) => v))).toString())}">`;
+  return html
+    .replace(popularLinksHtml(""), popularLinksHtml(seoSlugOf(f)))
+    .replace("</head>", meta + ld + "\n</head>")
+    .replace('<h1>İlanlar</h1>', `<h1>${htmlEsc(t.h1)}</h1>`)
+    .replace('<p>Filtrelerle daraltın; her ilan yapay zekâ fiyat etiketiyle gösterilir.</p>',
+      `<p>${t.intro}</p>`);
+}
+
+// Sitemap için: gerçekten ilanı olan kategori/lokasyon sayfaları (ince sayfa yok)
+function seoRouteList() {
+  const active = LISTINGS.filter((l) => l.status === "active");
+  const set = new Map();
+  const add = (f) => {
+    const slug = seoSlugOf(f);
+    if (slug && !set.has(slug)) set.set(slug, f);
+  };
+  active.forEach((l) => {
+    const kindLabel = (global.EMLAK.data.kinds.find((k) => k.kind === l.kind) || {}).label;
+    const base = { city: l.city, district: l.district, category: l.category, kind: l.kind, kindLabel, segment: l.segment };
+    add({ city: l.city, category: l.category, kind: l.kind, kindLabel });
+    add({ city: l.city, district: l.district, category: l.category, kind: l.kind, kindLabel });
+    add({ city: l.city, district: l.district, category: l.category });
+    add({ category: l.category, kind: l.kind, kindLabel });
+    add({ city: l.city });
+  });
+  return [...set.entries()].slice(0, 300);
+}
+
 // Dinamik sitemap: statik sayfalar + yayındaki ilanlar (SEO için kritik)
 function sitemapXml() {
   const base = (CONF.seo.siteUrl || "").replace(/\/$/, "");
@@ -906,7 +1159,13 @@ function sitemapXml() {
     "/bolge-fiyatlari.html", "/rehber.html", "/asistan.html", "/favoriler.html",
     "/giris.html"];
   const esc = (u) => u.replace(/&/g, "&amp;");
+  const shopUrls = [...new Set(LISTINGS.filter((l) => l.status === "active" && l.ownerId).map((l) => l.ownerId))]
+    .slice(0, 200).map((uid) =>
+      `  <url><loc>${esc(base + "/magaza.html?u=" + encodeURIComponent(uid))}</loc><changefreq>weekly</changefreq></url>`);
+  const seoUrls = seoRouteList().map(([slug]) =>
+    `  <url><loc>${esc(base + "/" + slug)}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`);
   const urls = pages.map((u) => `  <url><loc>${esc(base + (u || "/"))}</loc><changefreq>daily</changefreq></url>`)
+    .concat(seoUrls, shopUrls)
     .concat(LISTINGS.filter((l) => l.status === "active").map((l) => {
       // Görsel site haritası: ilan fotoğrafları görsel aramasında çıkabilsin
       const imgs = (l.photos || []).filter((p) => !String(p).startsWith("data:")).slice(0, 6)
@@ -1003,6 +1262,22 @@ const server = http.createServer((req, res) => {
       return fs.createReadStream(f).pipe(res);
     }
 
+    // ── SEO rotası mı? (/manavgat-satilik-villa) ─────────────────────────
+    const segs = urlPath.replace(/^\/|\/$/g, "");
+    if (segs && !segs.includes("/") && !path.extname(segs) && !segs.startsWith("api")) {
+      const f = parseSeoSlug(segs);
+      if (f) {
+        const canon = seoSlugOf(f);
+        if (canon && canon !== segs) { // tek kanonik adres: eş anlamlı slug'ı yönlendir
+          res.writeHead(301, { Location: "/" + canon });
+          return res.end();
+        }
+        const list = seoMatches(f);
+        const page = fs.readFileSync(path.join(ROOT, "ilanlar.html"), "utf8");
+        return sendHtml(req, res, renderSeoPage(page, f, list));
+      }
+    }
+
     // API istekleri
     if (urlPath.startsWith("/api/")) {
       handleApi(req, res, urlPath).catch((e) => {
@@ -1042,6 +1317,42 @@ const server = http.createServer((req, res) => {
         if (l) out = renderListingHtml(out, l);
       } else {
         out = renderListHtml(out, active);
+      }
+      return sendHtml(req, res, out);
+    }
+
+    // Mağaza (satıcı profili) sayfası da botlar için doldurulur
+    if (baseName === "magaza.html") {
+      const uid = String(req.__query.get("u") || "");
+      const u = USERS.find((x) => x.uid === uid && !x.banned);
+      let out = fs.readFileSync(filePath, "utf8");
+      if (u) {
+        const mine = LISTINGS.filter((l) => l.status === "active" && l.ownerId === uid);
+        const isOfis = mine.some((l) => (l.seller || {}).type === "ofis");
+        const title = `${u.name} — ${isOfis ? "Emlak Ofisi" : "Sahibinden"} · ${mine.length} ilan | ${CONF.brand.name}`;
+        const desc = `${u.name} mağazasındaki ${mine.length} yayında ilan: ` +
+          mine.slice(0, 4).map((l) => l.title).join(", ") + ".";
+        out = setHead(out, { title, desc: desc.slice(0, 300), url: SITE + "/magaza.html?u=" + encodeURIComponent(uid), image: SITE + CONF.seo.ogImage });
+        const cards = mine.map((l) => `
+            <article class="card"><div class="body">
+              <div class="price">${trNum(l.price)} ₺${priceSuffix(l)}</div>
+              <h3><a href="ilan.html?id=${encodeURIComponent(l.id)}">${htmlEsc(l.title)}</a></h3>
+              <div class="meta">${htmlEsc(listingSummary(l))}</div>
+            </div></article>`).join("");
+        const ld = jsonLdTag({
+          "@context": "https://schema.org",
+          "@type": isOfis ? "RealEstateAgent" : "Person",
+          name: u.name, url: SITE + "/magaza.html?u=" + encodeURIComponent(uid),
+          ...(isOfis ? { areaServed: [...new Set(mine.map((l) => l.city))].join(", ") } : {}),
+          makesOffer: mine.slice(0, 20).map((l) => ({
+            "@type": "Offer", price: l.price, priceCurrency: "TRY",
+            url: listingUrl(l), itemOffered: { "@type": "Product", name: l.title },
+          })),
+        });
+        out = out
+          .replace("</head>", ld + "\n</head>")
+          .replace('<h1 id="shopName">Mağaza</h1>', `<h1 id="shopName">${htmlEsc(u.name)}</h1>`)
+          .replace('<div class="grid" id="shopGrid"></div>', `<div class="grid" id="shopGrid">${cards}</div>`);
       }
       return sendHtml(req, res, out);
     }

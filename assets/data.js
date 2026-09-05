@@ -256,6 +256,10 @@
     myListings: () => authApi("api/my/listings", { method: "GET" }),
     myMessages: () => authApi("api/my/messages", { method: "GET" }),
     myAction: (id, action, value) => authApi("api/my/action", { method: "POST", body: JSON.stringify({ id, action, value }) }),
+    // Kayıtlı aramalar (yeni ilan sayacıyla)
+    mySearches: () => authApi("api/my/searches", { method: "GET" }),
+    saveSearch: (name, qs) => authApi("api/my/searches", { method: "POST", body: JSON.stringify({ name, qs }) }),
+    searchAction: (sid, action) => authApi("api/my/searches", { method: "POST", body: JSON.stringify({ sid, action }) }),
   };
   EMLAK.auth = auth;
 

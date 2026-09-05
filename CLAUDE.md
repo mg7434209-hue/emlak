@@ -27,6 +27,8 @@ noindex + robots'ta engelli) ·
 `degerleme.html` (AI değerleme: taşınmaz + araç, kredi) · `asistan.html` (EVA) ·
 `rehber.html` (SSS/rehber, FAQPage JSON-LD — elle yazılır) ·
 `bolge-fiyatlari.html` (ÜRETİLİR, elle düzenlenmez) · `favoriler.html` ·
+`magaza.html?u=<uid>` (satıcı mağaza profili — ilanları, istatistikleri,
+iletişimi; sunucuda ön işlenir, sitemap'te) ·
 `404.html` · `admin.html` (yönetim paneli — menüde YOK, robots'ta engelli,
 noindex; yalnızca sunucu API'si varken çalışır).
 Nav menü SADE tutulur (5 öğe): Ana Sayfa · İlanlar · Değerleme · Favoriler ·
@@ -34,6 +36,21 @@ Nav menü SADE tutulur (5 öğe): Ana Sayfa · İlanlar · Değerleme · Favoril
 `app.js` `injectAuthLink()` her sayfada nav'a enjekte eder. İkincil sayfalar (Bölge Fiyatları · Rehber · AI Asistan) footer'daki
 `.footer-links` bloğundadır; asistana ayrıca her sayfadaki FAB düğmesi götürür.
 Nav/footer değişince TÜM sayfalarda + `build-seo.js` iskeletinde güncelle.
+
+## KATEGORİ OMURGASI — SEO rotaları (server.js)
+Uzantısız tek segmentli adresler kategori/lokasyon sayfasıdır:
+`/manavgat-satilik-villa`, `/antalya-kiralik-daire`, `/satilik-arsa`, `/antalya`.
+- `parseSeoSlug()` slug'ı şehir/ilçe/tür/kategori/segment parçalarına ayırır
+  (sıra önemsiz, tanınmayan parça varsa SEO sayfası değildir → 404'e düşer).
+- `seoSlugOf()` kanonik biçimi üretir (`ilce-kategori-tur`); farklı sıralı slug
+  **301** ile kanoniğe yönlenir — tek adres kuralı.
+- Sayfa metni VERİDEN üretilir (`seoPageTexts`): ilan sayısı, medyan fiyat,
+  ortalama ₺/m², ilçe piyasa ortalaması, kira tahmini, şehir değer eğilimi →
+  her sayfa özgün içerik. H1 ve giriş paragrafı ilanlar.html'e basılır.
+- İstemci aynı filtreleri `<meta name="ea-filters">` üzerinden alır (CSP satır
+  içi script'e izin vermez — başka yol arama).
+- `seoRouteList()` yalnız İLANI OLAN kombinasyonları üretir (ince sayfa yok);
+  sitemap'e ve sayfa altındaki "popüler kategoriler" iç bağlantı bloğuna girer.
 
 ## SEO / AEO — sunucu ön işlemesi (BOTLAR JS ÇALIŞTIRMAZ)
 `server.js` iki sayfayı yayınlamadan önce DOLDURUR — arama motorları ve AI
@@ -45,6 +62,9 @@ tarayıcıları içeriği JS'siz görür; tarayıcıda `app.js` aynı alanları 
   enjekte etmez.
 - `/ilanlar.html` → yayındaki ilanların statik kart listesi + ItemList JSON-LD +
   ilan sayısını içeren başlık/description.
+- `/magaza.html?u=` → satıcı adı, tipi (ofis/bireysel), ilan kartları ve
+  RealEstateAgent/Person JSON-LD basılır; `/api/seller?u=` herkese açık profil
+  verir (e-posta ASLA dönmez).
 - `/llms.txt` canlı yayındaki ilan listesini de ekler (AEO).
 - `/sitemap.xml` ilan URL'lerine `image:image` girdileri ekler (görsel arama).
 Yeni bir sayfayı ön işlersen `sendHtml()` üzerinden gönder (CSP/HSTS başlıkları
@@ -101,6 +121,10 @@ gömme; değişiklik = config.
   - `chat` site bilgisi niyetlerini de yanıtlar (üyelik, onay süreci, fotoğraf
     kuralları, güvenlik, favoriler, bölge fiyatları, kira getirisi).
 - `assets/app.js`    — arayüz; sayfa yönlendirmesi `<body data-page="...">`.
+  İlan listesinde: aktif filtre çipleri (`#activeChips`, tek tek kaldırılır),
+  "🔔 Aramayı Kaydet" (üye girişinde görünür), "son gezdiğiniz ilanlar"
+  (localStorage `emlakai.recent`, 8 kayıt). Detayda: fiyat geçmişi grafiği
+  (`priceHistory` varsa), satıcının diğer ilanları ve mağaza bağlantısı.
 - `assets/style.css` — tasarım sistemi (CSS değişkenleri, açık/koyu tema).
 - Görseller: dış görsel YOK; kartlar `thumbSVG()` ile üretilen SVG yer tutucu
   kullanır. Dış siteden hotlink YAPMA (egress kısıtı).
@@ -134,7 +158,11 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
   ya da `SESSION_SECRET`); sunucu yeniden başlayınca üyeler düşmez. TTL 30 gün.
   İstemci `EMLAK.auth` ile localStorage `emlakai.session`'da tutar — jeton
   tahrif edilirse sunucu reddeder (istemci verisi GÜVEN SINIRIDIR).
-- Uçlar: `/api/auth/register|login|me|update`, `/api/my/listings|messages|action`.
+- Uçlar: `/api/auth/register|login|me|update`, `/api/my/listings|messages|action`,
+  `/api/my/searches` (GET: kayıtlı aramalar + `newCount`; POST: kaydet ya da
+  `{sid, action:"seen"|"remove"}`). Eşleştirme `listingMatchesQuery()` ile
+  yapılır — istemcideki `applyFilters`'ın sunucu karşılığıdır, filtre eklerken
+  İKİSİNİ birlikte güncelle. Depo: `DATA_DIR/searches.json`.
 - İlan sahibi `ownerId` ile hesaba bağlanır; ad/telefon boş bırakılırsa hesaptan
   alınır. Üye YALNIZCA kendi ilanını düzenler/siler (`/api/my/action`).
 - Üye düzenlemesi ilanı yeniden `pending` yapar; TEK istisna `onlyPriceDrop()`
