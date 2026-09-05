@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Emlak Rehberi & SSS — Ev Alma, Satma, Kredi ve AI Değerleme | EmlakAI</title>
-  <meta name="description" content="Ev alırken nelere dikkat edilmeli? İlan nasıl öne çıkar? AI değerleme nasıl çalışır? Konut kredisi nasıl hesaplanır? Emlak sürecinin tamamı için pratik rehber ve sık sorulan sorular.">
+  <title>Emlak Rehberi & SSS — Ev Alma, Kiralama, Yatırım, Araç ve AI Değerleme | EmlakAI</title>
+  <meta name="description" content="Ev alma, kiralama, emlak yatırımı ve ikinci el araç rehberi: adım adım süreçler, kira getirisi ve amortisman hesabı, dolandırıcılıktan korunma, ilan verme kuralları, AI değerleme ve konut kredisi — 15 soruluk SSS ile.">
   <link rel="canonical" href="https://emlak-production.up.railway.app/rehber.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="EmlakAI">
-  <meta property="og:title" content="Emlak Rehberi & SSS — Ev Alma, Satma, Kredi ve AI Değerleme">
-  <meta property="og:description" content="Emlak sürecinin tamamı için pratik rehber: satın alma adımları, ilan öne çıkarma taktikleri, AI değerleme ve kredi hesabı.">
+  <meta property="og:title" content="Emlak Rehberi & SSS — Ev Alma, Kiralama, Yatırım, Araç ve AI Değerleme">
+  <meta property="og:description" content="Satın alma, kiralama, yatırım getirisi, araç alımı ve güvenli işlem rehberi + AI değerleme ve kredi hesabı.">
   <meta property="og:url" content="https://emlak-production.up.railway.app/rehber.html">
   <meta property="og:image" content="https://emlak-production.up.railway.app/assets/img/og.png">
   <meta property="og:locale" content="tr_TR">
@@ -19,51 +19,131 @@
   <!-- FAQPage JSON-LD: sayfada GÖRÜNEN SSS ile birebir aynı tutulur -->
   <script type="application/ld+json">
   {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "Ev satın alırken hangi adımları izlemeliyim?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Bütçenizi netleştirin, bölge fiyatlarını araştırın, ilanları AI fiyat etiketiyle karşılaştırın, evi yerinde görüp tapu/iskân kontrolü yapın, pazarlıkta AI değerleme bandını referans alın ve tapu devriyle tamamlayın." }
-      },
-      {
-        "@type": "Question",
-        "name": "AI değerleme ne kadar güvenilir?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Değerleme, bölge piyasa ortalamaları ve özellik katsayılarına dayanır; ±%8 güven bandıyla sunulur. Fikir verme amaçlıdır — kredi ve resmi işlemler için lisanslı ekspertiz raporu gerekir." }
-      },
-      {
-        "@type": "Question",
-        "name": "AI fiyat etiketi neye göre veriliyor?",
-        "acceptedAnswer": { "@type": "Answer", "text": "İlan fiyatı, aynı bölge/özellikteki tahmini piyasa değeriyle kıyaslanır: %7'den ucuzsa Fırsat, ±%7 bandındaysa Piyasa Uygunu, %7'den pahalıysa Piyasa Üstü." }
-      },
-      {
-        "@type": "Question",
-        "name": "Kira bedeli nasıl tahmin ediliyor?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Aylık kira, konutun satış değerinin yaklaşık binde 4'ü üzerinden hesaplanır (yıllık ~%5 brüt getiri). Konum ve talebe göre gerçek kira bu tahminden sapabilir." }
-      },
-      {
-        "@type": "Question",
-        "name": "Konut kredisinde taksit neye göre değişir?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Üç değişken var: kredi tutarı, aylık faiz oranı ve vade. Taksitler anüite (eşit taksit) formülüyle hesaplanır. Vade uzadıkça taksit düşer ama toplam faiz artar." }
-      },
-      {
-        "@type": "Question",
-        "name": "Alım-satım masrafları nelerdir?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Tapu harcı, döner sermaye ücreti, varsa emlak komisyonu, kredili işlemlerde ekspertiz/dosya masrafı ve DASK başlıca kalemlerdir. Oranlar dönemsel değiştiği için işlem öncesi güncel tarifeleri doğrulayın." }
-      },
-      {
-        "@type": "Question",
-        "name": "İlan vermek ücretli mi?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Hayır. İlan vermek ücretsizdir; AI fiyat önerisi ve başlık/açıklama yazarı da ücretsiz sunulur. Yalnızca ücretsiz bir üyelik açmanız gerekir — ilanlarınızı böylece düzenleyebilir ve size gelen mesajları görebilirsiniz." }
-      },
-      {
-        "@type": "Question",
-        "name": "Verilerim nereye gidiyor?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Yapay zekâ işlemleri (arama, değerleme, kredi hesabı) tamamen tarayıcınızda çalışır; bu hesaplamalar için sunucuya veri gönderilmez. Yayınlamak üzere gönderdiğiniz ilan bilgileri (başlık, açıklama, fotoğraflar, ad ve telefon) ile hesabınız sunucumuzda saklanır — onaylanan ilanlar herkese açık görünür. Bir ilana bıraktığınız mesaj ilan sahibine iletilir. Favorileriniz ve tema tercihiniz yalnızca kendi cihazınızda kalır." }
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Ev satın alırken hangi adımları izlemeliyim?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Bütçenizi netleştirin, bölge fiyatlarını araştırın, ilanları AI fiyat etiketiyle karşılaştırın, evi yerinde görüp tapu/iskân kontrolü yapın, pazarlıkta AI değerleme bandını referans alın ve tapu devriyle tamamlayın."
       }
-    ]
-  }
+    },
+    {
+      "@type": "Question",
+      "name": "AI değerleme ne kadar güvenilir?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Değerleme, bölge piyasa ortalamaları ve özellik katsayılarına dayanır; ±%8 güven bandıyla sunulur. Fikir verme amaçlıdır — kredi ve resmi işlemler için lisanslı ekspertiz raporu gerekir."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "AI fiyat etiketi neye göre veriliyor?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "İlan fiyatı, aynı bölge/özellikteki tahmini piyasa değeriyle kıyaslanır: %7'den ucuzsa Fırsat, ±%7 bandındaysa Piyasa Uygunu, %7'den pahalıysa Piyasa Üstü."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Kira bedeli nasıl tahmin ediliyor?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Aylık kira, konutun satış değerinin yaklaşık binde 4'ü üzerinden hesaplanır (yıllık ~%5 brüt getiri). Konum ve talebe göre gerçek kira bu tahminden sapabilir."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Konut kredisinde taksit neye göre değişir?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Üç değişken var: kredi tutarı, aylık faiz oranı ve vade. Taksitler anüite (eşit taksit) formülüyle hesaplanır. Vade uzadıkça taksit düşer ama toplam faiz artar."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Alım-satım masrafları nelerdir?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Tapu harcı, döner sermaye ücreti, varsa emlak komisyonu, kredili işlemlerde ekspertiz/dosya masrafı ve DASK başlıca kalemlerdir. Oranlar dönemsel değiştiği için işlem öncesi güncel tarifeleri doğrulayın."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "İlan vermek ücretli mi?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Hayır. İlan vermek ücretsizdir; AI fiyat önerisi ve başlık/açıklama yazarı da ücretsiz sunulur. Yalnızca ücretsiz bir üyelik açmanız gerekir — ilanlarınızı böylece düzenleyebilir ve size gelen mesajları görebilirsiniz."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Verilerim nereye gidiyor?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yapay zekâ işlemleri (arama, değerleme, kredi hesabı) tamamen tarayıcınızda çalışır; bu hesaplamalar için sunucuya veri gönderilmez. Yayınlamak üzere gönderdiğiniz ilan bilgileri (başlık, açıklama, fotoğraflar, ad ve telefon) ile hesabınız sunucumuzda saklanır — onaylanan ilanlar herkese açık görünür. Bir ilana bıraktığınız mesaj ilan sahibine iletilir. Favorileriniz ve tema tercihiniz yalnızca kendi cihazınızda kalır."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "İlan verirken üyelik zorunlu mu, ilanım ne zaman yayınlanır?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "İlan vermek için ücretsiz üyelik gerekir; e-posta, telefon ve şifreyle 30 saniyede açılır. Gönderdiğiniz ilan yönetici onayına düşer, onaylandığı anda herkese açık yayına girer. Onay beklerken ilanınızı Hesabım › İlanlarım bölümünden önizleyebilir, düzenleyebilir ya da silebilirsiniz. Yalnızca fiyat indirimi yaptığınızda ilanınız yayında kalır; metin veya fotoğraf değişikliği ilanı yeniden onaya düşürür."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "İlanıma kaç fotoğraf ekleyebilirim, hangi biçimler kabul ediliyor?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "İlan başına en fazla 6 fotoğraf ekleyebilirsiniz; kabul edilen biçimler JPG, PNG ve WEBP'tir ve dosya başına 15 MB sınırı vardır. Fotoğraflar yüklenirken tarayıcınızda otomatik küçültülür. iPhone ile çekilen HEIC dosyalarını tarayıcılar açamaz; telefonunuzda Ayarlar › Kamera › Biçimler › \"En Uyumlu\" seçeneğini işaretlerseniz fotoğraflar JPG olarak kaydedilir."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Emlak dolandırıcılığından nasıl korunurum?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Taşınmazı mutlaka yerinde görün ve tapu kaydını Tapu Müdürlüğü'nden ya da e-Devlet üzerinden doğrulayın. Görmeden kapora göndermeyin, ödemeleri elden değil banka kanalıyla yapın, satıcının kimliği ile tapudaki malik bilgisinin aynı olduğundan emin olun. Piyasanın çok altındaki fiyatlar, acele ettiren satıcı ve yalnızca mesajla iletişim ısrarı klasik uyarı işaretleridir."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Kiralık ev ararken nelere dikkat etmeliyim?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Kira sözleşmesini yazılı yapın; depozito tutarını, artış oranını ve ödeme gününü sözleşmeye işleyin. Aidat neleri kapsıyor, doğalgaz-su-elektrik abonelikleri kimin üzerine kalacak öğrenin. Taşınmadan önce demirbaşların durumunu fotoğrafla kayıt altına alın. Ev sahibiyseniz kiracının gelir belgesini ve referansını isteyin, kira artışında yürürlükteki yasal sınırı takip edin."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Emlak yatırımında getiri ve amortisman nasıl hesaplanır?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Brüt kira getirisi = yıllık kira ÷ satın alma bedeli. Bölge verilerimizde aylık kira, satış değerinin yaklaşık binde 4'ü kabul edilir; bu da yıllık %5 brüt getiri, kabaca 20 yılda amortisman demektir. Net getiri için aidat, emlak vergisi, sigorta, boş kalma süresi ve bakım giderlerini düşün. Her ilan detayındaki \"AI Analizi\" kutusu o ilan için tahmini kirayı, brüt getiriyi ve amortisman süresini gösterir."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "İkinci el araç alırken nelere bakmalıyım?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ekspertiz raporu alın; boya-değişen kaydını, motor ve şanzıman durumunu, kaza kaydını kontrol edin. e-Devlet üzerinden araç sorgusuyla hacizli/rehinli olup olmadığına, muayene ve trafik cezası durumuna bakın. Kilometrenin yaşıyla uyumunu değerlendirin: yılda ortalama 15.000 km normaldir. Araç ilanlarında AI değerleme, marka-model liste fiyatını yaş, kilometre, yakıt ve vites katsayılarıyla düzelterek tahmini değer bandı üretir."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Doğal dil aramada neler yazabilirim?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Cümle kurar gibi yazabilirsiniz: \"Manavgat'ta 10 milyon altı deniz manzaralı havuzlu satılık villa\", \"Konyaaltı 3+1 ve üstü kiralık daire 100-150 m2\", \"krediye uygun takaslı 5 yaşından yeni daire\", \"en ucuz 2+1 daire İzmir\" ya da \"2020 üstü dizel otomatik Toyota Corolla 100 bin km altı\". Sistem şehir, ilçe, oda sayısı, fiyat ve m² aralığı, bina yaşı, özellikler (havuz, asansör, otopark, eşyalı, site içi), krediye uygunluk, takas ve sıralama isteğinizi ayrı ayrı anlar."
+      }
+    }
+  ]
+}
   </script>
   <script type="application/ld+json">
   {
@@ -95,8 +175,9 @@
   <main>
     <div class="container page-head prose">
       <h1>Emlak Rehberi</h1>
-      <p>Ev alma-satma sürecinin tamamı için pratik bilgiler: adım adım satın alma, ilanınızı öne çıkarma
-      taktikleri, yapay zekâ araçlarının nasıl çalıştığı ve kredi hesabının mantığı.</p>
+      <p>Ev alma-satma, kiralama, yatırım getirisi ve ikinci el araç süreçlerinin tamamı için pratik bilgiler:
+      adım adım satın alma, kiralamada sözleşme ayrıntıları, kira getirisi ve amortisman hesabı, dolandırıcılıktan
+      korunma, ilanınızı öne çıkarma taktikleri, yapay zekâ araçlarının nasıl çalıştığı ve kredi hesabının mantığı.</p>
     </div>
 
     <div class="container section prose" style="padding-top:10px">
@@ -128,6 +209,45 @@
       niyetinizi (arama, değerleme, kredi) anlayıp ilgili aracı çalıştırır — birebir sonuç yoksa kriterleri
       akıllıca esnetir. Bu hesaplamaların tamamı cihazınızda çalışır; arama ve değerleme için sunucuya veri gönderilmez.</p>
 
+
+      <h2>🔑 Kiralık rehberi: kiracı ve ev sahibi için</h2>
+      <p>Kiralamada anlaşmazlıkların büyük bölümü sözleşmede yazılmayan ayrıntılardan çıkar. Kira sözleşmesini
+      yazılı yapın; <b>depozito</b>, <b>artış oranı</b>, <b>ödeme günü</b> ve <b>demirbaş listesi</b> mutlaka yer alsın.
+      Aidatın neleri kapsadığını (ısınma, site havuzu, güvenlik, otopark) ve aboneliklerin kimin üzerine geçeceğini
+      taşınmadan önce netleştirin. Taşınırken evin mevcut durumunu fotoğraflayıp taraflara gönderin — çıkışta
+      tartışma çıkmaz. Ev sahibiyseniz kiracı adayının gelir belgesini ve önceki ev sahibi referansını isteyin;
+      kira artışında yürürlükteki yasal üst sınırı takip edin. Bölgenizdeki gerçekçi kira aralığını
+      <a href="bolge-fiyatlari.html">Bölge Fiyatları</a> tablosundan ve
+      <a href="degerleme.html">AI değerlemeden</a> görebilirsiniz.</p>
+
+      <h2>📈 Yatırım rehberi: getiri, amortisman, doğru ilçe</h2>
+      <p>Bir konutun yatırım performansını üç sayı özetler: <b>brüt kira getirisi</b> (yıllık kira ÷ satın alma bedeli),
+      <b>amortisman süresi</b> (kaç yılda kendini ödediği) ve <b>değer artış eğilimi</b>. Verilerimizde aylık kira,
+      satış değerinin yaklaşık binde 4'ü kabul edilir; bu yıllık ~%5 brüt getiri ve kabaca 20 yıl amortisman demektir.
+      Net getiriyi hesaplarken aidat, emlak vergisi, DASK/sigorta, boş kalma süresi ve bakım giderlerini düşmeyi
+      unutmayın. Yüksek getiri her zaman iyi yatırım değildir: değer artışı zayıf bölgelerde kira getirisi yüksek
+      görünebilir. Her ilan sayfasındaki <b>AI Analizi</b> kutusu; ilanın m² birim fiyatını ilçe ortalamasıyla
+      kıyaslar, tahmini kirayı, brüt getiriyi ve amortisman süresini birlikte gösterir.</p>
+
+      <h2>🚗 İkinci el araç alma rehberi</h2>
+      <p>Araç ilanlarında da aynı yapay zekâ mantığı çalışır: marka-model liste fiyatı; yaş eğrisi, kilometre sapması,
+      yakıt tipi ve vites katsayılarıyla düzeltilerek tahmini değer bandı üretilir. Satın almadan önce
+      <b>ekspertiz raporu</b> alın (boya-değişen, kaza kaydı, motor/şanzıman), e-Devlet araç sorgusuyla
+      <b>hacizli/rehinli</b> durumunu ve muayene geçmişini kontrol edin. Kilometreyi yaşla birlikte değerlendirin:
+      yılda ortalama 15.000 km olağandır; çok düşük kilometre kadar çok yüksek kilometre de fiyatı etkiler.
+      Devir işlemini noterde yapın ve trafik sigortası/kaskoyu aynı gün devredin.</p>
+
+      <h2>🛡️ Güvenli alım-satım: dolandırıcılık işaretleri</h2>
+      <ul>
+        <li><b>Görmeden kapora istemek:</b> taşınmazı ya da aracı yerinde görmeden hiçbir ödeme yapmayın.</li>
+        <li><b>Piyasanın çok altında fiyat:</b> AI fiyat etiketi "Fırsat" diyorsa bile ilanı yerinde doğrulayın.</li>
+        <li><b>Tapu/kimlik uyuşmazlığı:</b> satıcının kimliği tapudaki malikle aynı olmalı; vekâletle satışta
+        vekâletnameyi noterden teyit edin.</li>
+        <li><b>Elden ödeme ısrarı:</b> ödemeleri banka kanalıyla, açıklamalı olarak yapın.</li>
+        <li><b>Acele ettirme:</b> "başka alıcı var, bugün karar verin" baskısı klasik bir yöntemdir.</li>
+      </ul>
+      <p>Şüpheli bir ilanla karşılaşırsanız bize bildirin; ilanlar zaten yayına girmeden önce yönetici onayından geçer.</p>
+
       <h2>❓ Sık Sorulan Sorular</h2>
       <details class="faq-item"><summary>Ev satın alırken hangi adımları izlemeliyim?</summary>
         <p>Bütçenizi netleştirin, bölge fiyatlarını araştırın, ilanları AI fiyat etiketiyle karşılaştırın, evi yerinde görüp tapu/iskân kontrolü yapın, pazarlıkta AI değerleme bandını referans alın ve tapu devriyle tamamlayın. Yukarıdaki "6 adım" bölümünde ayrıntıları bulabilirsiniz.</p>
@@ -152,6 +272,28 @@
       </details>
       <details class="faq-item"><summary>Verilerim nereye gidiyor?</summary>
         <p>Yapay zekâ işlemleri (arama, değerleme, kredi hesabı) tamamen tarayıcınızda çalışır; bu hesaplamalar için sunucuya veri gönderilmez. Yayınlamak üzere gönderdiğiniz ilan bilgileri (başlık, açıklama, fotoğraflar, ad ve telefon) ile hesabınız sunucumuzda saklanır — onaylanan ilanlar herkese açık görünür. Bir ilana bıraktığınız mesaj ilan sahibine iletilir. Favorileriniz ve tema tercihiniz yalnızca kendi cihazınızda kalır.</p>
+      </details>
+
+      <details class="faq-item"><summary>İlan verirken üyelik zorunlu mu, ilanım ne zaman yayınlanır?</summary>
+        <p>İlan vermek için ücretsiz üyelik gerekir; e-posta, telefon ve şifreyle 30 saniyede açılır. Gönderdiğiniz ilan yönetici onayına düşer, onaylandığı anda herkese açık yayına girer. Onay beklerken ilanınızı Hesabım › İlanlarım bölümünden önizleyebilir, düzenleyebilir ya da silebilirsiniz. Yalnızca fiyat indirimi yaptığınızda ilanınız yayında kalır; metin veya fotoğraf değişikliği ilanı yeniden onaya düşürür.</p>
+      </details>
+      <details class="faq-item"><summary>İlanıma kaç fotoğraf ekleyebilirim, hangi biçimler kabul ediliyor?</summary>
+        <p>İlan başına en fazla 6 fotoğraf ekleyebilirsiniz; kabul edilen biçimler JPG, PNG ve WEBP'tir ve dosya başına 15 MB sınırı vardır. Fotoğraflar yüklenirken tarayıcınızda otomatik küçültülür. iPhone ile çekilen HEIC dosyalarını tarayıcılar açamaz; telefonunuzda Ayarlar › Kamera › Biçimler › "En Uyumlu" seçeneğini işaretlerseniz fotoğraflar JPG olarak kaydedilir.</p>
+      </details>
+      <details class="faq-item"><summary>Emlak dolandırıcılığından nasıl korunurum?</summary>
+        <p>Taşınmazı mutlaka yerinde görün ve tapu kaydını Tapu Müdürlüğü'nden ya da e-Devlet üzerinden doğrulayın. Görmeden kapora göndermeyin, ödemeleri elden değil banka kanalıyla yapın, satıcının kimliği ile tapudaki malik bilgisinin aynı olduğundan emin olun. Piyasanın çok altındaki fiyatlar, acele ettiren satıcı ve yalnızca mesajla iletişim ısrarı klasik uyarı işaretleridir.</p>
+      </details>
+      <details class="faq-item"><summary>Kiralık ev ararken nelere dikkat etmeliyim?</summary>
+        <p>Kira sözleşmesini yazılı yapın; depozito tutarını, artış oranını ve ödeme gününü sözleşmeye işleyin. Aidat neleri kapsıyor, doğalgaz-su-elektrik abonelikleri kimin üzerine kalacak öğrenin. Taşınmadan önce demirbaşların durumunu fotoğrafla kayıt altına alın. Ev sahibiyseniz kiracının gelir belgesini ve referansını isteyin, kira artışında yürürlükteki yasal sınırı takip edin.</p>
+      </details>
+      <details class="faq-item"><summary>Emlak yatırımında getiri ve amortisman nasıl hesaplanır?</summary>
+        <p>Brüt kira getirisi = yıllık kira ÷ satın alma bedeli. Bölge verilerimizde aylık kira, satış değerinin yaklaşık binde 4'ü kabul edilir; bu da yıllık %5 brüt getiri, kabaca 20 yılda amortisman demektir. Net getiri için aidat, emlak vergisi, sigorta, boş kalma süresi ve bakım giderlerini düşün. Her ilan detayındaki "AI Analizi" kutusu o ilan için tahmini kirayı, brüt getiriyi ve amortisman süresini gösterir.</p>
+      </details>
+      <details class="faq-item"><summary>İkinci el araç alırken nelere bakmalıyım?</summary>
+        <p>Ekspertiz raporu alın; boya-değişen kaydını, motor ve şanzıman durumunu, kaza kaydını kontrol edin. e-Devlet üzerinden araç sorgusuyla hacizli/rehinli olup olmadığına, muayene ve trafik cezası durumuna bakın. Kilometrenin yaşıyla uyumunu değerlendirin: yılda ortalama 15.000 km normaldir. Araç ilanlarında AI değerleme, marka-model liste fiyatını yaş, kilometre, yakıt ve vites katsayılarıyla düzelterek tahmini değer bandı üretir.</p>
+      </details>
+      <details class="faq-item"><summary>Doğal dil aramada neler yazabilirim?</summary>
+        <p>Cümle kurar gibi yazabilirsiniz: "Manavgat'ta 10 milyon altı deniz manzaralı havuzlu satılık villa", "Konyaaltı 3+1 ve üstü kiralık daire 100-150 m2", "krediye uygun takaslı 5 yaşından yeni daire", "en ucuz 2+1 daire İzmir" ya da "2020 üstü dizel otomatik Toyota Corolla 100 bin km altı". Sistem şehir, ilçe, oda sayısı, fiyat ve m² aralığı, bina yaşı, özellikler (havuz, asansör, otopark, eşyalı, site içi), krediye uygunluk, takas ve sıralama isteğinizi ayrı ayrı anlar.</p>
       </details>
 
       <p style="margin-top:26px"><a class="btn" href="asistan.html">💬 Sorunuz mu var? EVA'ya sorun</a></p>

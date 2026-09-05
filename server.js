@@ -25,6 +25,10 @@
  *   GET  /api/admin/users        (token) → üyeler
  *   POST /api/admin/user         (token) {id, action: ban|unban|remove|admin|unadmin|password}
  *
+ * SEO/AEO: /ilan.html?id= ve /ilanlar.html sunucuda ÖN İŞLENİR (bot'lar JS
+ * çalıştırmaz) — başlık, açıklama, canonical/OG, JSON-LD ve okunabilir içerik
+ * HTML'e statik basılır; tarayıcıda app.js aynı alanları yeniden çizer.
+ *
  * Fotoğraflar: istemci base64 gönderir, sunucu DATA_DIR/uploads altına dosya
  * olarak yazar ve ilanda `u/<dosya>` yolunu tutar (/u/... ile servis edilir).
  *
@@ -723,6 +727,178 @@ function pushPriceHistory(l, newPrice) {
   l.priceHistory.push({ price: l.price, date: new Date().toISOString() });
 }
 
+// ── Sunucu tarafı içerik basımı (SEO/AEO) ────────────────────────────────
+const htmlEsc = (v) => String(v == null ? "" : v)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const trNum = (n) => new Intl.NumberFormat("tr-TR").format(Math.round(n || 0));
+const SITE = (CONF.seo.siteUrl || "").replace(/\/$/, "");
+const priceSuffix = (l) => (l.category === "kiralik" ? (l.segment === "vasita" ? "/gün" : "/ay") : "");
+const listingUrl = (l) => SITE + "/ilan.html?id=" + encodeURIComponent(l.id);
+const photoUrl = (p) => (/^https?:/.test(p) ? p : SITE + "/" + p);
+
+// İlanın tek cümlelik özeti — meta description ve llms.txt bunu kullanır
+function listingSummary(l) {
+  const cat = l.category === "satilik" ? "Satılık" : "Kiralık";
+  const bits = l.segment === "vasita"
+    ? [l.year + " model", trNum(l.km) + " km", l.fuel, l.gear]
+    : [l.m2 ? trNum(l.m2) + " m²" : "", l.rooms, l.kindLabel,
+       l.age != null ? (l.age === 0 ? "sıfır bina" : l.age + " yaşında") : ""];
+  return `${cat} · ${bits.filter(Boolean).join(" · ")} · ${l.city}/${l.district} · ` +
+    `${trNum(l.price)} ₺${priceSuffix(l)}`;
+}
+
+function listingJsonLd(l) {
+  const url = listingUrl(l);
+  const images = (l.photos || []).filter((p) => !String(p).startsWith("data:")).map(photoUrl);
+  const offer = {
+    "@type": "Offer", price: l.price, priceCurrency: "TRY", url,
+    availability: "https://schema.org/InStock",
+  };
+  const base = l.segment === "vasita" ? {
+    "@context": "https://schema.org", "@type": "Car",
+    name: l.title, url, description: l.desc || listingSummary(l),
+    brand: { "@type": "Brand", name: l.brand }, model: l.model,
+    vehicleModelDate: String(l.year || ""),
+    mileageFromOdometer: { "@type": "QuantitativeValue", value: l.km, unitCode: "KMT" },
+    fuelType: l.fuel, vehicleTransmission: l.gear, offers: offer,
+  } : {
+    "@context": "https://schema.org", "@type": ["Product", "RealEstateListing"],
+    name: l.title, url, description: l.desc || listingSummary(l),
+    datePosted: l.date, offers: offer,
+    about: {
+      "@type": "Accommodation", name: l.title,
+      address: { "@type": "PostalAddress", addressLocality: l.district, addressRegion: l.city, addressCountry: "TR" },
+      ...(l.m2 ? { floorSize: { "@type": "QuantitativeValue", value: l.m2, unitCode: "MTK" } } : {}),
+      ...(l.rooms ? { numberOfRooms: l.rooms } : {}),
+    },
+  };
+  if (images.length) base.image = images;
+  return base;
+}
+
+const jsonLdTag = (obj) =>
+  `<script type="application/ld+json" data-sld>${JSON.stringify(obj).replace(/</g, "\\u003c")}</script>`;
+
+// <head> içindeki başlık/açıklama/canonical/OG etiketlerini değiştirir
+function setHead(html, { title, desc, url, image }) {
+  return html
+    .replace(/<title>[\s\S]*?<\/title>/, `<title>${htmlEsc(title)}</title>`)
+    .replace(/(<meta name="description" content=")[^"]*(")/, `$1${htmlEsc(desc)}$2`)
+    .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${htmlEsc(url)}$2`)
+    .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${htmlEsc(url)}$2`)
+    .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${htmlEsc(title)}$2`)
+    .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${htmlEsc(desc)}$2`)
+    .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${htmlEsc(image)}$2`);
+}
+
+// /ilan.html?id= → ilanın kendisi statik olarak basılır
+function renderListingHtml(html, l) {
+  const title = l.title + " — " + trNum(l.price) + " ₺" + priceSuffix(l) + " | " + CONF.brand.name;
+  const desc = (l.desc ? String(l.desc).slice(0, 150) : listingSummary(l)).replace(/\s+/g, " ");
+  const img = (l.photos || []).find((p) => !String(p).startsWith("data:"));
+  html = setHead(html, {
+    title, desc, url: listingUrl(l),
+    image: img ? photoUrl(img) : SITE + CONF.seo.ogImage,
+  });
+  const specs = (l.segment === "vasita" ? [
+    ["İlan No", l.id], ["Kategori", l.category === "satilik" ? "Satılık" : "Kiralık"],
+    ["Marka", l.brand], ["Model", l.model], ["Model Yılı", l.year],
+    ["Kilometre", l.km != null ? trNum(l.km) + " km" : ""], ["Yakıt", l.fuel], ["Vites", l.gear],
+    ["Konum", l.city + " / " + l.district],
+  ] : [
+    ["İlan No", l.id], ["Kategori", l.category === "satilik" ? "Satılık" : "Kiralık"],
+    ["Tür", l.kindLabel], ["Konum", l.city + " / " + l.district], ["Mahalle / Site", l.locality],
+    ["Alan (Brüt)", l.m2 ? trNum(l.m2) + " m²" : ""], ["Alan (Net)", l.m2Net ? trNum(l.m2Net) + " m²" : ""],
+    ["Oda Sayısı", l.rooms], ["Banyo", l.bath], ["Bina Yaşı", l.age == null ? "" : (l.age === 0 ? "Sıfır" : l.age)],
+    ["Isıtma", l.heating], ["Mutfak", l.kitchen], ["Aidat", l.dues ? trNum(l.dues) + " ₺/ay" : ""],
+    ["Tapu Durumu", l.deed], ["Krediye Uygun", l.creditOk == null ? "" : (l.creditOk ? "Evet" : "Hayır")],
+    ["Takas", l.swap == null ? "" : (l.swap ? "Evet" : "Hayır")],
+  ]).filter(([, v]) => v !== "" && v != null);
+
+  // Botların ve JS'siz ziyaretçinin okuyabileceği tam içerik; app.js üzerine yazar
+  const body = `
+      <div class="detail-layout container">
+        <div>
+          <h1 class="detail-title">${htmlEsc(l.title)}</h1>
+          <p class="price" style="font-size:1.4rem;font-weight:800">${trNum(l.price)} ₺${priceSuffix(l)}</p>
+          ${(l.photos || []).filter((p) => !String(p).startsWith("data:")).slice(0, 4).map((p, i) =>
+            `<img src="${htmlEsc(p)}" alt="${htmlEsc(l.title)} — fotoğraf ${i + 1}" width="480" height="300" style="max-width:100%;border-radius:12px;margin-bottom:8px">`).join("")}
+          <div class="detail-card"><h2>Açıklama</h2><p>${htmlEsc(l.desc || listingSummary(l))}</p></div>
+          <div class="detail-card"><h2>İlan Bilgileri</h2>
+            <table class="spec-table">${specs.map(([k, v]) => `<tr><td>${htmlEsc(k)}</td><td><b>${htmlEsc(v)}</b></td></tr>`).join("")}</table>
+            ${(l.features || []).length ? `<p>Öne çıkan özellikler: ${htmlEsc(l.features.join(", "))}.</p>` : ""}
+          </div>
+        </div>
+      </div>`;
+  const ld = jsonLdTag(listingJsonLd(l)) + jsonLdTag({
+    "@context": "https://schema.org", "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Ana Sayfa", item: SITE + "/" },
+      { "@type": "ListItem", position: 2, name: "İlanlar", item: SITE + "/ilanlar.html" },
+      { "@type": "ListItem", position: 3, name: l.title, item: listingUrl(l) },
+    ],
+  });
+  return html
+    .replace("</head>", ld + "\n</head>")
+    .replace('<main id="detailRoot"></main>', `<main id="detailRoot">${body}</main>`);
+}
+
+// /ilanlar.html → yayındaki ilanların statik listesi + ItemList JSON-LD
+function renderListHtml(html, list) {
+  const top = list.slice(0, 50);
+  const cards = top.map((l) => `
+          <article class="card">
+            <div class="body">
+              <div class="price">${trNum(l.price)} ₺${priceSuffix(l)}</div>
+              <h3><a href="ilan.html?id=${encodeURIComponent(l.id)}">${htmlEsc(l.title)}</a></h3>
+              <div class="meta">${htmlEsc(listingSummary(l))}</div>
+            </div>
+          </article>`).join("");
+  const ld = jsonLdTag({
+    "@context": "https://schema.org", "@type": "ItemList",
+    name: CONF.brand.name + " — yayındaki ilanlar",
+    numberOfItems: list.length,
+    itemListElement: top.map((l, i) => ({
+      "@type": "ListItem", position: i + 1, url: listingUrl(l), name: l.title,
+    })),
+  });
+  const desc = list.length
+    ? `${list.length} yayında ilan: satılık ve kiralık konut, iş yeri, arsa ve araç. Yapay zekâ fiyat analizi, doğal dil arama ve anında değerleme ile.`
+    : "Satılık ve kiralık taşınmaz ile araç ilanları; yapay zekâ fiyat analizi ve doğal dil arama.";
+  html = setHead(html, {
+    title: `İlanlar (${list.length}) — Satılık & Kiralık | ${CONF.brand.name}`,
+    desc, url: SITE + "/ilanlar.html", image: SITE + CONF.seo.ogImage,
+  });
+  return html
+    .replace("</head>", ld + "\n</head>")
+    .replace('<div class="grid" id="grid"></div>', `<div class="grid" id="grid">${cards}</div>`)
+    .replace('<span class="count" id="count">—</span>', `<span class="count" id="count">${list.length} ilan bulundu</span>`);
+}
+
+// Ön işlenmiş HTML'i (gerekirse gzip'leyerek) gönderir
+function sendHtml(req, res, html) {
+  const headers = {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-cache",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": CSP,
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "DENY",
+  };
+  if (req.headers["x-forwarded-proto"] === "https") {
+    headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+  }
+  if (/\bgzip\b/.test(req.headers["accept-encoding"] || "")) {
+    headers["Content-Encoding"] = "gzip";
+    headers.Vary = "Accept-Encoding";
+    res.writeHead(200, headers);
+    return zlib.gzip(Buffer.from(html, "utf8"), (e, buf) => res.end(e ? html : buf));
+  }
+  res.writeHead(200, headers);
+  res.end(html);
+}
+
 // Dinamik sitemap: statik sayfalar + yayındaki ilanlar (SEO için kritik)
 function sitemapXml() {
   const base = (CONF.seo.siteUrl || "").replace(/\/$/, "");
@@ -731,15 +907,27 @@ function sitemapXml() {
     "/giris.html"];
   const esc = (u) => u.replace(/&/g, "&amp;");
   const urls = pages.map((u) => `  <url><loc>${esc(base + (u || "/"))}</loc><changefreq>daily</changefreq></url>`)
-    .concat(LISTINGS.filter((l) => l.status === "active").map((l) =>
-      `  <url><loc>${esc(base + "/ilan.html?id=" + encodeURIComponent(l.id))}</loc>` +
-      `<lastmod>${String(l.updated || l.date).slice(0, 10)}</lastmod><changefreq>weekly</changefreq></url>`));
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    .concat(LISTINGS.filter((l) => l.status === "active").map((l) => {
+      // Görsel site haritası: ilan fotoğrafları görsel aramasında çıkabilsin
+      const imgs = (l.photos || []).filter((p) => !String(p).startsWith("data:")).slice(0, 6)
+        .map((p) => `<image:image><image:loc>${esc(photoUrl(p))}</image:loc>` +
+          `<image:title>${htmlEsc(l.title)}</image:title></image:image>`).join("");
+      return `  <url><loc>${esc(listingUrl(l))}</loc>` +
+        `<lastmod>${String(l.updated || l.date).slice(0, 10)}</lastmod>` +
+        `<changefreq>weekly</changefreq>${imgs}</url>`;
+    }));
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" ' +
+    'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n' +
     urls.join("\n") + "\n</urlset>\n";
 }
 
 // Sıkıştırılması anlamlı (metin tabanlı) içerik tipleri
 const COMPRESSIBLE = /^(text\/|application\/(javascript|json|manifest\+json|xml)|image\/svg)/;
+
+// Satır içi script yok (script-src 'self'); satır içi style= üretildiği için
+// style-src'de 'unsafe-inline' gerekli. img data: → base64 önizlemeler.
+const CSP = "default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -844,6 +1032,36 @@ const server = http.createServer((req, res) => {
       return res.end("404 — Sayfa bulunamadı");
     }
 
+    // ── SEO: ilan ve liste sayfaları sunucuda doldurulur (botlar JS çalıştırmaz)
+    const baseName = path.basename(filePath);
+    if (baseName === "ilan.html" || baseName === "ilanlar.html") {
+      const active = LISTINGS.filter((x) => x.status === "active");
+      let out = fs.readFileSync(filePath, "utf8");
+      if (baseName === "ilan.html") {
+        const l = active.find((x) => x.id === String(req.__query.get("id") || ""));
+        if (l) out = renderListingHtml(out, l);
+      } else {
+        out = renderListHtml(out, active);
+      }
+      return sendHtml(req, res, out);
+    }
+
+    // Canlı llms.txt: yayındaki ilanlar da eklenir (AI tarayıcıları için)
+    if (baseName === "llms.txt") {
+      const active = LISTINGS.filter((x) => x.status === "active");
+      let out = fs.readFileSync(filePath, "utf8");
+      if (active.length) {
+        out += "\n## Yayındaki ilanlar (canlı, " + new Date().toISOString().slice(0, 10) + ")\n\n" +
+          active.slice(0, 100).map((l) => `- [${l.title}](${listingUrl(l)}): ${listingSummary(l)}`).join("\n") + "\n";
+      }
+      res.writeHead(200, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=600",
+        "X-Content-Type-Options": "nosniff",
+      });
+      return res.end(out);
+    }
+
     const ext = path.extname(filePath).toLowerCase();
     const mime = MIME[ext] || "application/octet-stream";
     const headers = {
@@ -853,7 +1071,7 @@ const server = http.createServer((req, res) => {
       // Satır içi script yok (script-src 'self'); satır içi style= üretildiği
       // için style-src'de 'unsafe-inline' gerekli. img data: → base64 ilan
       // fotoğrafları ve SVG favicon için.
-      "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'",
+      "Content-Security-Policy": CSP,
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "X-Frame-Options": "DENY",
     };

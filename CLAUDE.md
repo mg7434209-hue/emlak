@@ -35,6 +35,21 @@ Nav menü SADE tutulur (5 öğe): Ana Sayfa · İlanlar · Değerleme · Favoril
 `.footer-links` bloğundadır; asistana ayrıca her sayfadaki FAB düğmesi götürür.
 Nav/footer değişince TÜM sayfalarda + `build-seo.js` iskeletinde güncelle.
 
+## SEO / AEO — sunucu ön işlemesi (BOTLAR JS ÇALIŞTIRMAZ)
+`server.js` iki sayfayı yayınlamadan önce DOLDURUR — arama motorları ve AI
+tarayıcıları içeriği JS'siz görür; tarayıcıda `app.js` aynı alanları yeniden çizer:
+- `/ilan.html?id=` → başlık/description/canonical/OG ilana göre yazılır,
+  `#detailRoot` içine okunabilir tam içerik (h1, fiyat, foto, açıklama, künye)
+  basılır, Product+RealEstateListing (araçta Car) ve BreadcrumbList JSON-LD
+  `data-sld` ile eklenir. `app.js` `hasServerLd()` görünce AYNI şemayı tekrar
+  enjekte etmez.
+- `/ilanlar.html` → yayındaki ilanların statik kart listesi + ItemList JSON-LD +
+  ilan sayısını içeren başlık/description.
+- `/llms.txt` canlı yayındaki ilan listesini de ekler (AEO).
+- `/sitemap.xml` ilan URL'lerine `image:image` girdileri ekler (görsel arama).
+Yeni bir sayfayı ön işlersen `sendHtml()` üzerinden gönder (CSP/HSTS başlıkları
+orada).
+
 ## SEO / AEO — `build-seo.js`
 `bolge-fiyatlari.html`, `sitemap.xml`, `robots.txt`, `llms.txt` bu betikle
 `assets/config.js`'ten ÜRETİLİR (elle düzenleme; kaynak değişince
@@ -68,11 +83,23 @@ gömme; değişiklik = config.
   bağlı alanlar detayda gösterilir. `views`/`favCount` taban sayılardır; detay
   sayfası üzerine cihaz içi sayaç ekler (localStorage `emlakai.views`).
   Şehir/tür/marka yardımcıları (`brands`, `modelsOf`).
-- `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery —
-  marka/model/yıl/km/yakıt/vites dâhil), değerleme (estimate; `segment:
-  "vasita"` ise araç dalı), fiyat etiketi (priceBadge), açıklama üretimi
-  (describe), benzer ilan (similar), sohbet (chat), kredi (mortgage), trend
-  serisi (trend — yalnız emlak), öne çıkan sıralama (rank).
+- `assets/ai.js`     — AI motoru (`EMLAK.ai`): doğal dil arama (parseQuery),
+  değerleme (estimate), fiyat etiketi (priceBadge), **analyze** (ilan analizi),
+  açıklama üretimi (describe), benzer ilan (similar), sohbet (chat), kredi
+  (mortgage), trend, öne çıkan sıralama (rank).
+  - `parseQuery` şunları çıkarır: kategori/tür/şehir/ilçe/oda (+`minRooms`
+    "3+1 ve üstü"), fiyat (alt/üst/aralık), m² (alt/üst/aralık), bina yaşı
+    ("5 yaşından yeni"), ÖZELLİK LİSTESİ (`features[]`, eş anlamlılarla:
+    asansör/otopark/eşyalı/site içi…), `creditOk`, `swap`, araç alanları ve
+    SIRALAMA niyeti (`sort`: price-asc/price-desc/new/ai/m2).
+    TUZAK: fiyat ayrıştırmadan önce m²/km/oda/model kalıpları sorgudan
+    çıkarılır (`qp`) — yoksa "120 m2 üzeri" fiyat sanılır.
+  - `estimate` ayrıca `rentMonthly`, `yieldPct`, `paybackYears` döndürür.
+  - `analyze(l)` → `{summary, pros[], cons[], notes[], est, badge}`; ilan
+    detayındaki `.ai-analysis` kutusunu besler (₺/m² ilçe kıyası, yaş, tapu,
+    kira getirisi, amortisman).
+  - `chat` site bilgisi niyetlerini de yanıtlar (üyelik, onay süreci, fotoğraf
+    kuralları, güvenlik, favoriler, bölge fiyatları, kira getirisi).
 - `assets/app.js`    — arayüz; sayfa yönlendirmesi `<body data-page="...">`.
 - `assets/style.css` — tasarım sistemi (CSS değişkenleri, açık/koyu tema).
 - Görseller: dış görsel YOK; kartlar `thumbSVG()` ile üretilen SVG yer tutucu

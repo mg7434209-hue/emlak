@@ -445,6 +445,8 @@
   // "<" kaçırılır: içerik ileride innerHTML/SSR'a taşınsa bile </script>
   // kırılması yaşanmaz (savunma derinliği).
   const jsonLdStr = (obj) => JSON.stringify(obj).replace(/</g, "\\u003c").replace(/[\u2028\u2029]/g, (m) => (m === "\u2028" ? "\\u2028" : "\\u2029"));
+  // Sunucu ön işlemede JSON-LD basıldıysa (data-sld) istemci aynısını eklemez
+  const hasServerLd = () => !!document.querySelector('script[type="application/ld+json"][data-sld]');
   function addJsonLd(obj) {
     const s = document.createElement("script");
     s.type = "application/ld+json";
@@ -574,6 +576,15 @@
     ["segment", "category", "kind", "city", "district", "rooms", "feature", "brand", "model", "fuel", "gear"].forEach((k) => { if (qs.get(k)) f[k] = qs.get(k); });
     if (qs.get("min")) f.minPrice = +qs.get("min");
     if (qs.get("max")) f.maxPrice = +qs.get("max");
+    // Arayüzde alanı olmayan ama AI aramasının üretebildiği filtreler
+    const extra = {};
+    if (qs.get("features")) extra.features = qs.get("features").split("|").filter(Boolean);
+    if (qs.get("minM2")) extra.minM2 = +qs.get("minM2");
+    if (qs.get("maxM2")) extra.maxM2 = +qs.get("maxM2");
+    if (qs.get("maxAge")) extra.maxAge = +qs.get("maxAge");
+    if (qs.get("minRooms")) extra.minRooms = qs.get("minRooms");
+    if (qs.get("creditOk")) extra.creditOk = true;
+    if (qs.get("swap")) extra.swap = true;
     if (qs.get("minYear")) f.minYear = +qs.get("minYear");
     if (qs.get("maxKm")) f.maxKm = +qs.get("maxKm");
     const rawQ = qs.get("q");
@@ -584,7 +595,12 @@
       ["segment", "category", "kind", "city", "district", "rooms", "feature", "minPrice", "maxPrice", "brand", "model", "minYear", "maxKm", "fuel", "gear"].forEach((k) => {
         if (f[k] == null && parsed[k] != null) f[k] = parsed[k];
       });
+      ["features", "minM2", "maxM2", "maxAge", "minRooms", "creditOk", "swap"].forEach((k) => {
+        if (extra[k] == null && parsed[k] != null) extra[k] = parsed[k];
+      });
+      if (!qs.get("sort") && parsed.sort) f.sort = parsed.sort;
     }
+    if (qs.get("sort")) f.sort = qs.get("sort");
     if (!f.segment) f.segment = "emlak";
 
     // Filtre alanlarını doldur
@@ -629,9 +645,30 @@
     $("#fCity").addEventListener("change", () => fillDistrictSelect($("#fDistrict"), $("#fCity").value, true));
     $("#fBrand").addEventListener("change", fillModels);
 
+    if (f.sort) { const o = document.querySelector(`#fSort option[value="${f.sort}"]`); if (o) $("#fSort").value = f.sort; }
     if (rawQ) {
+      // AI'nin sorgudan çıkardığı ölçütleri kullanıcıya AÇIKÇA göster
+      const human = [];
+      if (f.category) human.push(f.category === "satilik" ? "satılık" : "kiralık");
+      if (f.kind) human.push((D.kinds.find((k) => k.kind === f.kind) || {}).label || f.kind);
+      if (f.city) human.push(f.city + (f.district ? " / " + f.district : ""));
+      if (f.rooms) human.push(f.rooms);
+      if (extra.minRooms) human.push(extra.minRooms + " ve üstü");
+      if (f.minPrice) human.push(fmt(f.minPrice) + " ₺ üzeri");
+      if (f.maxPrice) human.push(fmt(f.maxPrice) + " ₺ altı");
+      if (extra.minM2) human.push(extra.minM2 + " m² üzeri");
+      if (extra.maxM2) human.push(extra.maxM2 + " m² altı");
+      if (extra.maxAge != null) human.push("en fazla " + extra.maxAge + " yaşında");
+      if (extra.creditOk) human.push("krediye uygun");
+      if (extra.swap) human.push("takaslı");
+      (extra.features || []).forEach((x) => human.push(x));
+      if (f.brand) human.push(f.brand + (f.model ? " " + f.model : ""));
+      if (f.minYear) human.push(f.minYear + " ve üzeri model");
+      if (f.maxKm != null) human.push(fmt(f.maxKm) + " km altı");
       $("#aiNote").style.display = "block";
-      $("#aiNote").innerHTML = `<b>AI aramanızı anladı:</b> "${esc(rawQ)}" sorgusu filtrelere dönüştürüldü. Filtreleri dilediğiniz gibi ayarlayabilirsiniz.`;
+      $("#aiNote").innerHTML = `<b>AI aramanızı anladı:</b> "${esc(rawQ)}"` +
+        (human.length ? ` → <b>${human.map(esc).join("</b> · <b>")}</b>` : "") +
+        `. Filtreleri dilediğiniz gibi değiştirebilirsiniz.`;
     }
 
     function currentFilters() {
@@ -654,7 +691,7 @@
         if ($("#fFuel").value) g.fuel = $("#fFuel").value;
         if ($("#fGear").value) g.gear = $("#fGear").value;
       }
-      return g;
+      return Object.assign(g, extra); // AI'den gelen ek ölçütler korunur
     }
     const PER_PAGE = 24; // sayfa başına ilan (sahibinden benzeri sayfalama)
     let page = Math.max(1, +qs.get("sayfa") || 1);
@@ -774,6 +811,7 @@
     const address = { "@type": "PostalAddress", addressLocality: l.district, addressRegion: l.city, addressCountry: "TR" };
     const ld = document.createElement("script");
     ld.type = "application/ld+json";
+    ld.dataset.skip = hasServerLd() ? "1" : ""; // sunucu bastıysa eklenmez
     ld.textContent = jsonLdStr(l.segment === "vasita" ? {
       "@context": "https://schema.org", "@type": "Car",
       name: l.title, url: canon.href, description: descText,
@@ -794,7 +832,7 @@
       },
       image: webPhotos.length ? webPhotos : undefined,
     });
-    document.head.appendChild(ld);
+    if (!ld.dataset.skip) document.head.appendChild(ld);
     const ldBc = document.createElement("script");
     ldBc.type = "application/ld+json";
     ldBc.textContent = jsonLdStr({
@@ -805,7 +843,7 @@
         { "@type": "ListItem", position: 3, name: l.title, item: canon.href },
       ],
     });
-    document.head.appendChild(ldBc);
+    if (!hasServerLd()) document.head.appendChild(ldBc);
 
     const est = AI.estimate(l);
     const b = AI.priceBadge(l);
@@ -875,6 +913,21 @@
             <h2>${esc(l.district)} Fiyat Eğilimi</h2>
             <div id="trendChart"></div>
           </div>` : ""}
+          ${(() => {
+            const an = AI.analyze(l);
+            if (!an) return "";
+            const li = (arr, sym, color) => arr.map((x) => `<li><span style="color:${color}">${sym}</span> ${esc(x)}</li>`).join("");
+            return `<div class="detail-card ai-analysis">
+            <h2>🤖 AI Analizi</h2>
+            <p>${esc(an.summary)}</p>
+            <div class="ai-cols">
+              <div><b>Artılar</b><ul class="ai-list">${li(an.pros, "✓", "var(--deal)")}</ul></div>
+              <div><b>Dikkat</b><ul class="ai-list">${li(an.cons, "!", "var(--over)")}</ul></div>
+            </div>
+            ${an.notes.length ? `<ul class="ai-list ai-notes">${an.notes.map((n) => `<li>· ${esc(n)}</li>`).join("")}</ul>` : ""}
+            <p class="notice" style="margin-top:12px">Bu analiz bölge ortalamaları ve ilan bilgilerinden otomatik üretilir; resmi ekspertiz yerine geçmez.</p>
+          </div>`;
+          })()}
           <div class="detail-card" id="msgCard" style="display:none">
             <h2>Satıcıya Mesaj Gönder</h2>
             <p class="notice" style="margin-bottom:12px">Bilgileriniz yalnızca bu ilan için ilan sahibine iletilir; en kısa sürede size dönüş yapılır.</p>

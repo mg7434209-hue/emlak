@@ -80,14 +80,20 @@
     }
 
     // Fiyat: "5 milyon altı/altında", "20 bin üzeri", "3-5 milyon arası"
-    const between = q.match(/(\d+(?:[.,]\d+)?)\s*(?:ile|-|–)\s*(\d+(?:[.,]\d+)?)\s*(milyon|bin)?\s*(?:arasi|arasinda)/);
+    // ÖNEMLİ: m² ve km ifadeleri fiyat sanılmasın diye önce sorgudan çıkarılır
+    // ("120 m2 üzeri" → fiyat değil alan; "100 bin km altı" → fiyat değil km).
+    const qp = q.replace(/\d+(?:[.,]\d+)?\s*(?:m2|metrekare|m²)/g, " ")
+                .replace(/\d+(?:[.,]\d+)?\s*(?:bin\s*)?km/g, " ")
+                .replace(/\d+\s*\+\s*\d+/g, " ")
+                .replace(/(?:19|20)\d\d\s*model/g, " ");
+    const between = qp.match(/(\d+(?:[.,]\d+)?)\s*(?:ile|-|–)\s*(\d+(?:[.,]\d+)?)\s*(milyon|bin)?\s*(?:arasi|arasinda)/);
     if (between) {
       const mult = between[3] === "milyon" ? 1e6 : between[3] === "bin" ? 1e3 : 1;
       f.minPrice = parseFloat(between[1].replace(",", ".")) * mult;
       f.maxPrice = parseFloat(between[2].replace(",", ".")) * mult;
     } else {
-      const under = q.match(/((?:\d+(?:[.,]\d+)?)\s*(?:milyon|bin)?)\s*(?:tl?\s*)?(?:alti|altinda|asagi|kadar|max|en fazla)/);
-      const over = q.match(/((?:\d+(?:[.,]\d+)?)\s*(?:milyon|bin)?)\s*(?:tl?\s*)?(?:uzeri|ustunde|yukari|en az|min)/);
+      const under = qp.match(/((?:\d+(?:[.,]\d+)?)\s*(?:milyon|bin)?)\s*(?:tl?\s*)?(?:alti|altinda|asagi|kadar|max|en fazla)/);
+      const over = qp.match(/((?:\d+(?:[.,]\d+)?)\s*(?:milyon|bin)?)\s*(?:tl?\s*)?(?:uzeri|ustunde|yukari|en az|min)/);
       if (under) f.maxPrice = parseAmount(under[1]);
       if (over) f.minPrice = parseAmount(over[1]);
     }
@@ -96,15 +102,64 @@
     const m2m = q.match(/(\d+)\s*(?:m2|metrekare|m²)/);
     if (m2m) f.minM2 = parseInt(m2m[1], 10);
 
-    if (/deniz manzara/.test(q)) f.feature = "Deniz Manzarası";
-    if (/havuz/.test(q)) f.feature = "Havuz";
-    if (/esyali/.test(q)) f.feature = "Eşyalı";
-    if (/site ici|site icinde/.test(q)) f.feature = "Site İçi";
-    // "yeni/sıfır bina" yalnızca emlakta ve kelime sınırıyla ("Yenimahalle" eşleşmez)
-    if (f.segment !== "vasita" && /\b(yeni|sifir)\b/.test(q)) f.maxAge = 5;
+    // m² aralığı: "100-150 m2" / "en fazla 120 m2"
+    const m2range = q.match(/(\d+)\s*(?:ile|-|–)\s*(\d+)\s*(?:m2|metrekare|m²)/);
+    if (m2range) { f.minM2 = +m2range[1]; f.maxM2 = +m2range[2]; }
+    const m2max = q.match(/(?:en fazla|max|maksimum)\s*(\d+)\s*(?:m2|metrekare|m²)/);
+    if (m2max) { f.maxM2 = +m2max[1]; delete f.minM2; }
+    const m2min = q.match(/(\d+)\s*(?:m2|metrekare|m²)\s*(?:uzeri|ustu|ve uzeri|en az|uzerinde)/);
+    if (m2min) f.minM2 = +m2min[1];
+
+    // Bina yaşı: "10 yaşından yeni", "5 yaş altı", "sıfır bina"
+    const ageM = q.match(/(\d+)\s*(?:yas|yasin|yasinda)\w*\s*(?:alti|altinda|yeni|kucuk|az)/);
+    if (ageM) f.maxAge = +ageM[1];
+    if (!ageM && f.segment !== "vasita") {
+      if (/\b(sifir bina|sifir daire|yeni bina|yeni daire)\b/.test(q)) f.maxAge = 2;
+      else if (/\b(yeni|sifir)\b/.test(q)) f.maxAge = 5;
+    }
+
+    // Oda alt sınırı: "3+1 ve üstü", "en az 3+1"
+    if (f.rooms && /(ve ustu|ve uzeri|uzeri|en az|ustu)/.test(q)) { f.minRooms = f.rooms; delete f.rooms; }
+
+    // Özellikler: config'teki TÜM özellik adları + yaygın halk ifadeleri
+    const SYN = {
+      "Deniz Manzarası": /deniz manzara|denize sifir|deniz gor/,
+      "Havuz": /havuz/,
+      "Otopark": /otopark|garaj|arac park/,
+      "Asansör": /asansor/,
+      "Güvenlik": /guvenlik|24 saat guvenlik|kameral/,
+      "Balkon": /balkon|teras/,
+      "Eşyalı": /esyali|mobilyali/,
+      "Akıllı Ev": /akilli ev|smart home/,
+      "Isı Yalıtımı": /isi yalitim|mantolama/,
+      "Site İçi": /site ici|site icinde|siteli/,
+      "Doğalgaz": /dogalgaz|dogal gaz|kombi/,
+      "Jeneratör": /jenerator/,
+    };
+    const feats = [];
+    for (const name in SYN) if (SYN[name].test(q)) feats.push(name);
+    if (feats.length) { f.features = feats; f.feature = feats[0]; } // feature: geriye dönük uyum
+
+    // Tapu / kredi / takas nitelikleri
+    if (/krediye uygun|kredili|banka kredisi/.test(q)) f.creditOk = true;
+    if (/takasl|takas/.test(q)) f.swap = true;
+
+    // Sıralama niyeti: "en ucuz", "en yeni", "fırsat", "en büyük"
+    if (/en ucuz|ucuzdan/.test(q)) f.sort = "price-asc";
+    else if (/en pahali|pahalidan|luks/.test(q)) f.sort = "price-desc";
+    else if (/en yeni|yeni ilan|son eklenen/.test(q)) f.sort = "new";
+    else if (/firsat|kelepir|ucuza|piyasa alti/.test(q)) f.sort = "ai";
+    else if (/en buyuk|genis|ferah/.test(q)) f.sort = "m2";
 
     return f;
   }
+
+  // "3+1" ≥ "2+1" karşılaştırması (oda + salon toplamı üzerinden)
+  function roomsSum(r) {
+    const m = String(r || "").match(/(\d+)\s*\+\s*(\d+)/);
+    return m ? +m[1] + +m[2] : 0;
+  }
+  const roomsAtLeast = (have, want) => roomsSum(have) >= roomsSum(want);
 
   function applyFilters(listings, f) {
     return listings.filter((l) => {
@@ -120,7 +175,14 @@
       if (f.minM2 && !(l.m2 >= f.minM2)) return false;
       if (f.maxM2 && !(l.m2 <= f.maxM2)) return false;
       if (f.maxAge != null && (l.age == null || l.age > f.maxAge)) return false;
-      if (f.feature && !(l.features || []).includes(f.feature)) return false;
+      if (f.minRooms && !roomsAtLeast(l.rooms, f.minRooms)) return false;
+      if (f.creditOk === true && l.creditOk !== true) return false;
+      if (f.swap === true && l.swap !== true) return false;
+      // Tek özellik (geri uyum) ya da çoklu özellik listesi — hepsi bulunmalı
+      if (f.features && f.features.length) {
+        const have = l.features || [];
+        if (!f.features.every((x) => have.includes(x))) return false;
+      } else if (f.feature && !(l.features || []).includes(f.feature)) return false;
       // Araç filtreleri
       if (f.brand && l.brand !== f.brand) return false;
       if (f.model && l.model !== f.model) return false;
@@ -223,6 +285,10 @@
     let mid = perM2 * p.m2;
     if (p.category === "kiralik") mid *= C.market.rentYieldMonthly;
     const band = V.confidence;
+    // Yatırım göstergeleri: satış değeri üzerinden aylık kira, brüt getiri ve
+    // kendini amorti etme süresi (kiralık ilanda satış değeri geri hesaplanır).
+    const saleValue = p.category === "kiralik" ? mid / C.market.rentYieldMonthly : mid;
+    const rentMonthly = Math.round(saleValue * C.market.rentYieldMonthly);
     return {
       mid: Math.round(mid),
       low: Math.round(mid * (1 - band)),
@@ -230,6 +296,9 @@
       perM2: Math.round(perM2),
       factors,
       confidence: Math.round((1 - band) * 100),
+      rentMonthly,
+      yieldPct: +(C.market.rentYieldMonthly * 12 * 100).toFixed(1),
+      paybackYears: rentMonthly ? Math.round(saleValue / (rentMonthly * 12)) : null,
     };
   }
   function pct(f) { const v = Math.round((f - 1) * 100); return (v >= 0 ? "+" : "") + v + "%"; }
@@ -247,6 +316,62 @@
   }
 
   // ── Açıklama üretimi (şablonlu NLG) ─────────────────────────────────────
+  // ── AI Analizi: ilanı veriyle karşılaştırıp artı/eksi ve yatırım özeti üretir
+  // Detay sayfasındaki "AI Analizi" kutusu bunu kullanır.
+  function analyze(l) {
+    if (!l || !l.price) return null;
+    const est = estimate(l);
+    if (!est) return null;
+    const pros = [], cons = [], notes = [];
+    const b = priceBadge(l);
+
+    // Fiyat konumu
+    if (b && b.key === "firsat") pros.push(`Fiyat, AI tahmininin %${b.pct} altında — pazarlık gücü yüksek`);
+    else if (b && b.key === "ustu") cons.push(`Fiyat, AI tahmininin %${b.pct} üzerinde — pazarlık payı sorulmalı`);
+    else pros.push("Fiyat, bölge piyasasıyla uyumlu");
+
+    if (l.segment !== "vasita") {
+      // ₺/m² karşılaştırması (ilçe ortalaması)
+      const city = C.market.cities[l.city];
+      const base = city && city.districts[l.district];
+      const own = l.m2 ? Math.round((l.category === "kiralik" ? l.price / C.market.rentYieldMonthly : l.price) / l.m2) : null;
+      if (base && own) {
+        const diff = Math.round((own / base - 1) * 100);
+        notes.push(`Birim fiyat ${fmtNum(own)} ₺/m² · ${l.district} ortalaması ${fmtNum(base)} ₺/m² (${diff >= 0 ? "+" : ""}${diff}%)`);
+        if (diff <= -10) pros.push(`m² birim fiyatı ilçe ortalamasının %${Math.abs(diff)} altında`);
+        if (diff >= 15) cons.push(`m² birim fiyatı ilçe ortalamasının %${diff} üzerinde`);
+      }
+      if (l.age != null) {
+        if (l.age <= 5) pros.push(l.age === 0 ? "Sıfır bina" : `Yeni sayılır (${l.age} yaşında)`);
+        else if (l.age >= 25) cons.push(`Bina ${l.age} yaşında — bakım/yenileme maliyeti öngörün`);
+      }
+      if (l.creditOk) pros.push("Krediye uygun");
+      if (l.deed && /kat mulkiyet/i.test(l.deed)) pros.push("Kat mülkiyetli tapu");
+      if (l.dues) notes.push(`Aidat ${fmtNum(l.dues)} ₺/ay`);
+      if (l.swap) notes.push("Takas değerlendirilebilir");
+      const valuable = (l.features || []).filter((f) => (C.valuation.features[f] || 0) >= 5);
+      if (valuable.length) pros.push("Değer artırıcı özellikler: " + valuable.join(", "));
+      if (city) notes.push(`${l.city} genelinde yıllık reel değer eğilimi ≈ %${city.yieldTrend}`);
+      // Yatırım göstergeleri (yalnız satılık konutta anlamlı)
+      if (l.category === "satilik" && l.kind !== "arsa" && est.rentMonthly) {
+        notes.push(`Tahmini kira ${fmtNum(est.rentMonthly)} ₺/ay · brüt getiri %${est.yieldPct}` +
+          (est.paybackYears ? ` · ${est.paybackYears} yılda amortisman` : ""));
+      }
+    } else {
+      const norm = C.vehicles.kmNormPerYear * Math.max(1, new Date().getFullYear() - (l.year || new Date().getFullYear()));
+      if (l.km != null && l.km < norm * 0.75) pros.push("Yaşına göre düşük kilometre");
+      if (l.km != null && l.km > norm * 1.3) cons.push("Yaşına göre yüksek kilometre");
+      if (/otomatik/i.test(l.gear || "")) pros.push("Otomatik vites");
+      if (/hibrit|elektrik/i.test(l.fuel || "")) pros.push("Düşük yakıt gideri (" + l.fuel + ")");
+    }
+
+    if (!cons.length) cons.push("Belirgin bir olumsuzluk saptanmadı — yerinde görme yine de şart");
+    const summary = `${l.city} ${l.district} bölgesindeki bu ${l.category === "satilik" ? "satılık" : "kiralık"} ` +
+      `${(l.kindLabel || "ilan").toLocaleLowerCase("tr-TR")} için AI tahmini ${fmtNum(est.low)} – ${fmtNum(est.high)} ₺ bandında; ` +
+      `ilan fiyatı ${fmtNum(l.price)} ₺${l.category === "kiralik" ? (l.segment === "vasita" ? "/gün" : "/ay") : ""}.`;
+    return { summary, pros, cons, notes, est, badge: b };
+  }
+
   function describe(l) {
     const s = [];
     const catLabel = l.category === "satilik" ? "satılık" : "kiralık";
@@ -285,11 +410,25 @@
     if ((l.features || []).length) {
       s.push("Öne çıkan özellikler: " + l.features.join(", ") + ".");
     }
+    if (l.deed) s.push(`Tapu durumu: ${l.deed}.`);
+    if (l.creditOk) s.push("Konut kredisi kullanımına uygundur.");
+    if (l.dues) s.push(`Aylık aidat ${fmtNum(l.dues)} ₺'dir.`);
+    if (l.swap) s.push("Uygun tekliflerde takas değerlendirilebilir.");
     const est = estimate(l);
     if (est && l.price > 0) {
       const b = priceBadge(l);
       if (b && b.key === "firsat") s.push(`Yapay zekâ analizine göre fiyat, bölge ortalamasının yaklaşık %${b.pct} altındadır — değerlendirilmesi gereken bir fırsattır.`);
       else if (b && b.key === "uygun") s.push("Yapay zekâ analizine göre fiyat, bölge piyasasıyla uyumludur.");
+      // Yatırım cümlesi: kira getirisi ve amortisman (yalnız satılık konut)
+      if (l.category === "satilik" && l.kind !== "arsa" && est.rentMonthly) {
+        s.push(`Yatırım açısından: bölge verilerine göre tahmini kira ${fmtNum(est.rentMonthly)} ₺/ay, ` +
+          `brüt kira getirisi yaklaşık %${est.yieldPct}` +
+          (est.paybackYears ? `, kendini amorti etme süresi yaklaşık ${est.paybackYears} yıldır.` : "."));
+      }
+    }
+    const city = C.market.cities[l.city];
+    if (city && l.segment !== "vasita") {
+      s.push(`${l.city} genelinde konut değerlerinde yıllık yaklaşık %${city.yieldTrend} reel artış eğilimi gözlenmektedir.`);
     }
     s.push("Detaylı bilgi ve yerinde görme randevusu için hemen iletişime geçin.");
     return s.join(" ");
@@ -398,6 +537,30 @@
     if (/ilan ver|ilan nasil|satmak istiyorum|kiraya vermek/.test(q)) {
       return { reply: "İlan vermek çok kolay: İlan Ver sayfasında bilgileri girin; yapay zekâ ilan başlığınızı ve açıklamanızı sizin için otomatik yazsın, fiyat önerisi de alın.", action: { label: "Ücretsiz İlan Ver", href: "ilan-ver.html" } };
     }
+    // ── Site kullanımıyla ilgili sorular (SSS bilgisi asistanda da olsun)
+    if (/uyelik|uye ol|kayit ol|hesap ac|sifre|giris yap/.test(q)) {
+      return { reply: "İlan vermek için ücretsiz bir üyelik gerekir: e-posta, telefon ve şifreyle 30 saniyede açılır. Hesabınızla ilanlarınızı düzenleyebilir, size gelen mesajları görebilirsiniz.", action: { label: "Ücretsiz Üye Ol", href: "giris.html?kayit=1" } };
+    }
+    if (/onay|ne zaman yayin|yayinlan|kac saat|bekleme/.test(q)) {
+      return { reply: "Gönderdiğiniz ilan önce yönetici onayına düşer; onaylandığı anda herkese açık yayına girer. Durumu Hesabım › İlanlarım bölümünden izleyebilir, onay beklerken ilanınızı önizleyebilirsiniz.", action: { label: "Hesabım", href: "hesap.html" } };
+    }
+    if (/fotograf|resim|gorsel|foto ekle/.test(q)) {
+      const u = C.upload || {};
+      return { reply: `İlan başına en fazla ${u.maxPhotos || 6} fotoğraf ekleyebilirsiniz; kabul edilen biçimler ${u.acceptLabel || "JPG · PNG · WEBP"} ve dosya başına ${u.maxFileMB || 15} MB sınırı vardır. iPhone HEIC fotoğrafları tarayıcılar açamaz — telefonunuzda "En Uyumlu" biçimi seçmeniz yeterli.` };
+    }
+    if (/guvenli|dolandiric|kapora|dikkat etmeli|sahte ilan/.test(q)) {
+      return { reply: "Güvenlik için: taşınmazı mutlaka yerinde görün, tapu kaydını ve iskân durumunu kontrol edin, görmeden kapora/kaparo göndermeyin, ödemeleri banka kanalıyla yapın ve satıcı kimliğini doğrulayın. Şüpheli bir ilan görürseniz bize bildirin.", action: { label: "Rehberi Oku", href: "rehber.html" } };
+    }
+    if (/favori|kaydet|karsilastir/.test(q)) {
+      return { reply: "Beğendiğiniz ilanlardaki 🤍 simgesine dokunarak favorilerinize ekleyebilir, Favoriler sayfasında hepsini m² fiyatı ve AI etiketiyle yan yana karşılaştırabilirsiniz.", action: { label: "Favorilerim", href: "favoriler.html" } };
+    }
+    if (/bolge fiyat|m2 fiyat|metrekare fiyat|hangi ilce|ilce fiyat/.test(q)) {
+      return { reply: "İl ve ilçe bazlı güncel ortalama m² fiyatlarını, kira tahminlerini ve yıllık değer artış eğilimini Bölge Fiyatları sayfasında tablo hâlinde bulabilirsiniz.", action: { label: "Bölge Fiyatları", href: "bolge-fiyatlari.html" } };
+    }
+    if (/kira getiri|getiri|amortisman|yatirim|kaç yilda/.test(q)) {
+      const y = +(C.market.rentYieldMonthly * 12 * 100).toFixed(1);
+      return { reply: `Bölge verilerimize göre konutta brüt kira getirisi yıllık yaklaşık %${y}; bu da kabaca ${Math.round(100 / y)} yılda amortisman demektir. İlan detaylarındaki "AI Analizi" kutusunda her ilan için tahmini kira, getiri ve amortisman süresini görebilirsiniz.` };
+    }
     if (/iletisim|telefon|ulasabilir|whatsapp/.test(q)) {
       const co = C.company;
       return { reply: `Bize ${co.phone.display} numarasından ya da WhatsApp üzerinden ulaşabilirsiniz. E-posta: ${co.email}` };
@@ -451,9 +614,17 @@
     if (f.maxPrice) p.set("max", f.maxPrice);
     if (f.minYear) p.set("minYear", f.minYear);
     if (f.maxKm != null) p.set("maxKm", f.maxKm);
-    if (f.feature) p.set("feature", f.feature);
+    if (f.features && f.features.length) p.set("features", f.features.join("|"));
+    else if (f.feature) p.set("feature", f.feature);
+    if (f.minM2) p.set("minM2", f.minM2);
+    if (f.maxM2) p.set("maxM2", f.maxM2);
+    if (f.maxAge != null) p.set("maxAge", f.maxAge);
+    if (f.minRooms) p.set("minRooms", f.minRooms);
+    if (f.creditOk) p.set("creditOk", "1");
+    if (f.swap) p.set("swap", "1");
+    if (f.sort) p.set("sort", f.sort);
     return p.toString();
   }
 
-  EMLAK.ai = { parseQuery, applyFilters, estimate, priceBadge, describe, similar, mortgage, trend, chat, filtersToQS, fmtNum, rank };
+  EMLAK.ai = { parseQuery, applyFilters, estimate, priceBadge, analyze, describe, similar, mortgage, trend, chat, filtersToQS, fmtNum, rank };
 })();

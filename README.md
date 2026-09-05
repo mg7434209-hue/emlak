@@ -20,10 +20,16 @@ satılık/kiralık) ilan platformu. Tamamı istemci tarafında çalışan yapay 
 | **Karşılaştırma** | Favorilerdeki ilanlar yan yana, ₺/m² ve AI etiketiyle |
 | **⭐ Öne çıkarma** | Öne çıkarılan ilanlar AI arama ve listelerde önceliklenir |
 | **Fiyat değişimi rozeti** | Fiyat düşünce ilan detayında eski fiyat + indirim yüzdesi gösterilir |
+| **AI Analizi** | Her ilanda artılar/dikkat listesi: m² birim fiyatı ilçe kıyası, bina yaşı, tapu/kredi durumu, tahmini kira, brüt getiri ve amortisman süresi |
+| **Gelişmiş doğal dil** | Özellik listesi, m² ve fiyat aralığı, "3+1 ve üstü", "5 yaşından yeni", krediye uygun/takaslı ve "en ucuz/fırsat" gibi sıralama niyeti |
 
 ## 🔍 SEO & AI Görünürlüğü (AEO)
 
-- `sitemap.xml`, `robots.txt` (GPTBot/ClaudeBot/PerplexityBot açık), `llms.txt`
+- **Sunucu ön işlemesi**: `/ilan.html?id=` ve `/ilanlar.html` içeriği JS olmadan
+  da görünür — arama motorları ve AI tarayıcıları ilan metnini, fiyatı, künyeyi
+  ve JSON-LD'yi doğrudan okur
+- `sitemap.xml` (ilan görselleri `image:image` ile), `robots.txt`
+  (GPTBot/ClaudeBot/PerplexityBot açık), `llms.txt` (yayındaki ilanlar canlı eklenir)
 - Statik **Bölge Fiyatları** sayfası: AI motorlarının alıntılayabileceği il/ilçe m² fiyat tabloları
 - **Rehber/SSS** sayfası: `FAQPage` JSON-LD ile soru-cevap içeriği
 - JSON-LD: `Organization`, `WebSite`+`SearchAction`, `RealEstateListing` (ilan detayında dinamik), `Dataset`, `BreadcrumbList`

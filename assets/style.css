@@ -332,6 +332,14 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
 .reveal.in { opacity: 1; transform: none; }
 .notice { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; color: var(--muted); }
 
+/* ── AI Analizi kutusu (ilan detayı) ─────────────────── */
+.ai-analysis .ai-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 12px; }
+@media (max-width: 620px) { .ai-analysis .ai-cols { grid-template-columns: 1fr; } }
+.ai-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ai-list li { font-size: 0.9rem; line-height: 1.45; }
+.ai-list li span { font-weight: 800; margin-right: 4px; }
+.ai-notes { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 12px; color: var(--muted); }
+
 /* ── Sayfalama (ilan listesi) ───────────────────────── */
 .pager { display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 26px 0 6px; }
 .pager .btn { min-width: 40px; }
