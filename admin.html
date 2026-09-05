@@ -86,7 +86,7 @@
               <option value="">Tüm Durumlar</option>
               <option value="pending">Onay Bekleyen</option>
               <option value="active">Yayında</option>
-              <option value="rejected">Reddedilen</option>
+              <option value="rejected">Yayında Değil</option>
             </select>
             <a class="btn sm" href="ilan-ver.html">+ Yeni İlan</a>
             <button class="btn ghost sm" id="exportBtn" type="button">JSON Yedek İndir</button>
@@ -99,9 +99,11 @@
         <div class="detail-card" style="margin-top:12px">
           <table class="spec-table admin-table" id="adminTable"></table>
         </div>
-        <p class="notice" style="margin-top:14px">Yeni ilan eklemek için <a href="ilan-ver.html">İlan Ver</a> sayfasını kullanın —
-        yönetici oturumu açıkken verdiğiniz ilanlar onay beklemeden doğrudan yayına alınır. Yayındaki bir ilanı
-        <b>Düzenle</b> ile güncelleyebilir, fotoğraf ekleyip çıkarabilirsiniz.</p>
+        <p class="notice" style="margin-top:14px">Hiçbir ilan sizin onayınız olmadan yayına girmez: üyelerin gönderdiği
+        ilanlar <b>Onay Bekliyor</b> durumunda düşer, <b>✓ Yayınla</b> dediğinizde herkese görünür.
+        Yayındaki bir ilanı <b>Yayından Kaldır</b> ile geri çekebilir, <b>Düzenle</b> ile güncelleyip
+        fotoğraf ekleyip çıkarabilirsiniz. Kendi girdiğiniz ilanlar (yönetici oturumu açıkken
+        <a href="ilan-ver.html">İlan Ver</a>) doğrudan yayına alınır.</p>
       </div>
 
       <!-- Mesajlar sekmesi -->

@@ -131,6 +131,14 @@ EMLAK.config = {
     vehicle: { defaultRate: 3.15, maxLtv: 0.7, terms: [12, 24, 36, 48] },
   },
 
+  // ── Yayın onayı (moderasyon) ────────────────────────────────────────────
+  // Hiçbir ilan yönetici onayı olmadan yayına girmez; repodaki REAL[] tohum
+  // ilanları da ilk açılışta onay bekler.
+  moderation: {
+    seedStatus: "pending",    // tohum ilanların ilk durumu ("active" = onaysız yayın)
+    adminAutoPublish: true,   // yöneticinin KENDİ girdiği ilan doğrudan yayınlanır
+  },
+
   // ── Fotoğraf yükleme kuralları (ilan-ver + yönetim düzenleyicisi) ───────
   // Sunucu da bu değerleri okur (maxPhotos / maxStoredKB) — tek kaynak burasıdır.
   upload: {

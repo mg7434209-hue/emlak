@@ -130,9 +130,13 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
 - Admin uçları (`X-Admin-Token`): `GET /api/admin/listings`,
   `POST /api/admin/action` (`approve|reject|remove|feature|unfeature|price|edit`),
   `GET /api/admin/messages`, `POST /api/admin/message`, `POST /api/admin/import`.
-- Akış sahibinden benzeri: ziyaretçi ilanı `pending` düşer; admin onaylayınca
-  `active` olur ve HERKESE görünür. Admin oturumu açıkken verilen ilan
-  doğrudan `active`.
+- ONAYSIZ YAYIN YOK (`config.moderation`): üye ilanları `pending` düşer;
+  `data.js` REAL[] TOHUM ilanları da ilk açılışta `seedStatus` ("pending") ile
+  yüklenir — depo tohumlaması ASLA doğrudan yayına almaz. Yönetici "✓ Yayınla"
+  deyince `active` olur ve herkese görünür; "Yayından Kaldır" (`reject`) geri
+  çeker (`rejected` = "Yayında Değil"). Yöneticinin KENDİ verdiği ilan
+  `adminAutoPublish: true` ile doğrudan yayınlanır (false yaparsan o da kuyruğa
+  girer).
 - HIZ SINIRI (bellek içi, IP başına): ilan 10/saat, mesaj 10/saat, kayıt 5/saat,
   giriş 10/15 dk. Admin token'ı ilan sınırını atlar; mesajda bal küpü alanı var.
 - FOTOĞRAF: istemci base64 gönderir, sunucu `DATA_DIR/uploads` altına dosya

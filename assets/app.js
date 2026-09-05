@@ -1578,7 +1578,11 @@
       return r.json();
     }
     let rows = [], msgs = [], users = [];
-    const STATUS = { active: ["Yayında", "var(--deal)"], pending: ["Onay Bekliyor", "var(--accent)"], rejected: ["Reddedildi", "var(--over)"] };
+    const STATUS = {
+      active: ["Yayında", "var(--deal)"],
+      pending: ["Onay Bekliyor", "var(--accent)"],
+      rejected: ["Yayında Değil", "var(--over)"],
+    };
 
     async function refresh() {
       const j = await api("api/admin/listings", { method: "GET" });
@@ -1641,8 +1645,9 @@
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
-              ${l.status !== "active" ? `<button class="btn sm" data-act="approve" data-id="${esc(l.id)}">Onayla</button>` : ""}
+              ${l.status !== "active" ? `<button class="btn sm" data-act="approve" data-id="${esc(l.id)}">✓ Yayınla</button>` : ""}
               ${l.status === "pending" ? `<button class="btn ghost sm" data-act="reject" data-id="${esc(l.id)}">Reddet</button>` : ""}
+              ${l.status === "active" ? `<button class="btn ghost sm" data-act="reject" data-id="${esc(l.id)}">Yayından Kaldır</button>` : ""}
               ${l.status === "active" ? `<button class="btn ghost sm" data-act="${l.featured ? "unfeature" : "feature"}" data-id="${esc(l.id)}">${l.featured ? "⭐ Kaldır" : "⭐ Öne Çıkar"}</button>` : ""}
               <button class="btn ghost sm" data-act="edit" data-id="${esc(l.id)}">Düzenle</button>
               <button class="btn ghost sm" data-act="remove" data-id="${esc(l.id)}" style="color:var(--over);border-color:var(--over)">Sil</button>
@@ -1657,6 +1662,9 @@
               .then((r) => { if (!r || !r.error) refresh().catch(() => {}); return r; }));
           return;
         }
+        const l0 = rows.find((x) => x.id === id);
+        if (act === "reject" && l0 && l0.status === "active" &&
+            !confirm("İlan yayından kaldırılacak ve ziyaretçilere görünmeyecek. Emin misiniz?")) return;
         if (act === "remove" && !confirm("İlan kalıcı olarak silinecek. Emin misiniz?")) return;
         try {
           const r = await api("api/admin/action", { method: "POST", body: JSON.stringify({ id, action: act }) });

@@ -53,11 +53,13 @@ const SEED = global.EMLAK.data.all(); // Node ortamında yalnız REAL[]
 // ── İlan deposu (JSON dosyası; Railway'de kalıcılık için Volume + DATA_DIR) ─
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, "data");
 const STORE = path.join(DATA_DIR, "listings.json");
+const MOD = (CONF && CONF.moderation) || {};
 function loadListings() {
   try { return JSON.parse(fs.readFileSync(STORE, "utf8")); }
   catch (e) {
-    // İlk açılış: repodaki gerçek ilanlarla (REAL) tohumla
-    const seeded = SEED.map((l) => Object.assign({}, l, { status: "active" }));
+    // İlk açılış: repodaki gerçek ilanlarla (REAL) tohumla — bunlar da
+    // yönetici onayından geçer (config.moderation.seedStatus).
+    const seeded = SEED.map((l) => Object.assign({}, l, { status: MOD.seedStatus || "pending" }));
     saveListings(seeded);
     return seeded;
   }
@@ -402,7 +404,9 @@ async function handleApi(req, res, urlPath) {
     delete l.user;
     l.id = "EA" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
     l.date = new Date().toISOString();
-    l.status = isAdmin ? "active" : "pending";
+    // Yayın kararı yöneticinindir: yalnızca yöneticinin KENDİ girdiği ilan
+    // (config.moderation.adminAutoPublish) doğrudan yayına girer.
+    l.status = isAdmin && MOD.adminAutoPublish !== false ? "active" : "pending";
     l.views = 0; l.favCount = 0;
     if (user) {
       // İlan sahibi hesaba bağlanır; ad ve telefon boş bırakılırsa hesaptan alınır

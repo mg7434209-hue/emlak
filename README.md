@@ -74,7 +74,9 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 
 Sahibinden benzeri onaylı yayın akışı — sunucu (Railway) üzerinde çalışır:
 
-- Ziyaretçi ilan verir → **onay bekler**; admin onaylayınca **herkese yayınlanır**
+- **Onaysız hiçbir ilan yayına girmez**: üye ilanları ve repodaki tohum ilan
+  "Onay Bekliyor" durumunda başlar; yönetici **✓ Yayınla** deyince herkese görünür,
+  **Yayından Kaldır** ile geri çekilir (davranış `config.moderation`'dan ayarlanır)
 - İki giriş yolu: **yönetici şifresi** ya da **yönetici yetkili üye hesabı**
   (üyeyi "Üyeler" sekmesinden "Yönetici yap" ile yetkilendirin; `ADMIN_EMAIL`
   ortam değişkenindeki e-posta kayıt/girişte otomatik yönetici olur).
