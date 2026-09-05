@@ -29,4 +29,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://mg7434209-hue.github.io/emlak/sitemap.xml
+Sitemap: https://emlak-production.up.railway.app/sitemap.xml

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://mg7434209-hue.github.io/emlak/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://mg7434209-hue.github.io/emlak/ilanlar.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://mg7434209-hue.github.io/emlak/bolge-fiyatlari.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://mg7434209-hue.github.io/emlak/degerleme.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://mg7434209-hue.github.io/emlak/asistan.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://mg7434209-hue.github.io/emlak/rehber.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://mg7434209-hue.github.io/emlak/ilan-ver.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://mg7434209-hue.github.io/emlak/giris.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://mg7434209-hue.github.io/emlak/ilan.html?id=EA1001</loc><lastmod>2026-07-03</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/ilanlar.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/bolge-fiyatlari.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/degerleme.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/asistan.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/rehber.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/ilan-ver.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/giris.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/ilan.html?id=EA1001</loc><lastmod>2026-07-03</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
 </urlset>

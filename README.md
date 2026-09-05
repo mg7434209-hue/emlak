@@ -130,6 +130,13 @@ Sahibinden benzeri onaylı yayın akışı — sunucu (Railway) üzerinde çalı
 | `POST /api/admin/import` | Yedekten geri yükleme |
 | `GET /sitemap.xml` | Yayındaki ilanları da içeren dinamik site haritası |
 
+## Alan adı / canlı adres
+
+Canlı adres tek yerde: `assets/config.js` → `seo.siteUrl`
+(şu an `https://emlak-production.up.railway.app`). Değiştirip `npm run build`
+çalıştırdığınızda tüm sayfaların canonical/Open Graph adresleri, sitemap,
+robots.txt ve llms.txt bu adrese göre yeniden üretilir.
+
 ## Çalıştırma
 
 ```bash

@@ -39,8 +39,10 @@ Nav/footer değişince TÜM sayfalarda + `build-seo.js` iskeletinde güncelle.
 `bolge-fiyatlari.html`, `sitemap.xml`, `robots.txt`, `llms.txt` bu betikle
 `assets/config.js`'ten ÜRETİLİR (elle düzenleme; kaynak değişince
 `npm run build` çalıştırıp çıktıyı da commit'le — `npm start` de önce build
-çalıştırır). `config.seo.siteUrl` özel alan adı alınınca güncellenmeli; statik
-sayfalardaki canonical/OG URL'leri de aynı domain'i kullanır. JSON-LD:
+çalıştırır). ALAN ADI TEK KAYNAKTAN: `config.seo.siteUrl` (şu an Railway adresi) değişince
+`npm run build` TÜM statik sayfaların `canonical`, `og:url`, `og:image` ve elle
+yazılmış JSON-LD `"item"` adreslerini yeniden yazar — HTML'lerde adres ELLE
+düzeltilmez. JSON-LD:
 Organization + WebSite(SearchAction) `app.js`'ten enjekte edilir; FAQPage
 `rehber.html`'de statik; Dataset build ile üretilir. OG görseli:
 `assets/img/og.png` (1200×630).
@@ -109,7 +111,12 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
 - İlan sahibi `ownerId` ile hesaba bağlanır; ad/telefon boş bırakılırsa hesaptan
   alınır. Üye YALNIZCA kendi ilanını düzenler/siler (`/api/my/action`).
 - Üye düzenlemesi ilanı yeniden `pending` yapar; TEK istisna `onlyPriceDrop()`
-  (yalnız fiyat indirimi) — ilan yayında kalır.
+  (yalnız fiyat indirimi) — ilan yayında kalır. DİKKAT: düzenleyici fotoğraf
+  listesini her zaman gönderir, bu yüzden karşılaştırma listenin VARLIĞINA değil
+  içeriğine bakar.
+- ÖNİZLEME: yayında olmayan ilanı sahibi ve yönetici `GET /api/listing?id=&full=1`
+  ile görebilir; `ilan.html` bunu kullanıp turuncu "Önizleme" bandı + `noindex`
+  ekler, görüntülenme saymaz. Yetkisiz istek 403 döner.
 - ROL: üyenin `role` alanı `user` | `admin`. `admin` rolü panele şifresiz girer
   (`isAdminReq` = admin jetonu VEYA rolü admin oturum), ilanları doğrudan
   yayınlar ve nav'da "🛡 Yönetim" bağlantısı görür. İlk yönetici: `ADMIN_EMAIL`
@@ -145,6 +152,12 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
   listings.json'a base64 gömme.
 - FİYAT GEÇMİŞİ: fiyat değişince eski fiyat `priceHistory`'ye yazılır; detay
   sayfası son düşüşü rozetle gösterir.
+- İSTEMCİ VERİSİ GÜVEN SINIRIDIR: ilan oluştururken `ownerId`, `priceHistory`,
+  `updated`, sayaçlar ve `status` sunucuda SIFIRLANIR/atanır — normalize'ın
+  taşıdığına güvenme.
+- Görüntülenme yazımı 5 sn'de bir toplu yapılır (`saveListingsSoon`), SIGTERM/
+  SIGINT'te boşaltılır — her istekte tüm JSON'u yazma.
+- HTTPS arkasındayken (`x-forwarded-proto: https`) HSTS başlığı eklenir.
 - `GET /sitemap.xml` sunucuda DİNAMİK üretilir (statik dosyayı ezer; yayındaki
   ilanları da içerir). `build-seo.js`'in ürettiği statik sitemap Pages içindir.
 - Depolama: `DATA_DIR` (Railway Volume önerilir) ya da `./data` (gitignore'da):

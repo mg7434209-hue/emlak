@@ -72,6 +72,21 @@ function saveListings(list) {
 }
 let LISTINGS = loadListings();
 
+// Görüntülenme sayacı sık değişir; her istekte tüm dosyayı yazmak yerine
+// 5 saniyede bir toplu yazılır (kapanışta da boşaltılır).
+let saveTimer = null;
+function saveListingsSoon() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => { saveTimer = null; saveListings(LISTINGS); }, 5000);
+}
+function flushListings() {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  try { saveListings(LISTINGS); } catch (e) {}
+}
+process.on("SIGTERM", () => { flushListings(); process.exit(0); });
+process.on("SIGINT", () => { flushListings(); process.exit(0); });
+
 // ── Fotoğraf deposu: base64 → dosya (DATA_DIR/uploads, /u/<dosya> ile servis) ─
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const DATA_URI = /^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/;
@@ -401,7 +416,9 @@ async function handleApi(req, res, urlPath) {
     if (!l) return sendJson(res, 400, { error: "Geçersiz ilan verisi." });
     if (!l.title || !l.price || !l.district) return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
     if (LISTINGS.length >= 2000) return sendJson(res, 429, { error: "İlan kapasitesi dolu." });
-    delete l.user;
+    // İstemcinin GÖNDEREMEYECEĞİ alanlar: sahiplik, sayaçlar, fiyat geçmişi.
+    // (normalize bunları taşıyabilir; burada kesin olarak sunucu belirler.)
+    delete l.user; delete l.ownerId; delete l.priceHistory; delete l.updated;
     l.id = "EA" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
     l.date = new Date().toISOString();
     // Yayın kararı yöneticinindir: yalnızca yöneticinin KENDİ girdiği ilan
@@ -427,11 +444,18 @@ async function handleApi(req, res, urlPath) {
       photoWarning(ph)));
   }
 
-  // GET /api/listing?id= — ilan takibi: gönderilen ilanın yayın durumu
+  // GET /api/listing?id=[&full=1] — ilan takibi; full=1 ile SAHİBİ ya da
+  // yönetici henüz yayınlanmamış ilanın tamamını önizleyebilir.
   if (urlPath === "/api/listing" && req.method === "GET") {
     const id = String(req.__query.get("id") || "");
     const l = LISTINGS.find((x) => x.id === id);
     if (!l) return sendJson(res, 404, { error: "İlan bulunamadı." });
+    if (req.__query.get("full") === "1") {
+      const me = currentUser(req);
+      const mine = me && l.ownerId && l.ownerId === me.uid;
+      if (!mine && !isAdminReq(req)) return sendJson(res, 403, { error: "Bu ilanı görüntüleme yetkiniz yok." });
+      return sendJson(res, 200, { listing: l });
+    }
     return sendJson(res, 200, {
       id: l.id, status: l.status, title: l.title, price: l.price,
       date: l.date, featured: !!l.featured, views: l.views || 0,
@@ -451,7 +475,7 @@ async function handleApi(req, res, urlPath) {
     if (!(VIEW_SEEN.get(key) > now - VIEW_TTL)) {
       VIEW_SEEN.set(key, now);
       l.views = (l.views || 0) + 1;
-      saveListings(LISTINGS);
+      saveListingsSoon();
     }
     return sendJson(res, 200, { ok: true, views: l.views || 0 });
   }
@@ -683,8 +707,11 @@ async function handleApi(req, res, urlPath) {
 // yeniden onaya düşmez — metin/fotoğraf değişmediği için moderasyon gerekmez)
 function onlyPriceDrop(before, merged, patch) {
   if (merged.price >= before.price) return false;
-  if (Array.isArray(patch.photos)) return false;
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  // Düzenleyici fotoğraf listesini HER ZAMAN gönderir; varlığına değil,
+  // gerçekten değişip değişmediğine bakılır (yoksa saf fiyat indirimi de
+  // ilanı gereksiz yere onaya düşürür).
+  if (Array.isArray(patch.photos) && !same(patch.photos, before.photos || [])) return false;
   return ["title", "desc", "city", "district", "category", "kind", "features", "seller"]
     .every((k) => same(before[k], merged[k]));
 }
@@ -830,6 +857,8 @@ const server = http.createServer((req, res) => {
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "X-Frame-Options": "DENY",
     };
+    // HTTPS üzerinden servis ediliyorsa tarayıcıya kalıcı HTTPS talimatı
+    if (xfp === "https") headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
 
     const accept = req.headers["accept-encoding"] || "";
     if (COMPRESSIBLE.test(mime) && /\bgzip\b/.test(accept)) {

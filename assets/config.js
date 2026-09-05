@@ -26,7 +26,10 @@ EMLAK.config = {
   // ── SEO / AEO — canonical, sitemap, JSON-LD ve llms.txt buradan üretilir ─
   // Özel alan adı alınınca yalnızca siteUrl'i güncelle ve `npm run build` çalıştır.
   seo: {
-    siteUrl: "https://mg7434209-hue.github.io/emlak",
+    // CANLI ADRES — canonical, sitemap, OG ve llms.txt bundan üretilir.
+    // Özel alan adı alınınca burayı değiştir + `npm run build` (build tüm
+    // sayfaların canonical/og etiketlerini bu adrese göre yeniden yazar).
+    siteUrl: "https://emlak-production.up.railway.app",
     ogImage: "/assets/img/og.png",
     locale: "tr_TR",
     sameAs: [], // sosyal medya profilleri eklendikçe buraya

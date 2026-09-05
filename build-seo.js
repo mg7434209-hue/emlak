@@ -161,6 +161,28 @@ fs.writeFileSync(path.join(__dirname, "bolge-fiyatlari.html"), chrome(body, {
   jsonld: [datasetLd, bcLd],
 }));
 
+// ── 1b) Statik sayfaların canonical / OG adreslerini config'e göre yaz ────
+// Kaynak sayfalar elle yazılır ama URL'ler TEK KAYNAKTAN gelir: alan adı
+// değişince yalnızca config.seo.siteUrl güncellenip `npm run build` çalıştırılır.
+const OG_ABS = URL0 + C.seo.ogImage;
+let synced = 0;
+fs.readdirSync(__dirname)
+  .filter((f) => f.endsWith(".html"))
+  .forEach((f) => {
+    const file = path.join(__dirname, f);
+    let html = fs.readFileSync(file, "utf8");
+    const before = html;
+    const pageUrl = URL0 + (f === "index.html" ? "/" : "/" + f);
+    html = html
+      .replace(/(<link rel="canonical" href=")[^"]*(")/g, `$1${pageUrl}$2`)
+      .replace(/(<meta property="og:url" content=")[^"]*(")/g, `$1${pageUrl}$2`)
+      .replace(/(<meta property="og:image" content=")[^"]*(")/g, `$1${OG_ABS}$2`)
+      // Elle yazılmış JSON-LD (ör. rehber.html BreadcrumbList) mutlak adresleri
+      .replace(/("item":\s*")https?:\/\/[^"]*?\/([a-z0-9-]*\.html)?(")/g,
+        (m, a, page, z) => a + URL0 + "/" + (page || "") + z);
+    if (html !== before) { fs.writeFileSync(file, html); synced++; }
+  });
+
 // ── 2) sitemap.xml ────────────────────────────────────────────────────────
 const staticPages = [
   ["", "1.0", "daily"],
@@ -255,4 +277,5 @@ Not: Veriler bölgesel piyasa ortalamasıdır; bilgi amaçlıdır, yatırım tav
 değildir. Kesin değerleme için yerinde ekspertiz gerekir.
 `);
 
-console.log("SEO çıktıları üretildi: bolge-fiyatlari.html, sitemap.xml, robots.txt, llms.txt");
+console.log("SEO çıktıları üretildi: bolge-fiyatlari.html, sitemap.xml, robots.txt, llms.txt" +
+  (synced ? " · canonical/OG güncellendi: " + synced + " sayfa" : ""));

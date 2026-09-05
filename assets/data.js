@@ -160,6 +160,21 @@
       return r.ok ? await r.json() : null;
     } catch (e) { return null; }
   }
+  // Yayınlanmamış ilanın önizlemesi: yalnızca ilan sahibi ya da yönetici
+  // görebilir (sunucu yetkiyi doğrular; yetkisizse null döner).
+  async function previewListing(id, adminToken) {
+    try {
+      const headers = {};
+      const t = auth.token();
+      if (t) headers["X-User-Token"] = t;
+      if (adminToken) headers["X-Admin-Token"] = adminToken;
+      const r = await fetch("api/listing?full=1&id=" + encodeURIComponent(id), { headers });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return j && j.listing ? normalizeListing(j.listing) : null;
+    } catch (e) { return null; }
+  }
+
   // Gerçek görüntülenme sayacı (sunucu tarafında IP başına 12 saatte bir sayar)
   async function countView(id) {
     try {
@@ -248,6 +263,7 @@
     init,
     submit,
     statusOf,
+    previewListing,
     countView,
     sendMessage,
     hasServer: () => remote !== null,

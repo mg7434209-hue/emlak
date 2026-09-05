@@ -724,10 +724,18 @@
   }
 
   // ── İlan detay ──────────────────────────────────────────────────────────
-  function pageIlan() {
+  async function pageIlan() {
     const id = new URLSearchParams(location.search).get("id");
-    const l = id && D.byId(id);
+    let l = id && D.byId(id);
     const root = $("#detailRoot");
+    // Yayında olmayan ilan: sahibi ya da yönetici ÖNİZLEYEBİLİR (sunucu doğrular)
+    let preview = false;
+    // Önizleme yalnızca oturumu olan ziyaretçi için denenir (oturumsuz
+    // ziyaretçide gereksiz 403 isteği yapılmaz).
+    if (!l && id && D.hasServer() && (A.token() || adminToken())) {
+      const p = await D.previewListing(id, adminToken());
+      if (p) { l = p; preview = true; }
+    }
     if (!l) {
       const nx = document.createElement("meta");
       nx.name = "robots"; nx.content = "noindex";
@@ -736,6 +744,11 @@
       return;
     }
     document.title = l.title + " — " + C.brand.name;
+    if (preview) { // önizleme herkese açık değil: arama motorlarına kapat
+      const nx = document.createElement("meta");
+      nx.name = "robots"; nx.content = "noindex, nofollow";
+      document.head.appendChild(nx);
+    }
     // Dinamik SEO: description, canonical, OG kartları ve ilan JSON-LD'si
     const metaDesc = document.querySelector('meta[name="description"]');
     const descText = l.segment === "vasita"
@@ -837,6 +850,9 @@
     const wa = "https://wa.me/" + contact.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`);
 
     root.innerHTML = `
+      ${preview ? `<div class="container" style="padding-top:14px"><div class="notice" style="border:1px solid var(--accent);color:var(--accent)">
+        <b>Önizleme:</b> Bu ilan ${l.status === "pending" ? "yönetici onayı bekliyor" : "yayında değil"} — şu an yalnızca siz görüyorsunuz, ziyaretçilere görünmez.
+      </div></div>` : ""}
       <div class="breadcrumb container">
         <a href="index.html">Ana Sayfa</a> › <a href="ilanlar.html">İlanlar</a> ›
         <a href="ilanlar.html?city=${encodeURIComponent(l.city)}">${esc(l.city)}</a> › ${esc(l.title)}
@@ -915,7 +931,7 @@
       </div>`;
 
     // Sunucu varsa görüntülenmeyi sunucuda say ve güncel değeri göster
-    if (D.hasServer()) {
+    if (D.hasServer() && !preview) {
       D.countView(l.id).then((v) => {
         if (v != null) { totalViews = v; $("#statLine").innerHTML = statHTML(); }
       });
@@ -1307,7 +1323,9 @@
         (listings.length ? listings.map((l) => {
           const [sl, sc] = STATUS[l.status] || ["—", "var(--muted)"];
           return `<tr>
-            <td>${l.status === "active" ? `<a href="ilan.html?id=${encodeURIComponent(l.id)}"><b>${esc(l.title)}</b></a>` : `<b>${esc(l.title)}</b>`}<br>
+            <td>${l.status === "active"
+              ? `<a href="ilan.html?id=${encodeURIComponent(l.id)}"><b>${esc(l.title)}</b></a>`
+              : `<b>${esc(l.title)}</b> <a href="ilan.html?id=${encodeURIComponent(l.id)}" style="font-size:0.85rem">(önizle)</a>`}<br>
               <small style="color:var(--muted)">${esc(l.id)} · ${esc(l.city)}/${esc(l.district)} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐" : ""}</small></td>
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
