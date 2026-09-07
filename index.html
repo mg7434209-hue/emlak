@@ -18,114 +18,34 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>'>
   <style>
     .move-promo { padding: 8px 0 46px; }
-    .move-promo-card {
-      position: relative; overflow: hidden; min-height: 230px; display: grid; grid-template-columns: 1.15fr .85fr;
-      background: linear-gradient(135deg, #0d1730 0%, #182d58 58%, #244a88 100%);
-      border: 1px solid rgba(255,255,255,.12); border-radius: 22px; box-shadow: 0 18px 50px rgba(13,23,48,.24);
-      color: #fff; isolation: isolate;
-    }
-    .move-promo-copy { position: relative; z-index: 3; padding: 30px 34px; align-self: center; }
-    .move-promo-label { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.16); color: #dce8ff; font-size: .7rem; font-weight: 800; letter-spacing: .08em; }
-    .move-promo h2 { margin: 12px 0 8px; font-size: clamp(1.45rem, 3vw, 2.15rem); line-height: 1.12; letter-spacing: -.03em; }
-    .move-promo p { max-width: 590px; color: #cbd8ef; font-size: .95rem; }
-    .move-promo-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
-    .move-promo .btn { background: #fff; color: #123a83; box-shadow: 0 8px 22px rgba(0,0,0,.18); }
-    .move-promo .btn:hover { background: #eef4ff; }
-    .move-promo-note { color: #aebfdd; font-size: .78rem; }
-    .move-promo-visual { position: relative; min-height: 230px; overflow: hidden; background: radial-gradient(circle at 55% 25%, rgba(108,164,255,.25), transparent 38%); }
-    .promo-ground { position: absolute; inset: auto -8% 0; height: 35%; background: linear-gradient(180deg, rgba(8,18,37,.05), rgba(5,12,27,.55)); transform: skewY(-5deg); }
-    .promo-building { position: absolute; bottom: 10%; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, #dce8fb, #8ca8d2); box-shadow: -8px 0 30px rgba(0,0,0,.14); }
-    .promo-building-a { width: 112px; height: 76%; left: 9%; }
-    .promo-building-b { width: 145px; height: 92%; left: 31%; background: linear-gradient(180deg, #f2f6ff, #a4badc); }
-    .promo-building-c { width: 105px; height: 66%; right: 7%; background: linear-gradient(180deg, #b9cbe5, #718db8); }
-    .promo-window { position: absolute; z-index: 2; width: 10px; height: 18px; border-radius: 2px; background: #ffe9a8; box-shadow: 0 0 9px rgba(255,233,168,.45); }
-    .w1 { left: 14%; top: 37%; } .w2 { left: 14%; top: 51%; } .w3 { left: 36%; top: 23%; } .w4 { left: 36%; top: 39%; } .w5 { left: 52%; top: 53%; } .w6 { right: 13%; top: 45%; }
-    @media (max-width: 760px) {
-      .move-promo { padding: 4px 0 32px; }
-      .move-promo-card { grid-template-columns: 1fr; min-height: 0; }
-      .move-promo-copy { padding: 25px 22px 22px; }
-      .move-promo-visual { min-height: 130px; opacity: .8; }
-      .promo-building-a { width: 72px; } .promo-building-b { width: 94px; } .promo-building-c { width: 68px; }
-    }
+    .move-promo-card { position:relative; overflow:hidden; min-height:230px; display:grid; grid-template-columns:1.15fr .85fr; background:linear-gradient(135deg,#0d1730 0%,#182d58 58%,#244a88 100%); border:1px solid rgba(255,255,255,.12); border-radius:22px; box-shadow:0 18px 50px rgba(13,23,48,.24); color:#fff; isolation:isolate; }
+    .move-promo-copy { position:relative; z-index:3; padding:30px 34px; align-self:center; }
+    .move-promo-label { display:inline-flex; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.11); border:1px solid rgba(255,255,255,.16); color:#dce8ff; font-size:.7rem; font-weight:800; letter-spacing:.08em; }
+    .move-promo h2 { margin:12px 0 8px; font-size:clamp(1.45rem,3vw,2.15rem); line-height:1.12; letter-spacing:-.03em; }
+    .move-promo p { max-width:590px; color:#cbd8ef; font-size:.95rem; }
+    .move-promo-actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:20px; }
+    .move-promo .btn { background:#fff; color:#123a83; box-shadow:0 8px 22px rgba(0,0,0,.18); }
+    .move-promo .btn:hover { background:#eef4ff; }
+    .move-promo-note { color:#aebfdd; font-size:.78rem; }
+    .move-promo-visual { position:relative; min-height:230px; overflow:hidden; background:radial-gradient(circle at 55% 25%,rgba(108,164,255,.25),transparent 38%); }
+    .promo-ground { position:absolute; inset:auto -8% 0; height:35%; background:linear-gradient(180deg,rgba(8,18,37,.05),rgba(5,12,27,.55)); transform:skewY(-5deg); }
+    .promo-building { position:absolute; bottom:10%; border-radius:5px 5px 0 0; background:linear-gradient(180deg,#dce8fb,#8ca8d2); box-shadow:-8px 0 30px rgba(0,0,0,.14); }
+    .promo-building-a { width:112px; height:76%; left:9%; }
+    .promo-building-b { width:145px; height:92%; left:31%; background:linear-gradient(180deg,#f2f6ff,#a4badc); }
+    .promo-building-c { width:105px; height:66%; right:7%; background:linear-gradient(180deg,#b9cbe5,#718db8); }
+    .promo-window { position:absolute; z-index:2; width:10px; height:18px; border-radius:2px; background:#ffe9a8; box-shadow:0 0 9px rgba(255,233,168,.45); }
+    .w1{left:14%;top:37%}.w2{left:14%;top:51%}.w3{left:36%;top:23%}.w4{left:36%;top:39%}.w5{left:52%;top:53%}.w6{right:13%;top:45%}
+    @media(max-width:760px){.move-promo{padding:4px 0 32px}.move-promo-card{grid-template-columns:1fr;min-height:0}.move-promo-copy{padding:25px 22px 22px}.move-promo-visual{min-height:130px;opacity:.8}.promo-building-a{width:72px}.promo-building-b{width:94px}.promo-building-c{width:68px}}
   </style>
 </head>
 <body data-page="index">
-  <header class="site-header">
-    <div class="container header-in">
-      <a class="logo" href="index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></span>Emlak<span class="ai">AI</span></a>
-      <nav class="main-nav" id="mainNav">
-        <a href="index.html" class="active">Ana Sayfa</a>
-        <a href="ilanlar.html">İlanlar</a>
-        <a href="degerleme.html">Değerleme</a>
-        <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
-        <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
-      </nav>
-      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
-      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
-    </div>
-  </header>
+  <header class="site-header"><div class="container header-in"><a class="logo" href="index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></span>Emlak<span class="ai">AI</span></a><nav class="main-nav" id="mainNav"><a href="index.html" class="active">Ana Sayfa</a><a href="ilanlar.html">İlanlar</a><a href="degerleme.html">Değerleme</a><a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a><a href="ilan-ver.html" class="cta">+ İlan Ver</a></nav><button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button><button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button></div></header>
   <main>
-    <section class="g-hero">
-      <h1 class="g-logo">Emlak<span>AI</span></h1>
-      <p class="g-tag">Satılık &amp; kiralık taşınmaz ve araç — yapay zekâ destekli arama</p>
-      <div class="g-tabs" id="segTabs" role="tablist">
-        <button class="tab-btn active" data-seg="emlak" role="tab">🏠 Taşınmaz</button>
-        <button class="tab-btn" data-seg="vasita" role="tab">🚗 Araç</button>
-      </div>
-      <div class="g-search">
-        <input id="aiQuery" type="text" autocomplete="off" aria-label="Arama">
-        <button class="btn" id="aiSearchBtn">Ara</button>
-      </div>
-      <div class="g-quick">
-        <a class="chip" href="ilanlar.html?segment=emlak&amp;category=satilik">Satılık Taşınmaz</a>
-        <a class="chip" href="ilanlar.html?segment=emlak&amp;category=kiralik">Kiralık Taşınmaz</a>
-        <a class="chip" href="ilanlar.html?segment=vasita&amp;category=satilik">Satılık Araç</a>
-        <a class="chip" href="ilanlar.html?segment=vasita&amp;category=kiralik">Kiralık Araç</a>
-      </div>
-      <p class="g-note">Doğal dille yazın; yapay zekâ aramanızı filtrelere çevirir, fiyatları piyasayla kıyaslar.</p>
-    </section>
-
-    <section class="move-promo" aria-labelledby="movePromoTitle">
-      <div class="container">
-        <div class="move-promo-card">
-          <div class="move-promo-copy">
-            <span class="move-promo-label">EMLAKÇILAR İÇİN • ÜCRETSİZ</span>
-            <h2 id="movePromoTitle">Taşınmazınızı burada gösterin.</h2>
-            <p>İlanınızı EmlakAI ana sayfasında profesyonel bir vitrinle öne çıkarın. Daha fazla alıcı ve kiracıya ulaşın.</p>
-            <div class="move-promo-actions">
-              <a class="btn" href="ilan-ver.html">Ücretsiz İlanınızı Yükleyin →</a>
-              <span class="move-promo-note">Kredi kartı gerekmez</span>
-            </div>
-          </div>
-          <div class="move-promo-visual" aria-hidden="true">
-            <div class="promo-building promo-building-a"></div>
-            <div class="promo-building promo-building-b"></div>
-            <div class="promo-building promo-building-c"></div>
-            <div class="promo-window w1"></div><div class="promo-window w2"></div><div class="promo-window w3"></div>
-            <div class="promo-window w4"></div><div class="promo-window w5"></div><div class="promo-window w6"></div>
-            <div class="promo-ground"></div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <section class="g-hero"><h1 class="g-logo">Emlak<span>AI</span></h1><p class="g-tag">Satılık &amp; kiralık taşınmaz ve araç — yapay zekâ destekli arama</p><div class="g-tabs" id="segTabs" role="tablist"><button class="tab-btn active" data-seg="emlak" role="tab">🏠 Taşınmaz</button><button class="tab-btn" data-seg="vasita" role="tab">🚗 Araç</button></div><div class="g-search"><input id="aiQuery" type="text" autocomplete="off" aria-label="Arama"><button class="btn" id="aiSearchBtn">Ara</button></div><div class="g-quick"><a class="chip" href="ilanlar.html?segment=emlak&amp;category=satilik">Satılık Taşınmaz</a><a class="chip" href="ilanlar.html?segment=emlak&amp;category=kiralik">Kiralık Taşınmaz</a><a class="chip" href="ilanlar.html?segment=vasita&amp;category=satilik">Satılık Araç</a><a class="chip" href="ilanlar.html?segment=vasita&amp;category=kiralik">Kiralık Araç</a></div><p class="g-note">Doğal dille yazın; yapay zekâ aramanızı filtrelere çevirir, fiyatları piyasayla kıyaslar.</p></section>
+    <section class="move-promo" aria-labelledby="movePromoTitle"><div class="container"><div class="move-promo-card"><div class="move-promo-copy"><span class="move-promo-label">TAŞINMAZINIZI HEMEN YAYINLAYIN</span><h2 id="movePromoTitle">Taşınmazınızı ilan verin, AI ile daha hızlı satın.</h2><p>Taşınmazınızı EmlakAI'ye yükleyin. Yapay zekâ destekli platformumuz ilanınızı profesyonel şekilde sunmanıza ve doğru alıcılara daha hızlı ulaşmanıza yardımcı olsun.</p><div class="move-promo-actions"><a class="btn" href="ilan-ver.html">Taşınmazınızı İlan Verin →</a><span class="move-promo-note">Dakikalar içinde yayınlayın</span></div></div><div class="move-promo-visual" aria-hidden="true"><div class="promo-building promo-building-a"></div><div class="promo-building promo-building-b"></div><div class="promo-building promo-building-c"></div><div class="promo-window w1"></div><div class="promo-window w2"></div><div class="promo-window w3"></div><div class="promo-window w4"></div><div class="promo-window w5"></div><div class="promo-window w6"></div><div class="promo-ground"></div></div></div></div></section>
   </main>
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-links">
-        <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
-        <a href="rehber.html">Rehber</a>
-        <a href="asistan.html">AI Asistan</a>
-        <a data-c-tel href="#">—</a>
-        <a data-c-mail href="#">—</a>
-      </div>
-      <div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
-    </div>
-  </footer>
+  <footer class="site-footer"><div class="container"><div class="footer-links"><a href="bolge-fiyatlari.html">Bölge Fiyatları</a><a href="rehber.html">Rehber</a><a href="asistan.html">AI Asistan</a><a data-c-tel href="#">—</a><a data-c-mail href="#">—</a></div><div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır, yatırım tavsiyesi değildir.</div></div></footer>
   <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
-  <script src="assets/config.js"></script>
-  <script src="assets/data.js"></script>
-  <script src="assets/ai.js"></script>
-  <script src="assets/app.js"></script>
-  <script src="assets/visitor.js"></script>
+  <script src="assets/config.js"></script><script src="assets/data.js"></script><script src="assets/ai.js"></script><script src="assets/app.js"></script><script src="assets/visitor.js"></script>
 </body>
 </html>
