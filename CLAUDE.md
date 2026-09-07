@@ -7,11 +7,10 @@ EmlakAI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
 (`segment: "emlak"`) + araç (`segment: "vasita"`), her ikisi satılık/kiralık.
 Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, bağımlılıksız Node statik
 sunucu (`server.js`, Railway uyumlu). Sunucu tarafı yok; tüm AI özellikleri
-istemcide çalışır (çevrimdışı dâhil). Tasarım ilkesi: **Google sadeliği** —
-ana sayfa yalnızca logo + tek arama kutusu + segment seçimi + 4 hızlı bağlantı.
+istemcide çalışır (çevrimdışı dâhil). Tasarım ilkesi: **premium, veri odaklı keşif** — ana sayfa güçlü bir hero, doğal dil araması ve ilan keşif vitrinleri (son eklenenler, AI seçkisi, fırsatlar, fiyat düşüşleri, koleksiyonlar) sunar; bölümler gerçek ilan verisi geldikçe otomatik güncellenir.
 
 Sayfalar (kök dizinde):
-`index.html` (Google tarzı merkez arama; kart/vitrin YOK) · `ilanlar.html`
+`index.html` (premium hero + doğal dil arama + son ilanlar, AI seçkisi, fırsat/fiyat düşüşü vitrinleri ve otomatik koleksiyonlar) · `ilanlar.html`
 (segment seçicili filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır;
 araçta marka/model/yıl/km/yakıt/vites filtreleri; sayfa başına 24 ilan +
 `.pager` sayfalama — filtre/sıralama değişince 1. sayfaya döner) · `ilan.html?id=`
