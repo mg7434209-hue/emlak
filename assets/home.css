@@ -431,7 +431,8 @@ html[data-theme="dark"] .home-search-panel {
   align-items: stretch;
   gap: 18px;
 }
-.home-rail-track > .home-card {
+.home-rail-track > .home-card,
+.home-rail-track > .home-skeleton {
   flex: 0 0 min(318px, calc(100vw - 58px));
   scroll-snap-align: start;
 }
@@ -575,7 +576,7 @@ html[data-theme="dark"] .home-search-panel {
 }
 .home-card-link {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   inset: 0;
 }
 .home-empty {
