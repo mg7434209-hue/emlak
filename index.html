@@ -16,6 +16,38 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>'>
+  <style>
+    .move-promo { padding: 8px 0 46px; }
+    .move-promo-card {
+      position: relative; overflow: hidden; min-height: 230px; display: grid; grid-template-columns: 1.15fr .85fr;
+      background: linear-gradient(135deg, #0d1730 0%, #182d58 58%, #244a88 100%);
+      border: 1px solid rgba(255,255,255,.12); border-radius: 22px; box-shadow: 0 18px 50px rgba(13,23,48,.24);
+      color: #fff; isolation: isolate;
+    }
+    .move-promo-copy { position: relative; z-index: 3; padding: 30px 34px; align-self: center; }
+    .move-promo-label { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.16); color: #dce8ff; font-size: .7rem; font-weight: 800; letter-spacing: .08em; }
+    .move-promo h2 { margin: 12px 0 8px; font-size: clamp(1.45rem, 3vw, 2.15rem); line-height: 1.12; letter-spacing: -.03em; }
+    .move-promo p { max-width: 590px; color: #cbd8ef; font-size: .95rem; }
+    .move-promo-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+    .move-promo .btn { background: #fff; color: #123a83; box-shadow: 0 8px 22px rgba(0,0,0,.18); }
+    .move-promo .btn:hover { background: #eef4ff; }
+    .move-promo-note { color: #aebfdd; font-size: .78rem; }
+    .move-promo-visual { position: relative; min-height: 230px; overflow: hidden; background: radial-gradient(circle at 55% 25%, rgba(108,164,255,.25), transparent 38%); }
+    .promo-ground { position: absolute; inset: auto -8% 0; height: 35%; background: linear-gradient(180deg, rgba(8,18,37,.05), rgba(5,12,27,.55)); transform: skewY(-5deg); }
+    .promo-building { position: absolute; bottom: 10%; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, #dce8fb, #8ca8d2); box-shadow: -8px 0 30px rgba(0,0,0,.14); }
+    .promo-building-a { width: 112px; height: 76%; left: 9%; }
+    .promo-building-b { width: 145px; height: 92%; left: 31%; background: linear-gradient(180deg, #f2f6ff, #a4badc); }
+    .promo-building-c { width: 105px; height: 66%; right: 7%; background: linear-gradient(180deg, #b9cbe5, #718db8); }
+    .promo-window { position: absolute; z-index: 2; width: 10px; height: 18px; border-radius: 2px; background: #ffe9a8; box-shadow: 0 0 9px rgba(255,233,168,.45); }
+    .w1 { left: 14%; top: 37%; } .w2 { left: 14%; top: 51%; } .w3 { left: 36%; top: 23%; } .w4 { left: 36%; top: 39%; } .w5 { left: 52%; top: 53%; } .w6 { right: 13%; top: 45%; }
+    @media (max-width: 760px) {
+      .move-promo { padding: 4px 0 32px; }
+      .move-promo-card { grid-template-columns: 1fr; min-height: 0; }
+      .move-promo-copy { padding: 25px 22px 22px; }
+      .move-promo-visual { min-height: 130px; opacity: .8; }
+      .promo-building-a { width: 72px; } .promo-building-b { width: 94px; } .promo-building-c { width: 68px; }
+    }
+  </style>
 </head>
 <body data-page="index">
   <header class="site-header">
