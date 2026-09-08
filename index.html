@@ -42,93 +42,47 @@
   </header>
 
   <main>
-    <section class="home-hero home-property-hero" aria-labelledby="heroTitle">
-      <div class="home-property-shape shape-one"></div>
-      <div class="home-property-shape shape-two"></div>
-      <div class="container home-property-inner">
-        <div class="home-property-copy">
-          <span class="home-eyebrow">TÜRKİYE'NİN YENİ NESİL EMLAK PLATFORMU</span>
-          <h1 id="heroTitle">Aradığınız evi, <em>doğru yerde</em> bulun.</h1>
-          <p class="home-hero-lead">Satılık ve kiralık ev, villa, arsa ve iş yerlerini keşfedin. Konumunuzu ve beklentinizi yazın; EmlakAI size uygun ilanları bulsun.</p>
-          <div class="home-property-points" aria-label="EmlakAI özellikleri">
-            <span><i>⌖</i> Konuma göre keşfet</span>
-            <span><i>▦</i> İlanları karşılaştır</span>
-            <span><i>♡</i> Favorilerine ekle</span>
+    <section class="home-hero home-compact-hero" aria-labelledby="heroTitle">
+      <div class="home-compact-shape"></div>
+      <div class="container home-compact-inner">
+        <div class="home-compact-top">
+          <div class="home-compact-copy">
+            <span class="home-eyebrow">EMLAKAI · TAŞINMAZ PLATFORMU</span>
+            <h1 id="heroTitle">Aradığınız evi, <em>kolayca bulun.</em></h1>
+            <p class="home-hero-lead">Satılık ve kiralık ev, villa, arsa ve iş yerlerini keşfedin. Konumunuzu ve beklentinizi yazın; size uygun ilanları bulalım.</p>
           </div>
-
-          <div class="home-search-panel home-property-search">
-            <div class="home-search-head">
-              <span class="home-search-kicker">İLAN ARA</span>
-              <span class="home-ai-mark">✦ AI arama yardımcısı</span>
-            </div>
-            <div class="g-tabs" id="segTabs" role="tablist" aria-label="İlan türü">
-              <button class="tab-btn active" data-seg="emlak" role="tab" aria-selected="true">🏠 Taşınmaz</button>
-              <button class="tab-btn" data-seg="vasita" role="tab" aria-selected="false">🚗 Araç</button>
-            </div>
-            <div class="home-structured-filters" aria-label="Hızlı emlak filtreleri">
-              <button class="home-query-chip home-structured-filter" type="button" data-home-query="Satılık taşınmaz"><span>İlan türü</span><b>Satılık / Kiralık</b><strong>⌄</strong></button>
-              <button class="home-query-chip home-structured-filter" type="button" data-home-query="Antalya"><span>Konum</span><b>Şehir veya ilçe</b><strong>⌄</strong></button>
-              <button class="home-query-chip home-structured-filter" type="button" data-home-query="Daire villa arsa"><span>Kategori</span><b>Daire, villa, arsa</b><strong>⌄</strong></button>
-            </div>
-            <div class="home-search-row g-search">
-              <input id="aiQuery" type="text" autocomplete="off" aria-label="Doğal dil ile ilan ara" placeholder="Örn. Antalya'da havuzlu satılık villa">
-              <button class="btn" id="aiSearchBtn" type="button">İlan Ara <span aria-hidden="true">→</span></button>
-            </div>
-            <div class="home-query-chips home-query-examples" aria-label="Örnek aramalar">
-              <button class="home-query-chip" type="button" data-home-query="Antalya'da havuzlu villa">Antalya'da havuzlu villa</button>
-              <button class="home-query-chip" type="button" data-home-query="Denize yakın yazlık">Denize yakın yazlık</button>
-              <button class="home-query-chip" type="button" data-home-query="Yatırımlık arsa">Yatırımlık arsa</button>
-            </div>
-            <p class="home-search-note"><span aria-hidden="true">✦</span> İsterseniz doğal dille yazın: “Manavgat'ta 5 milyon altı villa”.</p>
+          <div class="home-compact-categories" aria-label="Popüler emlak kategorileri">
+            <span>🏠 Daire</span>
+            <span>🏡 Villa</span>
+            <span>🌳 Arsa</span>
+            <span>🏢 İş yeri</span>
           </div>
         </div>
 
-        <div class="home-property-visual" aria-label="Satılık villa ilanı görseli">
-          <div class="home-property-photo">
-            <svg viewBox="0 0 720 570" role="img" aria-label="Akdeniz kıyısında modern villa">
-              <defs>
-                <linearGradient id="propertySky" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#9bd9ec"></stop><stop offset=".6" stop-color="#e9f5f1"></stop><stop offset="1" stop-color="#f8e5c7"></stop>
-                </linearGradient>
-                <linearGradient id="propertySea" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stop-color="#1d9ab0"></stop><stop offset="1" stop-color="#07587f"></stop>
-                </linearGradient>
-                <linearGradient id="propertyWall" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stop-color="#fffaf0"></stop><stop offset="1" stop-color="#d6c4aa"></stop>
-                </linearGradient>
-              </defs>
-              <rect width="720" height="570" fill="url(#propertySky)"></rect>
-              <circle cx="570" cy="108" r="55" fill="#fff4c7" opacity=".72"></circle>
-              <path d="M0 330 C120 286 190 314 292 292 C390 270 505 304 720 242 V570 H0Z" fill="url(#propertySea)"></path>
-              <path d="M0 391 C138 347 242 384 356 350 C472 316 566 354 720 301 V570 H0Z" fill="#ddc28e" opacity=".82"></path>
-              <path d="M108 402 L302 250 L536 378 V505 H108Z" fill="url(#propertyWall)"></path>
-              <path d="M80 400 L310 212 L565 370 L534 405 L305 272 L121 430Z" fill="#9a6748"></path>
-              <path d="M131 415 L292 283 L292 481 L131 481Z" fill="#e9dcc6"></path>
-              <path d="M316 289 L508 400 L508 481 L316 481Z" fill="#f5ead6"></path>
-              <path d="M157 430 H270 V482 H157Z" fill="#23556a" opacity=".92"></path>
-              <path d="M349 335 H463 V410 H349Z" fill="#24677a" opacity=".9"></path>
-              <path d="M183 408 H251 V455 H183Z" fill="#b9edf0" opacity=".74"></path>
-              <path d="M374 309 L455 356 V400 H374Z" fill="#b9edf0" opacity=".74"></path>
-              <rect x="299" y="400" width="18" height="85" fill="#8e6547"></rect>
-              <ellipse cx="390" cy="502" rx="180" ry="28" fill="#b7e4df" opacity=".75"></ellipse>
-              <ellipse cx="390" cy="500" rx="166" ry="22" fill="#3aaec0" opacity=".85"></ellipse>
-              <path d="M560 500 C580 407 606 354 619 288 C637 365 641 431 624 503Z" fill="#715238"></path>
-              <path d="M619 320 C559 323 566 286 614 292 C585 254 628 250 639 293 C671 255 700 288 646 321 C699 316 682 354 636 335 C651 377 601 373 619 320Z" fill="#298260"></path>
-              <path d="M60 493 C72 416 92 373 110 339 C122 415 127 452 116 500Z" fill="#765037"></path>
-              <path d="M108 367 C59 374 67 336 105 341 C81 311 118 307 128 343 C151 306 176 333 134 370 C176 365 162 397 126 382 C142 416 98 410 108 367Z" fill="#3c9263"></path>
-              <path d="M0 527 H720 V570 H0Z" fill="#d2a566" opacity=".65"></path>
-              <path d="M36 530 H686" stroke="#fff4da" stroke-width="3" opacity=".55"></path>
-            </svg>
-            <div class="home-property-photo-caption"><span>🏡</span><span>Akdeniz'de yeni bir başlangıç</span></div>
+        <div class="home-search-panel home-compact-search">
+          <div class="home-search-head">
+            <span class="home-search-kicker">İLAN ARA</span>
+            <span class="home-ai-mark">✦ AI arama yardımcısı</span>
           </div>
-          <div class="home-property-card">
-            <span class="home-property-card-kicker">ÖNE ÇIKAN İLAN</span>
-            <b>Deniz manzaralı villa</b>
-            <span>Antalya · Manavgat</span>
-            <strong>AI ile daha kolay keşfedin</strong>
+          <div class="g-tabs" id="segTabs" role="tablist" aria-label="İlan türü">
+            <button class="tab-btn active" data-seg="emlak" role="tab" aria-selected="true">🏠 Taşınmaz</button>
+            <button class="tab-btn" data-seg="vasita" role="tab" aria-selected="false">🚗 Araç</button>
           </div>
-          <div class="home-property-pin"><span>⌖</span><small>Konum</small><b>Antalya</b></div>
-          <div class="home-property-tag">Satılık · Villa</div>
+          <div class="home-structured-filters" aria-label="Hızlı emlak filtreleri">
+            <button class="home-query-chip home-structured-filter" type="button" data-home-query="Satılık taşınmaz"><span>İlan türü</span><b>Satılık / Kiralık</b><strong>⌄</strong></button>
+            <button class="home-query-chip home-structured-filter" type="button" data-home-query="Antalya"><span>Konum</span><b>Şehir veya ilçe</b><strong>⌄</strong></button>
+            <button class="home-query-chip home-structured-filter" type="button" data-home-query="Daire villa arsa"><span>Kategori</span><b>Daire, villa, arsa</b><strong>⌄</strong></button>
+          </div>
+          <div class="home-search-row g-search">
+            <input id="aiQuery" type="text" autocomplete="off" aria-label="Doğal dil ile ilan ara" placeholder="Örn. Antalya'da havuzlu satılık villa">
+            <button class="btn" id="aiSearchBtn" type="button">İlan Ara <span aria-hidden="true">→</span></button>
+          </div>
+          <div class="home-query-chips home-query-examples" aria-label="Örnek aramalar">
+            <button class="home-query-chip" type="button" data-home-query="Antalya'da havuzlu villa">Antalya'da havuzlu villa</button>
+            <button class="home-query-chip" type="button" data-home-query="Denize yakın yazlık">Denize yakın yazlık</button>
+            <button class="home-query-chip" type="button" data-home-query="Yatırımlık arsa">Yatırımlık arsa</button>
+          </div>
+          <p class="home-search-note"><span aria-hidden="true">✦</span> İsterseniz doğal dille yazın: “Manavgat'ta 5 milyon altı villa”.</p>
         </div>
       </div>
     </section>
