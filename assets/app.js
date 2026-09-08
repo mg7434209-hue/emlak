@@ -513,8 +513,20 @@
     });
   }
   function observeReveals(root) {
+    // Gözlemci desteklenmiyorsa animasyonu atla, içeriği doğrudan göster
+    if (typeof IntersectionObserver !== "function") {
+      $$(".reveal:not(.in)", root).forEach((el) => el.classList.add("in"));
+      return;
+    }
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.08 });
-    $$(".reveal:not(.in)", root).forEach((el) => io.observe(el));
+    const els = $$(".reveal:not(.in)", root);
+    els.forEach((el) => io.observe(el));
+    // Güvenlik ağı: animasyon herhangi bir nedenle tetiklenmezse (hızlı kaydırma,
+    // gözlemci desteklenmiyor, sekme arka planda) içerik gizli KALMASIN.
+    setTimeout(() => els.forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.top < innerHeight * 1.5) el.classList.add("in");
+    }), 1200);
   }
 
   // ── Trend grafiği (SVG sparkline) ───────────────────────────────────────
@@ -575,6 +587,118 @@
     $("#aiSearchBtn").addEventListener("click", doSearch);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
     input.focus();
+
+    // ── Portal içeriği: vitrin, son ilanlar, kategori/bölge blokları ──────
+    const all = D.all();
+    const active = all.filter((l) => !l.status || l.status === "active");
+    const emlak = active.filter((l) => (l.segment || "emlak") === "emlak");
+
+    // Üst istatistik şeridi (canlı veriden)
+    const perM2 = (() => {
+      const v = emlak.filter((l) => l.m2 && l.category === "satilik").map((l) => l.price / l.m2);
+      return v.length ? Math.round(v.reduce((a, c) => a + c, 0) / v.length) : 0;
+    })();
+    const ilceSayisi = new Set(active.map((l) => l.city + "/" + l.district)).size;
+    $("#statStrip").innerHTML = [
+      ["Yayındaki ilan", fmt(active.length)],
+      ["Bölge", fmt(ilceSayisi || Object.keys(C.market.cities).length)],
+      ["Ortalama ₺/m²", perM2 ? fmt(perM2) : "—"],
+      ["AI analizi", "Her ilanda"],
+    ].map(([k, v]) => `<div class="stat-box"><b>${esc(String(v))}</b><span>${esc(k)}</span></div>`).join("");
+
+    // Sol kategori ağacı — bağlantılar SEO rotalarına gider
+    const slug = (v) => String(v || "").toLocaleLowerCase("tr-TR")
+      .replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ö/g, "o").replace(/ç/g, "c")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const countOf = (f) => active.filter((l) =>
+      (!f.category || l.category === f.category) && (!f.kind || l.kind === f.kind) &&
+      (!f.segment || (l.segment || "emlak") === f.segment) && (!f.city || l.city === f.city)).length;
+    const konut = ["daire", "residence", "villa", "mustakil"];
+    const isyeri = ["dukkan", "ofis"];
+    const grup = (baslik, kinds, cat) => `<div class="cat-group"><b>${esc(baslik)}</b>` +
+      kinds.map((k) => {
+        const kd = D.kinds.find((x) => x.kind === k) || { label: k };
+        const n = countOf({ category: cat, kind: k });
+        return `<a href="/${cat}-${slug(kd.label)}">${esc(kd.label)}<span>${n ? fmt(n) : ""}</span></a>`;
+      }).join("") + "</div>";
+    $("#catTree").innerHTML =
+      grup("Satılık Konut", konut, "satilik") +
+      grup("Kiralık Konut", konut, "kiralik") +
+      grup("İş Yeri & Arsa", isyeri.concat("arsa"), "satilik") +
+      `<div class="cat-group"><b>Araç</b>` +
+        `<a href="ilanlar.html?segment=vasita&category=satilik">Satılık Araç<span>${countOf({ segment: "vasita", category: "satilik" }) || ""}</span></a>` +
+        `<a href="ilanlar.html?segment=vasita&category=kiralik">Kiralık Araç<span>${countOf({ segment: "vasita", category: "kiralik" }) || ""}</span></a>` +
+      `</div>` +
+      `<div class="cat-group"><b>Şehirler</b>` +
+        D.cities.map((c) => `<a href="/${slug(c)}">${esc(c)}<span>${countOf({ city: c }) || ""}</span></a>`).join("") +
+      `</div>`;
+
+    // Vitrin (öne çıkanlar) ve son eklenenler
+    const byDate = active.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    const one = byDate.filter((l) => l.featured).slice(0, 4);
+    const featSec = $("#featuredSec");
+    if (one.length) renderCards($("#featuredGrid"), one);
+    else featSec.style.display = "none";
+    // Vitrindeki ilanlar burada tekrarlanmaz
+    const vitrinIds = new Set(one.map((l) => l.id));
+    renderCards($("#latestGrid"), byDate.filter((l) => !vitrinIds.has(l.id)).slice(0, 8),
+      "Henüz yayında ilan yok — ilk ilanı siz verin, dakikalar içinde yayında olsun.");
+
+    // Kategori blokları: en çok ilanı olan 3 kategori, 4'er ilan.
+    // Az ilan varken bloklar "son eklenenler" ile aynı ilanları tekrarlar —
+    // o yüzden yeterli ilan yoksa hiç gösterilmez.
+    const kombin = {};
+    active.forEach((l) => {
+      const key = l.category + "|" + l.kind;
+      (kombin[key] = kombin[key] || []).push(l);
+    });
+    const bloklar = active.length >= 8
+      ? Object.entries(kombin).sort((a, b) => b[1].length - a[1].length).filter(([, v]) => v.length >= 2).slice(0, 3)
+      : [];
+    $("#catBlocks").innerHTML = bloklar.map(([key, items], i) => {
+      const [cat, kind] = key.split("|");
+      const kd = D.kinds.find((x) => x.kind === kind) || { label: "İlan" };
+      const baslik = (cat === "kiralik" ? "Kiralık " : "Satılık ") + kd.label;
+      const href = (items[0].segment || "emlak") === "vasita"
+        ? `ilanlar.html?segment=vasita&category=${cat}` : `/${cat}-${slug(kd.label)}`;
+      return `<section class="portal-sec">
+        <div class="sec-head"><h2>${esc(baslik)} (${fmt(items.length)})</h2><a href="${href}">Tümü →</a></div>
+        <div class="grid" id="catBlock${i}"></div>
+      </section>`;
+    }).join("");
+    bloklar.forEach(([, items], i) => {
+      const el = $("#catBlock" + i);
+      if (el) renderCards(el, AI.rank(items.slice()).slice(0, 4));
+    });
+
+    // Bölge kartları: ilan sayısı + bölge ₺/m² (config piyasa verisi)
+    const bolgeler = [];
+    D.cities.forEach((city) => {
+      D.districtsOf(city).forEach((d) => {
+        const n = active.filter((l) => l.city === city && l.district === d).length;
+        bolgeler.push({ city, d, n, perM2: C.market.cities[city].districts[d] });
+      });
+    });
+    bolgeler.sort((a, b) => (b.n - a.n) || (b.perM2 - a.perM2));
+    $("#regionGrid").innerHTML = bolgeler.slice(0, 12).map((r) =>
+      `<a class="region-card" href="/${slug(r.d)}">
+        <b>${esc(r.d)}</b>
+        <small>${esc(r.city)}</small>
+        <div class="rc-count">${r.n ? fmt(r.n) + " ilan" : "İlan bekleniyor"}</div>
+        <small>${fmt(r.perM2)} ₺/m² · kira ≈ ${fmt(Math.round(r.perM2 * C.market.rentYieldMonthly))} ₺/m²</small>
+      </a>`).join("");
+
+    // Popüler aramalar (doğal dil örnekleriyle AI aramayı tanıtır)
+    const ornek = [
+      "Manavgat'ta 10 milyon altı deniz manzaralı villa",
+      "Antalya kiralık 2+1 daire",
+      "krediye uygun 5 yaşından yeni 3+1",
+      "en ucuz satılık arsa",
+      "2020 üstü otomatik dizel araç",
+      "havuzlu site içinde eşyalı daire",
+    ];
+    $("#popularTags").innerHTML = ornek.map((q) =>
+      `<a class="chip" href="ilanlar.html?q=${encodeURIComponent(q)}">${esc(q)}</a>`).join("");
   }
 
   // ── İlanlar ────────────────────────────────────────────────────────────

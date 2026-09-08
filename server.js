@@ -1132,6 +1132,84 @@ function renderSeoPage(html, f, list) {
       `<p>${t.intro}</p>`);
 }
 
+// Ana sayfa portalı: vitrin, son ilanlar, kategori ağacı ve bölge kartları
+// sunucuda basılır (bot'lar JS çalıştırmaz; istemci aynı alanları tazeler).
+function renderHomeHtml(html) {
+  const active = LISTINGS.filter((l) => l.status === "active");
+  const byDate = active.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  const kinds = global.EMLAK.data.kinds;
+  const card = (l) => `
+            <article class="card"><div class="body">
+              <div class="price">${trNum(l.price)} ₺${priceSuffix(l)}</div>
+              <h3><a href="ilan.html?id=${encodeURIComponent(l.id)}">${htmlEsc(l.title)}</a></h3>
+              <div class="meta">${htmlEsc(listingSummary(l))}</div>
+            </div></article>`;
+  const countOf = (f) => active.filter((l) =>
+    (!f.category || l.category === f.category) && (!f.kind || l.kind === f.kind) &&
+    (!f.city || l.city === f.city)).length;
+  const grup = (baslik, ks, cat) => `<div class="cat-group"><b>${htmlEsc(baslik)}</b>` +
+    ks.map((k) => {
+      const kd = kinds.find((x) => x.kind === k) || { label: k };
+      const n = countOf({ category: cat, kind: k });
+      return `<a href="/${cat}-${slugify(kd.label)}">${htmlEsc(kd.label)}<span>${n || ""}</span></a>`;
+    }).join("") + "</div>";
+  const tree = grup("Satılık Konut", ["daire", "residence", "villa", "mustakil"], "satilik") +
+    grup("Kiralık Konut", ["daire", "residence", "villa", "mustakil"], "kiralik") +
+    grup("İş Yeri & Arsa", ["dukkan", "ofis", "arsa"], "satilik") +
+    `<div class="cat-group"><b>Şehirler</b>` +
+      Object.keys(CONF.market.cities).map((c) =>
+        `<a href="/${slugify(c)}">${htmlEsc(c)}<span>${countOf({ city: c }) || ""}</span></a>`).join("") +
+    `</div>`;
+  const perM2 = (() => {
+    const v = active.filter((l) => l.m2 && l.category === "satilik" && (l.segment || "emlak") === "emlak")
+      .map((l) => l.price / l.m2);
+    return v.length ? Math.round(v.reduce((a, c) => a + c, 0) / v.length) : 0;
+  })();
+  const stats = [
+    ["Yayındaki ilan", trNum(active.length)],
+    ["Bölge", trNum(new Set(active.map((l) => l.city + "/" + l.district)).size || Object.keys(CONF.market.cities).length)],
+    ["Ortalama ₺/m²", perM2 ? trNum(perM2) : "—"],
+    ["AI analizi", "Her ilanda"],
+  ].map(([k, v]) => `<div class="stat-box"><b>${htmlEsc(v)}</b><span>${htmlEsc(k)}</span></div>`).join("");
+  const regions = [];
+  Object.keys(CONF.market.cities).forEach((city) => {
+    Object.keys(CONF.market.cities[city].districts).forEach((d) => {
+      regions.push({ city, d, n: active.filter((l) => l.city === city && l.district === d).length,
+        perM2: CONF.market.cities[city].districts[d] });
+    });
+  });
+  regions.sort((a, b) => (b.n - a.n) || (b.perM2 - a.perM2));
+  const regionCards = regions.slice(0, 12).map((r) => `
+          <a class="region-card" href="/${slugify(r.d)}"><b>${htmlEsc(r.d)}</b><small>${htmlEsc(r.city)}</small>
+            <div class="rc-count">${r.n ? trNum(r.n) + " ilan" : "İlan bekleniyor"}</div>
+            <small>${trNum(r.perM2)} ₺/m² · kira ≈ ${trNum(r.perM2 * CONF.market.rentYieldMonthly)} ₺/m²</small></a>`).join("");
+
+  const desc = active.length
+    ? `${active.length} yayında ilan: satılık ve kiralık daire, villa, iş yeri, arsa ve araç. ` +
+      `Yapay zekâ fiyat analizi, doğal dil arama ve anında değerleme ile ${CONF.brand.name}.`
+    : `Satılık ve kiralık taşınmaz ile araç ilanları; yapay zekâ fiyat analizi, doğal dil arama ve anında değerleme.`;
+  html = setHead(html, {
+    title: `${CONF.brand.name} — Satılık & Kiralık Emlak ve Araç İlanları | AI Destekli`,
+    desc, url: SITE + "/", image: SITE + CONF.seo.ogImage,
+  });
+  const ld = active.length ? jsonLdTag({
+    "@context": "https://schema.org", "@type": "ItemList",
+    name: CONF.brand.name + " — öne çıkan ilanlar",
+    itemListElement: byDate.slice(0, 12).map((l, i) => ({
+      "@type": "ListItem", position: i + 1, url: listingUrl(l), name: l.title,
+    })),
+  }) : "";
+  return html
+    .replace("</head>", ld + "\n</head>")
+    .replace('<div class="stat-strip" id="statStrip"></div>', `<div class="stat-strip" id="statStrip">${stats}</div>`)
+    .replace('<nav id="catTree" aria-label="Kategori ağacı"></nav>', `<nav id="catTree" aria-label="Kategori ağacı">${tree}</nav>`)
+    .replace('<div class="grid" id="featuredGrid"></div>',
+      `<div class="grid" id="featuredGrid">${byDate.filter((l) => l.featured).slice(0, 4).map(card).join("")}</div>`)
+    .replace('<div class="grid" id="latestGrid"></div>',
+      `<div class="grid" id="latestGrid">${byDate.filter((l) => !l.featured).slice(0, 8).map(card).join("")}</div>`)
+    .replace('<div class="region-grid" id="regionGrid"></div>', `<div class="region-grid" id="regionGrid">${regionCards}</div>`);
+}
+
 // Sitemap için: gerçekten ilanı olan kategori/lokasyon sayfaları (ince sayfa yok)
 function seoRouteList() {
   const active = LISTINGS.filter((l) => l.status === "active");
@@ -1309,6 +1387,9 @@ const server = http.createServer((req, res) => {
 
     // ── SEO: ilan ve liste sayfaları sunucuda doldurulur (botlar JS çalıştırmaz)
     const baseName = path.basename(filePath);
+    if (baseName === "index.html") {
+      return sendHtml(req, res, renderHomeHtml(fs.readFileSync(filePath, "utf8")));
+    }
     if (baseName === "ilan.html" || baseName === "ilanlar.html") {
       const active = LISTINGS.filter((x) => x.status === "active");
       let out = fs.readFileSync(filePath, "utf8");

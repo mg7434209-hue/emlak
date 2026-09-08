@@ -56,7 +56,9 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 
 ## Sayfalar
 
-- `index.html` — Google tarzı merkez arama (segment seçimi + tek kutu)
+- `index.html` — **portal ana sayfa**: arama bandı, canlı istatistikler, sol
+  kategori ağacı (ilan sayılarıyla), ⭐ vitrin, son eklenen ilanlar, kategori ve
+  bölge blokları, AI araçları, popüler aramalar
 - `ilanlar.html` — segment seçicili filtreli liste (araçta marka/model/yıl/km/yakıt/vites)
 - `ilan.html?id=…` — detay: AI açıklama, değerleme bandı, trend, benzerler, konut/taşıt kredisi
 - `ilan-ver.html` — AI destekli ücretsiz ilan verme (taşınmaz + araç); gönderilen

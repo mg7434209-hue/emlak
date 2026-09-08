@@ -332,6 +332,75 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
 .reveal.in { opacity: 1; transform: none; }
 .notice { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; color: var(--muted); }
 
+/* ── Ana sayfa portalı ──────────────────────────────── */
+.hero-portal {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 12%, var(--bg)) 0%, var(--bg) 70%);
+  border-bottom: 1px solid var(--border);
+  padding: 40px 0 28px; text-align: center;
+}
+.hero-h1 { font-size: clamp(1.5rem, 3.4vw, 2.2rem); line-height: 1.25; letter-spacing: -0.5px; }
+.hero-sub { color: var(--muted); margin: 10px auto 20px; max-width: 620px; font-size: 0.98rem; }
+.hero-portal .g-tabs { justify-content: center; }
+.hero-search { max-width: 760px; margin-inline: auto; }
+.hero-quick { margin-top: 16px; }
+.stat-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; max-width: 860px; margin: 26px auto 0;
+}
+.stat-strip .stat-box { padding: 12px; }
+.stat-strip .stat-box b { font-size: 1.25rem; }
+
+.portal-layout { display: grid; grid-template-columns: 268px 1fr; gap: 24px; align-items: start; padding: 28px 0 50px; }
+@media (max-width: 900px) {
+  /* Mobilde önce ilanlar gelir; kategori ağacı içeriğin ALTINA iner */
+  .portal-layout { grid-template-columns: 1fr; }
+  .portal-main { order: 1; }
+  .cat-tree { order: 2; }
+}
+
+.cat-tree {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px; position: sticky; top: 82px; box-shadow: var(--shadow);
+}
+@media (max-width: 900px) { .cat-tree { position: static; } }
+.cat-tree h2 { font-size: 1rem; margin-bottom: 12px; }
+.cat-group { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
+.cat-group:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+.cat-group > b { display: block; font-size: 0.86rem; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.02em; }
+.cat-tree a {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: 8px; font-size: 0.93rem; color: var(--text);
+}
+.cat-tree a:hover { background: var(--surface-2); color: var(--primary); }
+.cat-tree a span { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.cat-cta { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 14px; }
+
+.portal-sec { margin-bottom: 34px; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.sec-head h2 { font-size: 1.15rem; }
+.sec-head a { font-size: 0.9rem; white-space: nowrap; }
+
+.region-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+/* Mobilde bölge listesi sayfayı uzatmasın: ilk 6 bölge gösterilir */
+@media (max-width: 700px) { .region-grid > :nth-child(n+7) { display: none; } }
+.region-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; display: block; transition: transform 0.15s, box-shadow 0.15s;
+}
+.region-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+.region-card b { display: block; color: var(--text); }
+.region-card small { color: var(--muted); }
+.region-card .rc-count { color: var(--primary); font-weight: 700; font-size: 0.9rem; }
+
+.tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.tool-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; display: flex; flex-direction: column; gap: 6px; transition: transform 0.15s, box-shadow 0.15s;
+}
+.tool-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+.tool-card b { color: var(--text); }
+.tool-card span { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+
 /* ── AI Analizi kutusu (ilan detayı) ─────────────────── */
 .ai-analysis .ai-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 12px; }
 @media (max-width: 620px) { .ai-analysis .ai-cols { grid-template-columns: 1fr; } }

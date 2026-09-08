@@ -6,12 +6,18 @@
 EmlakAI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
 (`segment: "emlak"`) + araç (`segment: "vasita"`), her ikisi satılık/kiralık.
 Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, bağımlılıksız Node statik
-sunucu (`server.js`, Railway uyumlu). Sunucu tarafı yok; tüm AI özellikleri
-istemcide çalışır (çevrimdışı dâhil). Tasarım ilkesi: **Google sadeliği** —
-ana sayfa yalnızca logo + tek arama kutusu + segment seçimi + 4 hızlı bağlantı.
+sunucu (`server.js`, Railway uyumlu). Tüm AI özellikleri istemcide çalışır;
+sunucu üyelik/ilan API'si ve SEO ön işlemesi yapar.
+TASARIM: ana sayfa **PORTAL** kurgusudur (eski "Google sadeliği" ilkesi
+05.09.2026'da kullanıcı kararıyla bırakıldı).
 
 Sayfalar (kök dizinde):
-`index.html` (Google tarzı merkez arama; kart/vitrin YOK) · `ilanlar.html`
+`index.html` (PORTAL: arama bandı + canlı istatistik şeridi + sol kategori
+ağacı (`#catTree`, sayaçlı, SEO rotalarına bağlanır) + ⭐ vitrin + son eklenenler
++ kategori blokları (yalnız 8+ ilan varken; az ilanda tekrar olmasın diye
+gizlenir) + bölge kartları + AI araçları + popüler aramalar. Sunucuda
+`renderHomeHtml()` ile doldurulur; mobilde kategori ağacı CSS `order` ile
+içeriğin ALTINA iner, bölge listesi 6 karta düşer) · `ilanlar.html`
 (segment seçicili filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır;
 araçta marka/model/yıl/km/yakıt/vites filtreleri; sayfa başına 24 ilan +
 `.pager` sayfalama — filtre/sıralama değişince 1. sayfaya döner) · `ilan.html?id=`
@@ -65,6 +71,8 @@ tarayıcıları içeriği JS'siz görür; tarayıcıda `app.js` aynı alanları 
 - `/magaza.html?u=` → satıcı adı, tipi (ofis/bireysel), ilan kartları ve
   RealEstateAgent/Person JSON-LD basılır; `/api/seller?u=` herkese açık profil
   verir (e-posta ASLA dönmez).
+- `/` (ana sayfa portalı) → vitrin/son ilan kartları, kategori ağacı sayaçları,
+  bölge kartları ve istatistik şeridi basılır + ItemList JSON-LD.
 - `/llms.txt` canlı yayındaki ilan listesini de ekler (AEO).
 - `/sitemap.xml` ilan URL'lerine `image:image` girdileri ekler (görsel arama).
 Yeni bir sayfayı ön işlersen `sendHtml()` üzerinden gönder (CSP/HSTS başlıkları
@@ -126,6 +134,11 @@ gömme; değişiklik = config.
   (localStorage `emlakai.recent`, 8 kayıt). Detayda: fiyat geçmişi grafiği
   (`priceHistory` varsa), satıcının diğer ilanları ve mağaza bağlantısı.
 - `assets/style.css` — tasarım sistemi (CSS değişkenleri, açık/koyu tema).
+  Portal stilleri: `.hero-portal`, `.stat-strip`, `.portal-layout`, `.cat-tree`,
+  `.portal-sec`, `.region-grid`, `.tool-grid`.
+- `.reveal` animasyonu: `observeReveals()` gözlemci yoksa içeriği doğrudan
+  gösterir ve 1,2 sn sonra ekrana yakın kalanları açar — animasyon takılsa bile
+  içerik GİZLİ KALMAZ.
 - Görseller: dış görsel YOK; kartlar `thumbSVG()` ile üretilen SVG yer tutucu
   kullanır. Dış siteden hotlink YAPMA (egress kısıtı).
 
