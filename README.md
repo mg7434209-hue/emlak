@@ -1,6 +1,6 @@
 # 🏠 EmlakAI — AI Destekli Taşınmaz & Araç İlan Platformu
 
-**Google sadeliğinde** tasarlanmış, iki segmentli (taşınmaz + araç,
+**premium keşif deneyimi** sunan, iki segmentli (taşınmaz + araç,
 satılık/kiralık) ilan platformu. Tamamı istemci tarafında çalışan yapay zekâ
 özellikleri; saf HTML + CSS + Vanilla JS, bağımlılık yok, API anahtarı yok,
 çevrimdışı bile çalışır.
@@ -56,9 +56,10 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 
 ## Sayfalar
 
-- `index.html` — **portal ana sayfa**: arama bandı, canlı istatistikler, sol
-  kategori ağacı (ilan sayılarıyla), ⭐ vitrin, son eklenen ilanlar, kategori ve
-  bölge blokları, AI araçları, popüler aramalar
+- `index.html` — premium hero + doğal dil AI araması, otomatik ilan vitrinleri
+  (son eklenenler, AI seçkisi, fırsatlar, fiyat düşüşleri, koleksiyonlar) ve
+  portal blokları: canlı istatistikler, sayaçlı kategori ağacı, bölge kartları,
+  popüler aramalar
 - `ilanlar.html` — segment seçicili filtreli liste (araçta marka/model/yıl/km/yakıt/vites)
 - `ilan.html?id=…` — detay: AI açıklama, değerleme bandı, trend, benzerler, konut/taşıt kredisi
 - `ilan-ver.html` — AI destekli ücretsiz ilan verme (taşınmaz + araç); gönderilen

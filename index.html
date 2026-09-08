@@ -3,24 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EmlakAI — Satılık & Kiralık Taşınmaz ve Araç | AI Destekli Arama</title>
-  <meta name="description" content="Satılık ve kiralık taşınmaz (daire, villa, arsa, iş yeri) ve araç ilanları. Doğal dille arayın; yapay zekâ filtrelesin, fiyat analizini ve değerlemeyi anında sunsun.">
+  <title>EmlakAI — Taşınmazı bul, piyasayı anla, doğru kararı ver</title>
+  <meta name="description" content="EmlakAI ile satılık ve kiralık taşınmazları doğal dille arayın. Yapay zekâ destekli ilan seçkileri, piyasa karşılaştırması ve fırsat sinyalleriyle daha bilinçli karar verin.">
   <link rel="canonical" href="https://emlak-production.up.railway.app/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="EmlakAI">
-  <meta property="og:title" content="EmlakAI — Satılık & Kiralık Taşınmaz ve Araç | AI Destekli Arama">
-  <meta property="og:description" content="Satılık ve kiralık taşınmaz (daire, villa, arsa, iş yeri) ve araç ilanları. Doğal dille arayın; yapay zekâ filtrelesin, fiyat analizini ve değerlemeyi anında sunsun.">
+  <meta property="og:title" content="EmlakAI — Taşınmazı bul, piyasayı anla, doğru kararı ver">
+  <meta property="og:description" content="Doğal dille arayın; EmlakAI ilanları karşılaştırsın, fırsatları öne çıkarsın ve kararınızı kolaylaştırsın.">
   <meta property="og:url" content="https://emlak-production.up.railway.app/">
   <meta property="og:image" content="https://emlak-production.up.railway.app/assets/img/og.png">
   <meta property="og:locale" content="tr_TR">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/home.css?v=a0e90769">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
-<body data-page="index">
+<body data-page="index" class="home-page">
   <header class="site-header">
     <div class="container header-in">
-      <a class="logo" href="index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></span>Emlak<span class="ai">AI</span></a>
+      <a class="logo" href="index.html" aria-label="EmlakAI ana sayfa">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path>
+          </svg>
+        </span>
+        Emlak<span class="ai">AI</span>
+      </a>
       <nav class="main-nav" id="mainNav">
         <a href="index.html" class="active">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>
@@ -28,107 +36,210 @@
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
       </nav>
-      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
-      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir" aria-label="Tema değiştir">🌙</button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü" aria-label="Menü">☰</button>
     </div>
   </header>
 
   <main>
-    <!-- 1) Arama bandı: segment + doğal dil arama + hızlı kısayollar -->
-    <section class="hero-portal">
-      <div class="container">
-        <h1 class="hero-h1">Satılık &amp; kiralık ilanlar — yapay zekâ destekli arama</h1>
-        <p class="hero-sub">Konut, iş yeri, arsa ve araç ilanları; her ilanda AI fiyat analizi,
-        bölge karşılaştırması ve anında değerleme.</p>
-
-        <div class="g-tabs" id="segTabs" role="tablist">
-          <button class="tab-btn active" data-seg="emlak" role="tab">🏠 Taşınmaz</button>
-          <button class="tab-btn" data-seg="vasita" role="tab">🚗 Araç</button>
+    <section class="home-hero home-compact-hero" aria-labelledby="heroTitle">
+      <div class="home-compact-shape"></div>
+      <div class="container home-compact-inner">
+        <div class="home-compact-top">
+          <div class="home-compact-copy">
+            <span class="home-eyebrow">EMLAKAI · TAŞINMAZ PLATFORMU</span>
+            <h1 id="heroTitle">Aradığınız evi, <em>kolayca bulun.</em></h1>
+            <p class="home-hero-lead">Satılık ve kiralık ev, villa, arsa ve iş yerlerini keşfedin. Konumunuzu ve beklentinizi yazın; size uygun ilanları bulalım.</p>
+          </div>
+          <div class="home-compact-categories" aria-label="Popüler emlak kategorileri">
+            <a href="/satilik-daire">🏠 Daire</a>
+            <a href="/satilik-villa">🏡 Villa</a>
+            <a href="/satilik-arsa">🌳 Arsa</a>
+            <a href="/satilik-dukkan">🏢 İş yeri</a>
+          </div>
         </div>
 
-        <div class="g-search hero-search">
-          <input id="aiQuery" type="text" autocomplete="off" aria-label="Arama">
-          <button class="btn" id="aiSearchBtn">Ara</button>
+        <div class="home-search-panel home-compact-search">
+          <div class="home-search-head">
+            <span class="home-search-kicker">İLAN ARA</span>
+            <span class="home-ai-mark">✦ AI arama yardımcısı</span>
+          </div>
+          <div class="g-tabs" id="segTabs" role="tablist" aria-label="İlan türü">
+            <button class="tab-btn active" data-seg="emlak" role="tab" aria-selected="true">🏠 Taşınmaz</button>
+            <button class="tab-btn" data-seg="vasita" role="tab" aria-selected="false">🚗 Araç</button>
+          </div>
+          <div class="home-structured-filters" aria-label="Hızlı emlak filtreleri">
+            <button class="home-query-chip home-structured-filter" type="button" data-home-query="Satılık taşınmaz"><span>İlan türü</span><b>Satılık / Kiralık</b><strong>⌄</strong></button>
+            <button class="home-query-chip home-structured-filter" type="button" data-home-query="Antalya"><span>Konum</span><b>Şehir veya ilçe</b><strong>⌄</strong></button>
+            <button class="home-query-chip home-structured-filter" type="button" data-home-query="Daire villa arsa"><span>Kategori</span><b>Daire, villa, arsa</b><strong>⌄</strong></button>
+          </div>
+          <div class="home-search-row g-search">
+            <input id="aiQuery" type="text" autocomplete="off" aria-label="Doğal dil ile ilan ara" placeholder="Örn. Antalya'da havuzlu satılık villa">
+            <button class="btn" id="aiSearchBtn" type="button">İlan Ara <span aria-hidden="true">→</span></button>
+          </div>
+          <div class="home-query-chips home-query-examples" aria-label="Örnek aramalar">
+            <button class="home-query-chip" type="button" data-home-query="Antalya'da havuzlu villa">Antalya'da havuzlu villa</button>
+            <button class="home-query-chip" type="button" data-home-query="Denize yakın yazlık">Denize yakın yazlık</button>
+            <button class="home-query-chip" type="button" data-home-query="Yatırımlık arsa">Yatırımlık arsa</button>
+          </div>
+          <p class="home-search-note"><span aria-hidden="true">✦</span> İsterseniz doğal dille yazın: “Manavgat'ta 5 milyon altı villa”.</p>
         </div>
-
-        <div class="g-quick hero-quick" id="heroQuick">
-          <a class="chip" href="/satilik-daire">Satılık Daire</a>
-          <a class="chip" href="/kiralik-daire">Kiralık Daire</a>
-          <a class="chip" href="/satilik-villa">Satılık Villa</a>
-          <a class="chip" href="/satilik-arsa">Satılık Arsa</a>
-          <a class="chip" href="ilanlar.html?segment=vasita">Araçlar</a>
-        </div>
-
-        <div class="stat-strip" id="statStrip"></div>
       </div>
     </section>
 
-    <!-- 2) Portal gövdesi: sol kategori ağacı + sağ içerik -->
-    <div class="container portal-layout">
-      <aside class="cat-tree">
-        <h2>Kategoriler</h2>
-        <nav id="catTree" aria-label="Kategori ağacı"></nav>
-        <div class="cat-cta">
-          <a class="btn" href="ilan-ver.html" style="width:100%">+ Ücretsiz İlan Ver</a>
-          <p class="notice" style="margin-top:10px">İlanınız yönetici onayından sonra yayına girer.</p>
+    <div class="container home-data-status" id="homeDataStatus" role="status">İlanlar ve AI seçkileri hazırlanıyor…</div>
+
+    <section class="home-section" id="latestSection" aria-labelledby="latestTitle">
+      <div class="container">
+        <div class="home-section-head">
+          <div class="home-section-copy">
+            <span class="home-section-eyebrow">VİTRİN</span>
+            <h2 id="latestTitle">Son Eklenen İlanlar</h2>
+            <p class="home-section-description">Yeni yayınlanan taşınmazlar burada; “Bugün eklendi” ve “Yeni ilan” etiketleri otomatik güncellenir.</p>
+          </div>
+          <span class="home-auto-pill"><i>↻</i> Otomatik güncellenir</span>
         </div>
-      </aside>
-
-      <div class="portal-main">
-        <section class="portal-sec" id="featuredSec">
-          <div class="sec-head">
-            <h2>⭐ Vitrin — öne çıkan ilanlar</h2>
-            <a href="ilanlar.html">Tümü →</a>
+        <div class="home-rail-shell">
+          <button class="home-rail-control prev" type="button" data-rail="latest" data-direction="prev" aria-label="Önceki ilanlar">‹</button>
+          <div class="home-rail-viewport" id="latestViewport">
+            <div class="home-rail-track" id="latestTrack">
+              <div class="home-skeleton"></div><div class="home-skeleton"></div><div class="home-skeleton"></div>
+            </div>
           </div>
-          <div class="grid" id="featuredGrid"></div>
-        </section>
-
-        <section class="portal-sec">
-          <div class="sec-head">
-            <h2>🆕 Son eklenen ilanlar</h2>
-            <a href="ilanlar.html?sort=new">Tümü →</a>
-          </div>
-          <div class="grid" id="latestGrid"></div>
-        </section>
-
-        <div id="catBlocks"></div>
-
-        <section class="portal-sec">
-          <div class="sec-head">
-            <h2>📍 Bölgeye göre ilanlar</h2>
-            <a href="bolge-fiyatlari.html">Bölge fiyatları →</a>
-          </div>
-          <div class="region-grid" id="regionGrid"></div>
-        </section>
-
-        <section class="portal-sec">
-          <div class="sec-head"><h2>🤖 Yapay zekâ araçları</h2></div>
-          <div class="tool-grid">
-            <a class="tool-card" href="degerleme.html">
-              <b>Anında Değerleme</b>
-              <span>Konum ve özellikleri girin; taşınmaz ya da aracınızın tahmini değer bandını saniyeler içinde görün.</span>
-            </a>
-            <a class="tool-card" href="asistan.html">
-              <b>EVA Asistan</b>
-              <span>Doğal dille sorun: ilan arasın, değer tahmin etsin, kredi taksiti hesaplasın.</span>
-            </a>
-            <a class="tool-card" href="bolge-fiyatlari.html">
-              <b>Bölge Fiyatları</b>
-              <span>İl ve ilçe bazlı ortalama m² fiyatları, kira tahmini ve yıllık değer artış eğilimi.</span>
-            </a>
-            <a class="tool-card" href="rehber.html">
-              <b>Rehber &amp; SSS</b>
-              <span>Alım-satım adımları, kiralama, yatırım getirisi ve güvenli işlem rehberi.</span>
-            </a>
-          </div>
-        </section>
-
-        <section class="portal-sec" id="popularSec">
-          <div class="sec-head"><h2>🔎 Popüler aramalar</h2></div>
-          <div class="tags" id="popularTags"></div>
-        </section>
+          <button class="home-rail-control next" type="button" data-rail="latest" data-direction="next" aria-label="Sonraki ilanlar">›</button>
+        </div>
       </div>
+    </section>
+
+    <section class="home-section home-section--soft" id="aiPicksSection" aria-labelledby="aiPicksTitle">
+      <div class="container">
+        <div class="home-section-head">
+          <div class="home-section-copy">
+            <span class="home-section-eyebrow">EMLAKAI SEÇKİSİ</span>
+            <h2 id="aiPicksTitle">⭐ AI'nin Seçtikleri</h2>
+            <p class="home-section-description">Fiyat, özellik ve ilan veri kapsamındaki sinyallere göre yüksek uyumlu ilanlar otomatik sıralanır.</p>
+          </div>
+          <span class="home-auto-pill"><i>✦</i> AI puanı ile sıralanır</span>
+        </div>
+        <div class="home-grid" id="aiPicksGrid">
+          <div class="home-skeleton"></div><div class="home-skeleton"></div><div class="home-skeleton"></div>
+        </div>
+        <div class="home-signal"><span class="home-signal-mark">✦</span><span><strong>Karar desteği:</strong> AI puanı ilan verisi ve mevcut piyasa sinyallerinden hesaplanır.</span></div>
+      </div>
+    </section>
+
+    <section class="home-section home-section--tight" id="dealSection" aria-labelledby="dealTitle">
+      <div class="container">
+        <div class="home-section-head">
+          <div class="home-section-copy">
+            <span class="home-section-eyebrow">AVANTAJLI SEÇENEKLER</span>
+            <h2 id="dealTitle">💎 Fırsat İlanları</h2>
+            <p class="home-section-description">AI piyasa tahmininin altında kalan ilanlar, avantaj sinyaliyle öne çıkarılır.</p>
+          </div>
+          <a class="btn ghost sm" href="ilanlar.html?sort=ai">Tümünü Gör →</a>
+        </div>
+        <div class="home-grid" id="dealGrid"></div>
+      </div>
+    </section>
+
+    <section class="home-section home-section--tight" id="dropSection" aria-labelledby="dropTitle">
+      <div class="container">
+        <div class="home-section-head">
+          <div class="home-section-copy">
+            <span class="home-section-eyebrow">FİYAT HAREKETİ</span>
+            <h2 id="dropTitle">📉 Son Fiyatı Düşenler</h2>
+            <p class="home-section-description">Fiyat güncellemeleri, eski fiyat ve indirim oranıyla birlikte takip edilir.</p>
+          </div>
+          <span class="home-auto-pill"><i>↓</i> İndirimleri takip edin</span>
+        </div>
+        <div class="home-grid" id="dropGrid"></div>
+      </div>
+    </section>
+
+    <section class="home-section home-section--soft" id="collectionsSection" aria-labelledby="collectionsTitle">
+      <div class="container">
+        <div class="home-section-head">
+          <div class="home-section-copy">
+            <span class="home-section-eyebrow">KEŞFET</span>
+            <h2 id="collectionsTitle">🏖 Koleksiyonlar</h2>
+            <p class="home-section-description">İlan özellikleri ve konumlarına göre otomatik oluşan keşif rotaları.</p>
+          </div>
+          <span class="home-auto-pill"><i>✦</i> Veriye göre oluşur</span>
+        </div>
+        <div class="home-collection-grid" id="collectionsGrid"></div>
+      </div>
+    </section>
+
+    <section class="home-section" id="dailySection" aria-labelledby="dailyTitle">
+      <div class="container">
+        <div class="home-recommendation">
+          <div class="home-recommendation-copy">
+            <span class="home-section-eyebrow">GÜNLÜK AI SEÇKİSİ</span>
+            <h2 id="dailyTitle">🤖 AI Günün Önerisi</h2>
+            <p>Bugün AI tarafından seçilen en avantajlı ilanlar; her gün ilan verisi ve piyasa sinyalleriyle yeniden değerlendirilir.</p>
+          </div>
+          <div id="dailyRecommendation">
+            <div class="home-empty"><span class="home-empty-icon">✦</span><b>Günün önerisi hazırlanıyor</b><span>İlanlar ve piyasa sinyalleri yükleniyor.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Portal blokları: kategori ağacı, bölgeler ve popüler aramalar -->
+  <section class="home-section home-section--soft" id="portalCats" aria-labelledby="portalCatsTitle">
+    <div class="container">
+      <div class="home-section-head">
+        <div class="home-section-copy">
+          <span class="home-section-eyebrow">KATEGORİLER</span>
+          <h2 id="portalCatsTitle">Ne aradığınızı biliyorsanız</h2>
+          <p class="home-section-description">Kategori ve bölge sayfalarında yalnızca o türdeki yayında ilanlar
+          listelenir; her sayfada bölge ortalaması ve AI fiyat etiketi birlikte gösterilir.</p>
+        </div>
+      </div>
+      <div class="stat-strip" id="statStrip"></div>
+      <div class="cat-grid" id="catGrid"></div>
     </div>
+  </section>
+
+  <section class="home-section home-section--tight" id="portalRegions" aria-labelledby="portalRegionsTitle">
+    <div class="container">
+      <div class="home-section-head">
+        <div class="home-section-copy">
+          <span class="home-section-eyebrow">BÖLGELER</span>
+          <h2 id="portalRegionsTitle">Bölgeye göre ilanlar ve m² fiyatları</h2>
+          <p class="home-section-description">İlçedeki yayında ilan sayısı, ortalama satılık m² fiyatı ve tahmini
+          aylık kira birlikte; bölgeye tıklayınca o ilçenin ilan sayfası açılır.</p>
+        </div>
+        <a class="btn ghost sm" href="bolge-fiyatlari.html">Tüm bölge fiyatları →</a>
+      </div>
+      <div class="region-grid" id="regionGrid"></div>
+    </div>
+  </section>
+
+  <section class="home-section" id="portalPopular" aria-labelledby="portalPopularTitle">
+    <div class="container">
+      <div class="home-section-head">
+        <div class="home-section-copy">
+          <span class="home-section-eyebrow">POPÜLER ARAMALAR</span>
+          <h2 id="portalPopularTitle">Cümle kurar gibi arayın</h2>
+          <p class="home-section-description">Doğal dil aramada şehir, ilçe, oda, fiyat ve m² aralığı, bina yaşı,
+          özellikler ve sıralama isteğiniz birlikte anlaşılır.</p>
+        </div>
+      </div>
+      <div class="tags" id="popularTags"></div>
+    </div>
+  </section>
+
+  <section class="home-publish" id="publishSection" aria-labelledby="publishTitle">
+      <div class="container home-publish-inner">
+        <div>
+          <span class="home-section-eyebrow">TAŞINMAZINIZI HEMEN YAYINLAYIN</span>
+          <h2 id="publishTitle">Taşınmazınızı ilan verin, AI ile daha hızlı satın.</h2>
+          <p>İlanınızı EmlakAI'ye yükleyin; doğru alıcılara ulaşmanız için profesyonel, karşılaştırılabilir ve güven veren bir sunum hazırlayın.</p>
+        </div>
+        <a class="btn" href="ilan-ver.html">Taşınmazınızı İlan Verin →</a>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
@@ -145,9 +256,12 @@
   </footer>
 
   <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
+
   <script src="assets/config.js"></script>
   <script src="assets/data.js"></script>
   <script src="assets/ai.js"></script>
   <script src="assets/app.js"></script>
+  <script src="assets/visitor.js"></script>
+  <script src="assets/home.js?v=04422fd3"></script>
 </body>
 </html>

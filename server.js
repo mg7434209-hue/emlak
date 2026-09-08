@@ -50,6 +50,10 @@ global.window = global;
 global.localStorage = { getItem: () => null, setItem: () => {} };
 new Function(fs.readFileSync(path.join(ROOT, "assets/config.js"), "utf8"))();
 new Function(fs.readFileSync(path.join(ROOT, "assets/data.js"), "utf8"))();
+// AI motoru sunucuda da çalışır: ana sayfadaki "AI seçkisi / fırsat / fiyat
+// düşenler" blokları bot görünümünde de dolu gelsin diye.
+try { new Function(fs.readFileSync(path.join(ROOT, "assets/ai.js"), "utf8"))(); }
+catch (e) { console.error("ai.js sunucuda yüklenemedi:", e.message); }
 const CONF = global.EMLAK.config;
 const NORMALIZE = global.EMLAK.data.normalize;
 const SEED = global.EMLAK.data.all(); // Node ortamında yalnız REAL[]
@@ -1132,8 +1136,9 @@ function renderSeoPage(html, f, list) {
       `<p>${t.intro}</p>`);
 }
 
-// Ana sayfa portalı: vitrin, son ilanlar, kategori ağacı ve bölge kartları
-// sunucuda basılır (bot'lar JS çalıştırmaz; istemci aynı alanları tazeler).
+// Ana sayfa: keşif vitrinlerini tarayıcıda home.js doldurur (bot'lar JS
+// çalıştırmaz) — bu yüzden son ilanlar, kategori/bölge blokları ve istatistik
+// şeridi sunucuda basılır; JS yüklenince istemci aynı alanları tazeler.
 function renderHomeHtml(html) {
   const active = LISTINGS.filter((l) => l.status === "active");
   const byDate = active.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1146,20 +1151,20 @@ function renderHomeHtml(html) {
             </div></article>`;
   const countOf = (f) => active.filter((l) =>
     (!f.category || l.category === f.category) && (!f.kind || l.kind === f.kind) &&
-    (!f.city || l.city === f.city)).length;
-  const grup = (baslik, ks, cat) => `<div class="cat-group"><b>${htmlEsc(baslik)}</b>` +
-    ks.map((k) => {
-      const kd = kinds.find((x) => x.kind === k) || { label: k };
-      const n = countOf({ category: cat, kind: k });
-      return `<a href="/${cat}-${slugify(kd.label)}">${htmlEsc(kd.label)}<span>${n || ""}</span></a>`;
-    }).join("") + "</div>";
-  const tree = grup("Satılık Konut", ["daire", "residence", "villa", "mustakil"], "satilik") +
-    grup("Kiralık Konut", ["daire", "residence", "villa", "mustakil"], "kiralik") +
-    grup("İş Yeri & Arsa", ["dukkan", "ofis", "arsa"], "satilik") +
-    `<div class="cat-group"><b>Şehirler</b>` +
-      Object.keys(CONF.market.cities).map((c) =>
-        `<a href="/${slugify(c)}">${htmlEsc(c)}<span>${countOf({ city: c }) || ""}</span></a>`).join("") +
-    `</div>`;
+    (!f.segment || (l.segment || "emlak") === f.segment) && (!f.city || l.city === f.city)).length;
+
+  const catCards = [].concat(
+    ...[["satilik", "Satılık"], ["kiralik", "Kiralık"]].map(([cat, label]) =>
+      ["daire", "villa", "mustakil", "dukkan", "arsa"]
+        .filter((k) => !(cat === "kiralik" && k === "arsa"))
+        .map((k) => {
+          const kd = kinds.find((x) => x.kind === k);
+          if (!kd) return "";
+          const n = countOf({ category: cat, kind: k });
+          return `<a class="cat-card" href="/${cat}-${slugify(kd.label)}"><b>${htmlEsc(label + " " + kd.label)}</b>` +
+            `<span>${n ? trNum(n) + " ilan" : "İlan bekleniyor"}</span></a>`;
+        }))).join("");
+
   const perM2 = (() => {
     const v = active.filter((l) => l.m2 && l.category === "satilik" && (l.segment || "emlak") === "emlak")
       .map((l) => l.price / l.m2);
@@ -1171,6 +1176,7 @@ function renderHomeHtml(html) {
     ["Ortalama ₺/m²", perM2 ? trNum(perM2) : "—"],
     ["AI analizi", "Her ilanda"],
   ].map(([k, v]) => `<div class="stat-box"><b>${htmlEsc(v)}</b><span>${htmlEsc(k)}</span></div>`).join("");
+
   const regions = [];
   Object.keys(CONF.market.cities).forEach((city) => {
     Object.keys(CONF.market.cities[city].districts).forEach((d) => {
@@ -1187,26 +1193,44 @@ function renderHomeHtml(html) {
   const desc = active.length
     ? `${active.length} yayında ilan: satılık ve kiralık daire, villa, iş yeri, arsa ve araç. ` +
       `Yapay zekâ fiyat analizi, doğal dil arama ve anında değerleme ile ${CONF.brand.name}.`
-    : `Satılık ve kiralık taşınmaz ile araç ilanları; yapay zekâ fiyat analizi, doğal dil arama ve anında değerleme.`;
+    : "Satılık ve kiralık taşınmaz ile araç ilanları; yapay zekâ fiyat analizi, doğal dil arama ve anında değerleme.";
   html = setHead(html, {
     title: `${CONF.brand.name} — Satılık & Kiralık Emlak ve Araç İlanları | AI Destekli`,
     desc, url: SITE + "/", image: SITE + CONF.seo.ogImage,
   });
   const ld = active.length ? jsonLdTag({
     "@context": "https://schema.org", "@type": "ItemList",
-    name: CONF.brand.name + " — öne çıkan ilanlar",
+    name: CONF.brand.name + " — son eklenen ilanlar",
     itemListElement: byDate.slice(0, 12).map((l, i) => ({
       "@type": "ListItem", position: i + 1, url: listingUrl(l), name: l.title,
     })),
   }) : "";
+  // AI seçkisi / fırsatlar / fiyatı düşenler — istemcideki home.js ile aynı
+  // mantık, bot görünümü için sunucuda hesaplanır (AI motoru Node'da yüklü).
+  const ai = global.EMLAK.ai;
+  const picks = ai ? ai.rank(active.slice()).slice(0, 4) : byDate.slice(0, 4);
+  const deals = ai ? active.map((l) => ({ l, b: ai.priceBadge(l) }))
+    .filter((x) => x.b && x.b.key === "firsat").sort((a, b) => b.b.pct - a.b.pct).slice(0, 4).map((x) => x.l) : [];
+  const drops = active.filter((l) => (l.priceHistory || []).some((h) => h.price > l.price))
+    .sort((a, b) => new Date(b.updated || b.date) - new Date(a.updated || a.date)).slice(0, 4);
+  // DİKKAT: kapsayıcının içinde yalnızca iskelet kutuları vardır; kapanış
+  // etiketini şaşırmamak için TAM olarak onlar eşleştirilir (tembel [\s\S]*?
+  // ilk </div>'i yakalayıp markup'ı bozuyordu).
+  const fillGrid = (h, id, items) => h.replace(
+    new RegExp('(<div class="home-grid" id="' + id + '">)(?:\\s*<div class="home-skeleton"></div>)*(\\s*</div>)'),
+    (m, a2, b2) => a2 + (items.length ? items.map(card).join("") : "") + b2);
+
+  html = fillGrid(html, "aiPicksGrid", picks);
+  html = fillGrid(html, "dealGrid", deals);
+  html = fillGrid(html, "dropGrid", drops);
+
   return html
     .replace("</head>", ld + "\n</head>")
+    // İskelet kutuları yerine gerçek ilanlar (home.js yüklenince üzerine yazar)
+    .replace(/(<div class="home-rail-track" id="latestTrack">)(?:\s*<div class="home-skeleton"><\/div>)*(\s*<\/div>)/,
+      (m, a, b) => a + byDate.slice(0, 8).map(card).join("") + b)
     .replace('<div class="stat-strip" id="statStrip"></div>', `<div class="stat-strip" id="statStrip">${stats}</div>`)
-    .replace('<nav id="catTree" aria-label="Kategori ağacı"></nav>', `<nav id="catTree" aria-label="Kategori ağacı">${tree}</nav>`)
-    .replace('<div class="grid" id="featuredGrid"></div>',
-      `<div class="grid" id="featuredGrid">${byDate.filter((l) => l.featured).slice(0, 4).map(card).join("")}</div>`)
-    .replace('<div class="grid" id="latestGrid"></div>',
-      `<div class="grid" id="latestGrid">${byDate.filter((l) => !l.featured).slice(0, 8).map(card).join("")}</div>`)
+    .replace('<div class="cat-grid" id="catGrid"></div>', `<div class="cat-grid" id="catGrid">${catCards}</div>`)
     .replace('<div class="region-grid" id="regionGrid"></div>', `<div class="region-grid" id="regionGrid">${regionCards}</div>`);
 }
 

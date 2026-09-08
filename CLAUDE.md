@@ -6,18 +6,19 @@
 EmlakAI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
 (`segment: "emlak"`) + araç (`segment: "vasita"`), her ikisi satılık/kiralık.
 Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, bağımlılıksız Node statik
-sunucu (`server.js`, Railway uyumlu). Tüm AI özellikleri istemcide çalışır;
-sunucu üyelik/ilan API'si ve SEO ön işlemesi yapar.
-TASARIM: ana sayfa **PORTAL** kurgusudur (eski "Google sadeliği" ilkesi
-05.09.2026'da kullanıcı kararıyla bırakıldı).
+sunucu (`server.js`, Railway uyumlu). AI özellikleri istemcide çalışır; sunucu
+üyelik/ilan API'si ve SEO ön işlemesi yapar.
+TASARIM: ana sayfa **premium keşif + portal** kurgusudur — güçlü hero ve doğal
+dil araması, ardından ilan vitrinleri (son eklenenler, AI seçkisi, fırsatlar,
+fiyat düşüşleri, koleksiyonlar) ve portal blokları (kategori ağacı, bölge
+kartları, popüler aramalar). Eski "Google sadeliği" ilkesi bırakılmıştır.
 
 Sayfalar (kök dizinde):
-`index.html` (PORTAL: arama bandı + canlı istatistik şeridi + sol kategori
-ağacı (`#catTree`, sayaçlı, SEO rotalarına bağlanır) + ⭐ vitrin + son eklenenler
-+ kategori blokları (yalnız 8+ ilan varken; az ilanda tekrar olmasın diye
-gizlenir) + bölge kartları + AI araçları + popüler aramalar. Sunucuda
-`renderHomeHtml()` ile doldurulur; mobilde kategori ağacı CSS `order` ile
-içeriğin ALTINA iner, bölge listesi 6 karta düşer) · `ilanlar.html`
+`index.html` (premium hero + doğal dil arama + keşif vitrinleri `home.js` ile;
+ARDINDAN portal blokları: `#statStrip` istatistik şeridi, `#catTree` sayaçlı
+kategori ağacı (SEO rotalarına bağlanır), `#regionGrid` bölge kartları,
+`#popularTags` popüler aramalar — bunları `app.js pageIndex()` doldurur ve
+sunucu `renderHomeHtml()` ile bot görünümüne basar) · `ilanlar.html`
 (segment seçicili filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır;
 araçta marka/model/yıl/km/yakıt/vites filtreleri; sayfa başına 24 ilan +
 `.pager` sayfalama — filtre/sıralama değişince 1. sayfaya döner) · `ilan.html?id=`
@@ -71,8 +72,14 @@ tarayıcıları içeriği JS'siz görür; tarayıcıda `app.js` aynı alanları 
 - `/magaza.html?u=` → satıcı adı, tipi (ofis/bireysel), ilan kartları ve
   RealEstateAgent/Person JSON-LD basılır; `/api/seller?u=` herkese açık profil
   verir (e-posta ASLA dönmez).
-- `/` (ana sayfa portalı) → vitrin/son ilan kartları, kategori ağacı sayaçları,
-  bölge kartları ve istatistik şeridi basılır + ItemList JSON-LD.
+- `/` (ana sayfa) → `renderHomeHtml()`: son eklenenler (`#latestTrack`),
+  AI seçkisi (`#aiPicksGrid`), fırsatlar (`#dealGrid`), fiyatı düşenler
+  (`#dropGrid`) ile portal blokları (`#statStrip`, `#catGrid`, `#regionGrid`)
+  doldurulur + ItemList JSON-LD. AI blokları için `assets/ai.js` NODE'DA da
+  yüklenir (priceBadge/rank sunucuda çalışır).
+  DİKKAT: bu kapsayıcılar iskelet kutusu (`home-skeleton`) içerir; doldurma
+  kalıbı TAM olarak onları eşleştirir — tembel `[\s\S]*?` ilk `</div>`'i
+  yakalayıp markup'ı bozar (bir kez düştük).
 - `/llms.txt` canlı yayındaki ilan listesini de ekler (AEO).
 - `/sitemap.xml` ilan URL'lerine `image:image` girdileri ekler (görsel arama).
 Yeni bir sayfayı ön işlersen `sendHtml()` üzerinden gönder (CSP/HSTS başlıkları
@@ -244,6 +251,22 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
   admin ucuna, hesap sayfası `/api/my/action`'a yazar — ikisini ayırma.
 - İstemci: `data.js` `init()` API'yi yoklar; yoksa (GitHub Pages) REAL +
   localStorage'a düşer, `admin.html` "statik yayın" uyarısı gösterir.
+
+## Ana sayfa (index.html) — canlı tasarım + portal blokları
+Ana sayfa iki katmandır; İKİSİNİ DE koru:
+1. **Keşif katmanı** (`assets/home.js` + `assets/home.css`): kompakt hero,
+   arama paneli, Son Eklenen İlanlar rayı, AI'nin Seçtikleri, Fırsat İlanları,
+   Son Fiyatı Düşenler, Koleksiyonlar, AI Günün Önerisi, yayınla CTA'sı.
+2. **Portal katmanı** (`app.js pageIndex()` + `style.css`): `#statStrip`
+   istatistikler, `#catGrid` kategori kartları (SEO rotalarına), `#regionGrid`
+   bölge kartları, `#popularTags` popüler doğal dil aramaları. Her blok
+   VARSA çizilir (`if (el)`) — düzen değişse de sayfa kırılmaz.
+Hero'daki kategori etiketleri gerçek bağlantıdır (`/satilik-daire` vb.).
+`npm start` artık `visitor-server.js` üzerinden çalışır (ziyaretçi sayacı
+`/api/site-stats`'ı ekler, sonra `server.js`'i yükler).
+TUZAK: `<link rel="icon" href="data:image/svg+xml,<svg …>">` satırındaki
+kapanış tırnağı BOZULURSA tarayıcı `<body data-page="index">` özniteliğini
+yutar; sayfa kimliği kaybolur, JSON-LD gövdede düz metin olarak görünür.
 
 ## Ağ Kısıtı (ÖNEMLİ)
 Buluttaki Claude Code dış sitelere erişemez (egress izin listesi). Dış veri
