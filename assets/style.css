@@ -1,32 +1,53 @@
 /* EmlakAI — tasarım sistemi (açık/koyu tema, mobil öncelikli) */
 :root {
-  --bg: #f6f7fb;
-  --surface: #ffffff;
-  --surface-2: #eef1f7;
-  --text: #17203a;
-  --muted: #5b667f;
-  --border: #dfe4ee;
-  --primary: #1f5eff;
-  --primary-2: #0d47d9;
-  --accent: #ffb400;
-  --deal: #0da957;
-  --over: #e5484d;
-  --fair: #6b7a99;
+  /* Palet: Kum + Siyah (minimal lüks). Açık paletin sabitleri --l-* olarak da
+     saklanır; ana sayfa koyu temada bile bunları kullanır (bkz. home.css). */
+  --l-bg: #f2ede4;
+  --l-surface: #fffefb;
+  --l-surface-2: #e8e1d5;
+  --l-text: #141414;
+  --l-muted: #6b665e;
+  --l-border: #ddd5c7;
+  --l-primary: #1a1a1a;
+  --l-primary-2: #000000;
+  --l-accent: #b08d3f;
+  --l-deal: #2c8a55;
+  --l-over: #b3413a;
+  --l-fair: #7a746b;
+  --l-shadow: 0 8px 26px rgba(60, 50, 34, 0.09);
+  --l-shadow-lg: 0 16px 42px rgba(60, 50, 34, 0.16);
+
+  --bg: var(--l-bg);
+  --surface: var(--l-surface);
+  --surface-2: var(--l-surface-2);
+  --text: var(--l-text);
+  --muted: var(--l-muted);
+  --border: var(--l-border);
+  --primary: var(--l-primary);
+  --primary-2: var(--l-primary-2);
+  --accent: var(--l-accent);
+  --deal: var(--l-deal);
+  --over: var(--l-over);
+  --fair: var(--l-fair);
   --radius: 14px;
-  --shadow: 0 6px 24px rgba(23, 32, 58, 0.08);
-  --shadow-lg: 0 14px 44px rgba(23, 32, 58, 0.16);
+  --shadow: var(--l-shadow);
+  --shadow-lg: var(--l-shadow-lg);
 }
 html[data-theme="dark"] {
-  --bg: #0d1220;
-  --surface: #151c30;
-  --surface-2: #1c2440;
-  --text: #e8ecf7;
-  --muted: #9aa6c3;
-  --border: #28324f;
-  --primary: #4d7fff;
-  --primary-2: #6f97ff;
-  --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 14px 44px rgba(0, 0, 0, 0.5);
+  --bg: #14120f;
+  --surface: #1d1a15;
+  --surface-2: #27231c;
+  --text: #f3efe6;
+  --muted: #a9a297;
+  --border: #39332a;
+  --primary: #a5822f;
+  --primary-2: #c39a44;
+  --accent: #d3b062;
+  --deal: #4fa877;
+  --over: #d1685f;
+  --fair: #9d968b;
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 14px 44px rgba(0, 0, 0, 0.55);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -62,7 +83,7 @@ main { flex: 1; }
 .logo .ai { color: var(--primary); }
 .logo-mark {
   width: 34px; height: 34px; border-radius: 9px;
-  background: linear-gradient(135deg, var(--primary), #7b3ff2);
+  background: linear-gradient(135deg, var(--primary), var(--accent));
   display: grid; place-items: center; color: #fff; font-size: 1rem;
 }
 .main-nav { display: flex; gap: 4px; margin-left: auto; align-items: center; }
@@ -296,7 +317,7 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
 /* Yüzen asistan düğmesi */
 .fab {
   position: fixed; right: 18px; bottom: 18px; z-index: 60;
-  background: linear-gradient(135deg, var(--primary), #7b3ff2); color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff;
   border: none; border-radius: 999px; padding: 13px 20px; font-weight: 700;
   box-shadow: var(--shadow-lg); display: flex; gap: 8px; align-items: center;
 }

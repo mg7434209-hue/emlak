@@ -141,6 +141,13 @@ gömme; değişiklik = config.
   (localStorage `emlakai.recent`, 8 kayıt). Detayda: fiyat geçmişi grafiği
   (`priceHistory` varsa), satıcının diğer ilanları ve mağaza bağlantısı.
 - `assets/style.css` — tasarım sistemi (CSS değişkenleri, açık/koyu tema).
+  **PALET TEK KAYNAKTAN**: renkler yalnız `:root` (açık) ve
+  `html[data-theme="dark"]` bloklarındadır — şu anki palet *Kum + Siyah*
+  (zemin #f2ede4, metin/vurgu #1a1a1a, altın detay #b08d3f). Açık paletin
+  sabitleri ayrıca `--l-*` olarak saklanır; ana sayfa **koyu temada da**
+  bu `--l-*` değerlerini kullanır (kullanıcı tercihi, `home.css` sonunda).
+  Sayfalara/`home.css`'e sabit renk (hex) YAZMA — `var(--…)` ve
+  `color-mix(in srgb, var(--…) …)` kullan; renk değişimi tek satırdan olsun.
   Portal stilleri: `.hero-portal`, `.stat-strip`, `.portal-layout`, `.cat-tree`,
   `.portal-sec`, `.region-grid`, `.tool-grid`.
 - `.reveal` animasyonu: `observeReveals()` gözlemci yoksa içeriği doğrudan
