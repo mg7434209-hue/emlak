@@ -1340,3 +1340,55 @@ html[data-theme="dark"] .home-page .home-card-fav {
   background: rgba(255,253,249,.92);
   color: #8b6d50;
 }
+
+/* Canlı fallback: body öznitelikleri kaybolsa bile ana sayfa açık/bej kalır. */
+body:has(.home-compact-hero) {
+  --bg: #f5f0e9;
+  --surface: #fffdf9;
+  --surface-2: #eee6dc;
+  --text: #302a25;
+  --muted: #756b62;
+  --border: #ded2c5;
+  --primary: #8b6d50;
+  --primary-2: #6d5039;
+  --accent: #c79b67;
+  --deal: #5d8367;
+  --over: #b75f53;
+  --fair: #8a7b6e;
+  --shadow: 0 8px 26px rgba(82, 61, 42, .09);
+  --shadow-lg: 0 16px 42px rgba(82, 61, 42, .15);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(139, 109, 80, .05), transparent 26rem),
+    var(--bg);
+  color: var(--text);
+}
+body:has(.home-compact-hero) .home-compact-hero {
+  border-bottom-color: #dfd1c2;
+  background:
+    radial-gradient(circle at 94% -20%, rgba(188, 153, 111, .20), transparent 23rem),
+    linear-gradient(135deg, #f1e8dd 0%, #f7f1e9 56%, #e7ddd0 100%);
+  color: #342c25;
+}
+body:has(.home-compact-hero) .home-compact-hero h1 { color: #342b24; }
+body:has(.home-compact-hero) .home-compact-hero h1 em { color: #8b6d50; }
+body:has(.home-compact-hero) .home-compact-hero .home-hero-lead { color: #756b62; }
+body:has(.home-compact-hero) .home-compact-hero .home-eyebrow { color: #8b6d50; }
+body:has(.home-compact-hero) .home-compact-categories span {
+  border-color: #dacbbc;
+  background: rgba(255,253,249,.7);
+  color: #6f5b48;
+}
+body:has(.home-compact-hero) .home-compact-search {
+  border-color: rgba(121, 91, 63, .16);
+  background: rgba(255,253,249,.96);
+}
+body:has(.home-compact-hero) .home-compact-search .home-search-kicker { color: #725a43; }
+body:has(.home-compact-hero) .home-compact-search .home-query-chip:not(.home-structured-filter) {
+  border-color: #dfd3c8;
+  color: #766554;
+}
+body:has(.home-compact-hero) .home-compact-search .home-structured-filter:hover { background: #fbf6ef; }
+body:has(.home-compact-hero) .home-card-fav {
+  background: rgba(255,253,249,.92);
+  color: #8b6d50;
+}
