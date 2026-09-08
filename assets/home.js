@@ -2,6 +2,12 @@
 (function () {
   "use strict";
 
+  // Canlı sunucu body özniteliklerini düşürse bile ana sayfanın tema kapsamını koru.
+  if (document.body) {
+    if (!document.body.dataset.page) document.body.dataset.page = "index";
+    document.body.classList.add("home-page");
+  }
+
   const E = window.EMLAK || {};
   const D = E.data;
   const AI = E.ai;
