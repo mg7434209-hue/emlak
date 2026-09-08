@@ -1097,3 +1097,197 @@ html[data-theme="dark"] .home-property-search .home-search-kicker { color: #9db8
   .home-property-points span:last-child { grid-column: 1 / -1; }
   .home-property-card { width: 58%; }
 }
+
+
+/* ── Sade bej emlak ana sayfası ─────────────────────── */
+.home-page {
+  --bg: #f5f0e9;
+  --surface: #fffdf9;
+  --surface-2: #eee6dc;
+  --text: #302a25;
+  --muted: #756b62;
+  --border: #ded2c5;
+  --primary: #8b6d50;
+  --primary-2: #6d5039;
+  --accent: #c79b67;
+  --deal: #5d8367;
+  --over: #b75f53;
+  --fair: #8a7b6e;
+  --shadow: 0 8px 26px rgba(82, 61, 42, .09);
+  --shadow-lg: 0 16px 42px rgba(82, 61, 42, .15);
+}
+html[data-theme="dark"] .home-page {
+  --bg: #1d1916;
+  --surface: #29231e;
+  --surface-2: #342b24;
+  --text: #f2e9df;
+  --muted: #b8a99a;
+  --border: #4a3d31;
+  --primary: #c5a27c;
+  --primary-2: #dfbd94;
+  --accent: #cda36f;
+  --deal: #83b18a;
+  --over: #d47b6e;
+  --fair: #ad9a87;
+  --shadow: 0 8px 26px rgba(0,0,0,.24);
+  --shadow-lg: 0 16px 42px rgba(0,0,0,.36);
+}
+.home-page .logo-mark {
+  background: #8b6d50;
+  color: #fff;
+}
+html[data-theme="dark"] .home-page .logo-mark { background: #a5815e; }
+.home-page .main-nav a.cta { background: var(--primary); color: #fff; }
+.home-page .main-nav a.cta:hover { background: var(--primary-2); }
+
+/* Küçük, ilan keşfi odaklı hero */
+.home-compact-hero {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  border-bottom: 1px solid #dfd1c2;
+  background:
+    radial-gradient(circle at 94% -20%, rgba(188, 153, 111, .20), transparent 23rem),
+    linear-gradient(135deg, #f1e8dd 0%, #f7f1e9 56%, #e7ddd0 100%);
+  color: #342c25;
+}
+.home-compact-hero::before,
+.home-compact-hero::after { display: none; }
+.home-compact-shape {
+  position: absolute;
+  z-index: -1;
+  width: 420px; height: 420px;
+  right: -245px; bottom: -302px;
+  border: 1px solid rgba(139, 109, 80, .16);
+  border-radius: 50%;
+  box-shadow: 0 0 0 24px rgba(139, 109, 80, .035);
+}
+.home-compact-inner {
+  position: relative;
+  display: block;
+  min-height: 0;
+  padding: 42px 0 44px;
+}
+.home-compact-top {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 32px;
+}
+.home-compact-copy { max-width: 710px; }
+.home-compact-hero .home-eyebrow { color: #8b6d50; }
+.home-compact-hero h1 {
+  max-width: 680px;
+  margin: 11px 0 10px;
+  color: #342b24;
+  font-size: clamp(2.1rem, 4vw, 3.7rem);
+  line-height: 1.03;
+  letter-spacing: -.058em;
+}
+.home-compact-hero h1 em { color: #8b6d50; font-style: normal; }
+.home-compact-hero .home-hero-lead {
+  max-width: 620px;
+  color: #756b62;
+  font-size: .98rem;
+}
+.home-compact-categories {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+  max-width: 330px;
+  padding-bottom: 8px;
+}
+.home-compact-categories span {
+  padding: 8px 10px;
+  border: 1px solid #dacbbc;
+  border-radius: 10px;
+  background: rgba(255,253,249,.7);
+  color: #6f5b48;
+  font-size: .73rem;
+  font-weight: 700;
+}
+.home-compact-search {
+  max-width: none;
+  margin-top: 27px;
+  padding: 15px;
+  border: 1px solid rgba(121, 91, 63, .16);
+  border-radius: 17px;
+  background: rgba(255,253,249,.96);
+  box-shadow: 0 13px 28px rgba(94, 67, 43, .12);
+}
+.home-compact-search .home-search-head { margin-bottom: 9px; }
+.home-compact-search .home-search-kicker { color: #725a43; }
+.home-compact-search .home-search-row { border-color: #dfd3c8; }
+.home-compact-search .home-search-row .btn {
+  background: #8b6d50;
+  color: #fff;
+}
+.home-compact-search .home-search-row .btn:hover { background: #6d5039; }
+html[data-theme="dark"] .home-compact-hero {
+  border-bottom-color: #47392c;
+  background:
+    radial-gradient(circle at 94% -20%, rgba(169, 127, 83, .16), transparent 23rem),
+    linear-gradient(135deg, #2a211b 0%, #211c18 56%, #34281e 100%);
+  color: var(--text);
+}
+html[data-theme="dark"] .home-compact-hero h1 { color: #f1e7dc; }
+html[data-theme="dark"] .home-compact-hero .home-hero-lead { color: #b9aa9c; }
+html[data-theme="dark"] .home-compact-hero .home-eyebrow { color: #c5a27c; }
+html[data-theme="dark"] .home-compact-categories span {
+  border-color: #594a3a;
+  background: rgba(52, 43, 35, .82);
+  color: #d4c0a8;
+}
+html[data-theme="dark"] .home-compact-search {
+  border-color: #574738;
+  background: rgba(41, 35, 30, .98);
+}
+html[data-theme="dark"] .home-compact-search .home-search-kicker { color: #c9ac8c; }
+.home-compact-search .home-structured-filters { margin-bottom: 9px; }
+.home-compact-search .home-structured-filter:hover {
+  border-color: #b79776;
+  background: #fbf6ef;
+}
+html[data-theme="dark"] .home-compact-search .home-structured-filter:hover { background: #3a3027; }
+.home-compact-search .home-query-examples { margin-top: 9px; }
+.home-compact-search .home-query-chip:not(.home-structured-filter) {
+  border-color: #dfd3c8;
+  color: #766554;
+}
+html[data-theme="dark"] .home-compact-search .home-query-chip:not(.home-structured-filter) {
+  border-color: #564639;
+  color: #c7b8a7;
+}
+
+/* Renkleri emlak odaklı, sakin tut */
+.home-section--soft {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+.home-collection::before { background: linear-gradient(145deg, #75604b, #a68d73); }
+.home-collection:nth-child(2)::before { background: linear-gradient(145deg, #657b76, #8da69a); }
+.home-collection:nth-child(3)::before { background: linear-gradient(145deg, #94735a, #c09d7d); }
+.home-collection:nth-child(4)::before { background: linear-gradient(145deg, #6f5a72, #a98eaa); }
+.home-collection:nth-child(5)::before { background: linear-gradient(145deg, #926845, #b9976f); }
+.home-collection:nth-child(6)::before { background: linear-gradient(145deg, #61735a, #91a77d); }
+.home-collection:nth-child(7)::before { background: linear-gradient(145deg, #5c6870, #8d9ba1); }
+.home-publish {
+  background:
+    radial-gradient(circle at 88% 12%, rgba(209, 171, 123, .22), transparent 18rem),
+    linear-gradient(130deg, #4d3a2c, #806245);
+}
+html[data-theme="dark"] .home-publish {
+  background:
+    radial-gradient(circle at 88% 12%, rgba(209, 171, 123, .14), transparent 18rem),
+    linear-gradient(130deg, #30241b, #4d3827);
+}
+@media (max-width: 760px) {
+  .home-compact-inner { padding: 34px 0 36px; }
+  .home-compact-top { align-items: start; flex-direction: column; gap: 18px; }
+  .home-compact-categories { justify-content: start; max-width: none; padding-bottom: 0; }
+}
+@media (max-width: 560px) {
+  .home-compact-hero h1 { font-size: clamp(2.05rem, 11vw, 3rem); }
+  .home-compact-search { margin-top: 21px; padding: 12px; }
+}
