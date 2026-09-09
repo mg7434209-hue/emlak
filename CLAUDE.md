@@ -155,6 +155,11 @@ gömme; değişiklik = config.
   içerik GİZLİ KALMAZ.
 - Görseller: dış görsel YOK; kartlar `thumbSVG()` ile üretilen SVG yer tutucu
   kullanır. Dış siteden hotlink YAPMA (egress kısıtı).
+- GÖRSEL KIRPMA KURALI: boyut/kırpma yalnız CSS'ten gelir, `thumbHTML()`
+  satır içi stil YAZMAZ. Kart vitrininde `.card .thumb` 16:10 kutudur ve
+  görsel mutlak konumlanıp `cover` ile kırpılır (dikey foto kartı uzatmaz);
+  ilan detayındaki `.gallery img` ise `contain` — fotoğrafın TAMAMI görünür,
+  kenarları kırpılmaz, artan yer yumuşak zeminle doldurulur.
 
 ## Konvansiyonlar
 - Sayfa linkleri `.html` uzantılı (GitHub Pages uyumu).

@@ -80,7 +80,9 @@
   function thumbHTML(l, big) {
     const p = safePhoto(l.photos && l.photos[0]);
     if (p) {
-      return `<img src="${p}" alt="${esc(l.title)}" style="width:100%;height:100%;object-fit:cover">`;
+      // Boyut/kırpma CSS'ten gelir: kartta .card .thumb img (cover),
+      // detay galerisinde .gallery img (contain) — satır içi stil YAZMA.
+      return `<img src="${p}" alt="${esc(l.title)}" loading="lazy">`;
     }
     return thumbSVG(l, big);
   }
@@ -1231,7 +1233,7 @@
     sparkline($("#trendChart"), AI.trend(l.city, l.district), l.city + " / " + l.district);
     renderCards($("#similarGrid"), AI.similar(l, D.all(), 4));
     $$(".photo-strip img", root).forEach((im) => im.addEventListener("click", () => {
-      $("#galleryMain").innerHTML = `<img src="${safePhoto(l.photos[+im.dataset.photo])}" alt="${esc(l.title)}" style="width:100%;display:block">`;
+      $("#galleryMain").innerHTML = `<img src="${safePhoto(l.photos[+im.dataset.photo])}" alt="${esc(l.title)}">`;
       $$(".photo-strip img", root).forEach((x) => x.classList.remove("sel"));
       im.classList.add("sel");
     }));
