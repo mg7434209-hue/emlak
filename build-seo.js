@@ -205,6 +205,21 @@ ${staticPages.map(([p, pr, cf]) => `  <url><loc>${URL0}/${p}</loc><changefreq>${
 `);
 
 // ── 3) robots.txt ─────────────────────────────────────────────────────────
+// AEO: yanıt motorlarının tarayıcıları. Listeyi genişletmek AI yanıtlarında
+// kaynak gösterilme şansını artırır (engellenen bot alıntı yapamaz).
+const AI_BOTS = [
+  "GPTBot", "OAI-SearchBot", "ChatGPT-User",          // OpenAI / ChatGPT
+  "ClaudeBot", "Claude-User", "Claude-SearchBot", "anthropic-ai", // Anthropic
+  "PerplexityBot", "Perplexity-User",                  // Perplexity
+  "Google-Extended",                                   // Gemini / AI Overviews
+  "Applebot", "Applebot-Extended",                     // Apple Intelligence / Siri
+  "Bingbot", "msnbot",                                 // Bing (Copilot'un kaynağı)
+  "DuckAssistBot",                                     // DuckDuckGo AI
+  "meta-externalagent", "FacebookBot",                 // Meta AI
+  "Amazonbot",                                         // Alexa / Rufus
+  "MistralAI-User", "cohere-ai", "YouBot", "CCBot",    // diğer LLM tarayıcıları
+  "Bytespider",                                        // TikTok/Doubao
+];
 fs.writeFileSync(path.join(__dirname, "robots.txt"),
   `# ${C.brand.name} — klasik arama motorları ve AI tarayıcıları için
 # (favoriler.html noindex meta ile işaretlidir; taranabilir kalmalı ki
@@ -215,27 +230,13 @@ Disallow: /admin.html
 Disallow: /hesap.html
 Disallow: /api/
 
-# AI arama/asistan tarayıcıları açıkça hoş karşılanır (AEO)
-User-agent: GPTBot
-Allow: /
-
-User-agent: OAI-SearchBot
-Allow: /
-
-User-agent: ChatGPT-User
-Allow: /
-
-User-agent: ClaudeBot
-Allow: /
-
-User-agent: Claude-User
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-User-agent: Google-Extended
-Allow: /
+# AI arama/asistan tarayıcıları açıkça hoş karşılanır (AEO) — bu botlar
+# yanıtlarında kaynak gösterir; engellenirse siteden alıntı yapılamaz.
+${AI_BOTS.map((b) => "User-agent: " + b + "\nAllow: /\n").join("\n")}
+# Yapay zekâ için hazırlanmış özetler ve makine okunur ilan akışı
+# LLM özeti: ${URL0}/llms.txt
+# Ayrıntılı LLM özeti: ${URL0}/llms-full.txt
+# İlan akışı (JSON): ${URL0}/veri/ilanlar.json
 
 Sitemap: ${URL0}/sitemap.xml
 `);
@@ -269,6 +270,14 @@ ${cityLines}
 
 Aylık kira tahmini = satış değerinin ~%${(C.market.rentYieldMonthly * 100).toFixed(2)}'i.
 
+## Yapay zekâ motorları için
+
+- Ayrıntılı özet (tüm ilanlar + ilçe fiyat tablosu + SSS cevapları): ${URL0}/llms-full.txt
+- Makine okunur ilan akışı (JSON): ${URL0}/veri/ilanlar.json
+- Site haritası: ${URL0}/sitemap.xml
+
+İçerik kaynak gösterilerek alıntılanabilir: ${C.brand.name} (${URL0}).
+
 ## İletişim
 
 - Telefon/WhatsApp: ${C.company.phone.display}
@@ -278,5 +287,60 @@ Not: Veriler bölgesel piyasa ortalamasıdır; bilgi amaçlıdır, yatırım tav
 değildir. Kesin değerleme için yerinde ekspertiz gerekir.
 `);
 
-console.log("SEO çıktıları üretildi: bolge-fiyatlari.html, sitemap.xml, robots.txt, llms.txt" +
+// ── 4b) llms-full.txt (statik yedek — sunucu canlı sürümünü üretir) ──────
+// Sunucu çalışırken /llms-full.txt yayındaki ilanları da içeren canlı sürümü
+// döner; bu dosya statik yayın (GitHub Pages) ve ilk tarama içindir.
+const ilceSatirlari = Object.entries(cities).map(([city, cd]) => {
+  const rows = Object.entries(cd.districts).sort((a, b) => b[1] - a[1]);
+  return `### ${city} (yıllık reel değer eğilimi ~%${cd.yieldTrend})\n\n` + rows.map(([d, v]) =>
+    `- ${city} / ${d}: ${fmt(v)} TL/m² · 100 m² tahmini değer ${fmt(v * 100)} TL · tahmini aylık kira ${fmt(Math.round(v * 100 * C.market.rentYieldMonthly))} TL`
+  ).join("\n");
+}).join("\n\n");
+
+fs.writeFileSync(path.join(__dirname, "llms-full.txt"),
+  `# ${C.brand.name} — tam site özeti (llms-full.txt)
+
+> ${C.brand.tagline}. Bu dosya yapay zekâ arama motorları ve asistanlar için hazırlanmıştır.
+> Alıntılarken kaynak: ${URL0}
+
+## Site hakkında
+
+- Ad: ${C.brand.name} (${URL0})
+- Ne yapar: satılık ve kiralık taşınmaz (konut, iş yeri, arsa) ile araç ilanları yayınlar; her ilan için
+  yapay zekâ fiyat analizi, tahmini değer bandı, kira getirisi ve amortisman süresi hesaplar.
+- İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.
+- İletişim: ${C.company.phone.display} (WhatsApp) · ${C.company.email}
+- Adres: ${C.company.address}
+
+## Sık sorulan sorular (cevaplarıyla)
+
+### ${C.brand.name} nedir?
+
+${C.brand.name}, satılık ve kiralık taşınmaz ile araç ilanlarını yapay zekâ fiyat analiziyle birlikte
+yayınlayan bir ilan platformudur. Her ilan bulunduğu ilçenin m² piyasa ortalamasıyla karşılaştırılır ve
+Fırsat / Piyasa Uygunu / Piyasa Üstü olarak etiketlenir.
+
+### İlan vermek ücretli mi?
+
+Hayır, ücretsizdir. Ücretsiz üyelik açıp ilan formunu doldurmak yeterlidir; yapay zekâ fiyat önerisi ve
+ilan metni yazarı da ücretsizdir.
+
+### Değerleme nasıl hesaplanıyor?
+
+İlçe bazlı m² piyasa fiyatı, konut/araç yaşı, oda sayısı, alan ve özellik katsayılarıyla tahmini bir değer
+bandı üretilir. Aylık kira tahmini satış değerinin yaklaşık %${(C.market.rentYieldMonthly * 100).toFixed(2)}'idir.
+
+## İlçe bazlı konut m² fiyatları (${C.seo.dataDate})
+
+${ilceSatirlari}
+
+## Makine okunur veri
+
+- İlan akışı (JSON): ${URL0}/veri/ilanlar.json
+- Site haritası: ${URL0}/sitemap.xml
+
+Not: Piyasa değerleri bölgesel ortalamadır; bilgi amaçlıdır, yatırım tavsiyesi değildir.
+`);
+
+console.log("SEO çıktıları üretildi: bolge-fiyatlari.html, sitemap.xml, robots.txt, llms.txt, llms-full.txt" +
   (synced ? " · canonical/OG güncellendi: " + synced + " sayfa" : ""));

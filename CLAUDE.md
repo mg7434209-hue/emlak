@@ -82,6 +82,32 @@ tarayıcıları içeriği JS'siz görür; tarayıcıda `app.js` aynı alanları 
   yakalayıp markup'ı bozar (bir kez düştük).
 - `/llms.txt` canlı yayındaki ilan listesini de ekler (AEO).
 - `/sitemap.xml` ilan URL'lerine `image:image` girdileri ekler (görsel arama).
+
+## AEO — YAPAY ZEKÂ MOTORLARINDA GÖRÜNÜRLÜK (ChatGPT, Perplexity, Gemini…)
+Yanıt motorları JS çalıştırmaz, SORUYA DOĞRUDAN CEVAP veren ve SAYI içeren
+metinleri alıntılar. Bu yüzden:
+- **Kurum + WebSite şeması artık SUNUCUDA statik basılır** (`siteJsonLd()`),
+  ve TÜM `.html` sayfaları `sendHtml()`'den geçer — eskiden yalnız `app.js`
+  enjekte ediyordu, yani botlar hiç görmüyordu. Şema `RealEstateAgent` olup
+  `areaServed` (config'teki şehirler) ve `knowsAbout` alanlarını taşır.
+  İstemci `hasServerLd()` görünce aynısını TEKRAR EKLEMEZ.
+- **Kategori/bölge sayfalarında veriden üretilen SSS** (`seoFaq()`): fiyat,
+  m², kira getirisi, amortisman, en uygun ilan, ücret politikası. Metin hem
+  sayfada görünür hem `FAQPage` JSON-LD olarak basılır — İKİSİ AYNI METİNDİR.
+  Sayısal gerçekler `seoStats()` tek kaynağından gelir (giriş paragrafı da
+  oradan beslenir; çelişki çıkmaz). Ayrıca `CollectionPage` + `dateModified`
+  ile tazelik sinyali verilir.
+- **`/llms-full.txt`** (sunucuda canlı, `llmsFullTxt()`; statik yedeği
+  `build-seo.js` üretir): site tanıtımı, SSS cevapları, ilçe bazlı m² fiyat
+  tablosu ve yayındaki TÜM ilanların künyesi — alıntılanmaya hazır düz metin.
+- **`/veri/ilanlar.json`**: yayındaki ilanların makine okunur akışı (CORS açık,
+  yalnız herkese açık alanlar). `llms.txt` ve `robots.txt` buna işaret eder.
+- **robots.txt** AI tarayıcılarını tek tek karşılar (`AI_BOTS` listesi:
+  GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, Applebot,
+  Bingbot, DuckAssistBot, meta-externalagent, Amazonbot…). Bot engellenirse
+  yanıtlarda kaynak gösterilemez — listeyi daraltma.
+KURAL: Yeni bir sayı/iddia eklerken önce veriden hesapla; AEO metinleri
+uydurma bilgi TAŞIMAZ (yanlış alıntı itibar kaybettirir).
 Yeni bir sayfayı ön işlersen `sendHtml()` üzerinden gönder (CSP/HSTS başlıkları
 orada).
 

@@ -537,6 +537,9 @@
   }
 
   function injectSiteJsonLd() {
+    // Sunucu (AEO için) kurum + WebSite şemasını zaten STATİK basıyor; iki kez
+    // eklenmesin. Statik yayında (Pages) sunucu yok → istemci enjekte eder.
+    if (hasServerLd()) return;
     const url = C.seo.siteUrl;
     addJsonLd({
       "@context": "https://schema.org", "@type": "Organization",

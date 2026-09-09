@@ -1,0 +1,85 @@
+# EmlakAI — tam site özeti (llms-full.txt)
+
+> Yapay zekâ destekli taşınmaz ve araç ilan platformu. Bu dosya yapay zekâ arama motorları ve asistanlar için hazırlanmıştır.
+> Alıntılarken kaynak: https://emlak-production.up.railway.app
+
+## Site hakkında
+
+- Ad: EmlakAI (https://emlak-production.up.railway.app)
+- Ne yapar: satılık ve kiralık taşınmaz (konut, iş yeri, arsa) ile araç ilanları yayınlar; her ilan için
+  yapay zekâ fiyat analizi, tahmini değer bandı, kira getirisi ve amortisman süresi hesaplar.
+- İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.
+- İletişim: 0543 743 42 09 (WhatsApp) · gesmarketim@gmail.com
+- Adres: Örnek Mah. 1551 Sok. No:10/1, Manavgat / Antalya
+
+## Sık sorulan sorular (cevaplarıyla)
+
+### EmlakAI nedir?
+
+EmlakAI, satılık ve kiralık taşınmaz ile araç ilanlarını yapay zekâ fiyat analiziyle birlikte
+yayınlayan bir ilan platformudur. Her ilan bulunduğu ilçenin m² piyasa ortalamasıyla karşılaştırılır ve
+Fırsat / Piyasa Uygunu / Piyasa Üstü olarak etiketlenir.
+
+### İlan vermek ücretli mi?
+
+Hayır, ücretsizdir. Ücretsiz üyelik açıp ilan formunu doldurmak yeterlidir; yapay zekâ fiyat önerisi ve
+ilan metni yazarı da ücretsizdir.
+
+### Değerleme nasıl hesaplanıyor?
+
+İlçe bazlı m² piyasa fiyatı, konut/araç yaşı, oda sayısı, alan ve özellik katsayılarıyla tahmini bir değer
+bandı üretilir. Aylık kira tahmini satış değerinin yaklaşık %0.42'idir.
+
+## İlçe bazlı konut m² fiyatları (2026-07)
+
+### İstanbul (yıllık reel değer eğilimi ~%1.9)
+
+- İstanbul / Beşiktaş: 125.000 TL/m² · 100 m² tahmini değer 12.500.000 TL · tahmini aylık kira 52.500 TL
+- İstanbul / Sarıyer: 110.000 TL/m² · 100 m² tahmini değer 11.000.000 TL · tahmini aylık kira 46.200 TL
+- İstanbul / Bakırköy: 98.000 TL/m² · 100 m² tahmini değer 9.800.000 TL · tahmini aylık kira 41.160 TL
+- İstanbul / Kadıköy: 95.000 TL/m² · 100 m² tahmini değer 9.500.000 TL · tahmini aylık kira 39.900 TL
+- İstanbul / Üsküdar: 78.000 TL/m² · 100 m² tahmini değer 7.800.000 TL · tahmini aylık kira 32.760 TL
+- İstanbul / Maltepe: 56.000 TL/m² · 100 m² tahmini değer 5.600.000 TL · tahmini aylık kira 23.520 TL
+- İstanbul / Kartal: 48.000 TL/m² · 100 m² tahmini değer 4.800.000 TL · tahmini aylık kira 20.160 TL
+- İstanbul / Esenyurt: 27.000 TL/m² · 100 m² tahmini değer 2.700.000 TL · tahmini aylık kira 11.340 TL
+
+### Ankara (yıllık reel değer eğilimi ~%1.4)
+
+- Ankara / Çankaya: 45.000 TL/m² · 100 m² tahmini değer 4.500.000 TL · tahmini aylık kira 18.900 TL
+- Ankara / Yenimahalle: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- Ankara / Etimesgut: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Ankara / Keçiören: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Ankara / Mamak: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+
+### İzmir (yıllık reel değer eğilimi ~%1.7)
+
+- İzmir / Çeşme: 95.000 TL/m² · 100 m² tahmini değer 9.500.000 TL · tahmini aylık kira 39.900 TL
+- İzmir / Urla: 78.000 TL/m² · 100 m² tahmini değer 7.800.000 TL · tahmini aylık kira 32.760 TL
+- İzmir / Karşıyaka: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
+- İzmir / Konak: 46.000 TL/m² · 100 m² tahmini değer 4.600.000 TL · tahmini aylık kira 19.320 TL
+- İzmir / Bornova: 42.000 TL/m² · 100 m² tahmini değer 4.200.000 TL · tahmini aylık kira 17.640 TL
+- İzmir / Buca: 33.000 TL/m² · 100 m² tahmini değer 3.300.000 TL · tahmini aylık kira 13.860 TL
+
+### Antalya (yıllık reel değer eğilimi ~%2.2)
+
+- Antalya / Konyaaltı: 68.000 TL/m² · 100 m² tahmini değer 6.800.000 TL · tahmini aylık kira 28.560 TL
+- Antalya / Lara: 62.000 TL/m² · 100 m² tahmini değer 6.200.000 TL · tahmini aylık kira 26.040 TL
+- Antalya / Side: 55.000 TL/m² · 100 m² tahmini değer 5.500.000 TL · tahmini aylık kira 23.100 TL
+- Antalya / Muratpaşa: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
+- Antalya / Alanya: 47.000 TL/m² · 100 m² tahmini değer 4.700.000 TL · tahmini aylık kira 19.740 TL
+- Antalya / Manavgat: 40.000 TL/m² · 100 m² tahmini değer 4.000.000 TL · tahmini aylık kira 16.800 TL
+- Antalya / Kepez: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+
+### Bursa (yıllık reel değer eğilimi ~%1.3)
+
+- Bursa / Mudanya: 44.000 TL/m² · 100 m² tahmini değer 4.400.000 TL · tahmini aylık kira 18.480 TL
+- Bursa / Nilüfer: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
+- Bursa / Osmangazi: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Bursa / Yıldırım: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+
+## Makine okunur veri
+
+- İlan akışı (JSON): https://emlak-production.up.railway.app/veri/ilanlar.json
+- Site haritası: https://emlak-production.up.railway.app/sitemap.xml
+
+Not: Piyasa değerleri bölgesel ortalamadır; bilgi amaçlıdır, yatırım tavsiyesi değildir.

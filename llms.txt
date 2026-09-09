@@ -24,6 +24,14 @@
 
 Aylık kira tahmini = satış değerinin ~%0.42'i.
 
+## Yapay zekâ motorları için
+
+- Ayrıntılı özet (tüm ilanlar + ilçe fiyat tablosu + SSS cevapları): https://emlak-production.up.railway.app/llms-full.txt
+- Makine okunur ilan akışı (JSON): https://emlak-production.up.railway.app/veri/ilanlar.json
+- Site haritası: https://emlak-production.up.railway.app/sitemap.xml
+
+İçerik kaynak gösterilerek alıntılanabilir: EmlakAI (https://emlak-production.up.railway.app).
+
 ## İletişim
 
 - Telefon/WhatsApp: 0543 743 42 09

@@ -1099,8 +1099,44 @@ function renderListHtml(html, list) {
     .replace("</main>", popularLinksHtml("") + "\n  </main>");
 }
 
+// AEO: kurum kimliği ve site araması HER sunucu sayfasına STATİK basılır —
+// botlar JS çalıştırmadığı için app.js'in enjekte ettiği şema onlara ulaşmıyordu.
+// `data-sld` işaretli olduğundan istemci aynısını tekrar eklemez.
+function siteJsonLd() {
+  const sehirler = Object.keys(CONF.market.cities);
+  return jsonLdTag({
+    "@context": "https://schema.org", "@type": "RealEstateAgent",
+    "@id": SITE + "/#kurum",
+    name: CONF.brand.name, legalName: CONF.company.title, url: SITE,
+    logo: SITE + CONF.seo.ogImage, image: SITE + CONF.seo.ogImage,
+    description: CONF.brand.tagline,
+    email: CONF.company.email, telephone: CONF.company.phone.intl,
+    address: { "@type": "PostalAddress", streetAddress: CONF.company.address, addressCountry: "TR" },
+    areaServed: sehirler.map((c) => ({ "@type": "City", name: c })),
+    knowsAbout: [
+      "satılık daire", "kiralık daire", "villa", "arsa", "iş yeri", "ikinci el araç",
+      "konut değerleme", "kira getirisi", "konut kredisi", "emlak piyasa analizi",
+    ],
+    knowsLanguage: "tr-TR",
+    priceRange: "₺₺",
+    sameAs: CONF.seo.sameAs || [],
+  }) + jsonLdTag({
+    "@context": "https://schema.org", "@type": "WebSite",
+    "@id": SITE + "/#site",
+    name: CONF.brand.name, url: SITE, inLanguage: "tr-TR",
+    description: CONF.brand.tagline,
+    publisher: { "@id": SITE + "/#kurum" },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: { "@type": "EntryPoint", urlTemplate: SITE + "/ilanlar.html?q={search_term_string}" },
+      "query-input": "required name=search_term_string",
+    },
+  });
+}
+
 // Ön işlenmiş HTML'i (gerekirse gzip'leyerek) gönderir
 function sendHtml(req, res, html) {
+  if (html.indexOf(SITE + "/#kurum") < 0) html = html.replace("</head>", siteJsonLd() + "\n</head>");
   const headers = {
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-cache",
@@ -1179,11 +1215,12 @@ const seoMatches = (f) => LISTINGS.filter((l) => l.status === "active" &&
   (!f.segment || (l.segment || "emlak") === f.segment));
 
 // Sayfaya özgü başlık/açıklama/giriş metni — veriden üretilir, her sayfa özgün
-function seoPageTexts(f, list) {
+// Sayfanın SAYISAL gerçekleri — hem giriş metni hem SSS (AEO) buradan beslenir,
+// böylece yapay zekâ motorlarına verilen cevaplar sayfadaki veriyle AYNI olur.
+function seoStats(f, list) {
   const yer = f.district ? `${f.district}, ${f.city}` : (f.city || "Türkiye geneli");
   const tur = f.kindLabel || (f.segment === "vasita" ? "Araç" : "Taşınmaz");
   const cat = f.category === "kiralik" ? "Kiralık" : f.category === "satilik" ? "Satılık" : "Satılık & Kiralık";
-  const h1 = `${f.district || f.city ? (f.district || f.city) + " " : ""}${cat} ${tur} İlanları`;
   const prices = list.map((l) => l.price).filter(Boolean).sort((a, b) => a - b);
   const med = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
   const perM2 = (() => {
@@ -1192,6 +1229,23 @@ function seoPageTexts(f, list) {
   })();
   const cityData = f.city && CONF.market.cities[f.city];
   const bolge = cityData && f.district ? cityData.districts[f.district] : null;
+  const dates = list.map((l) => new Date(l.updated || l.date)).filter((d) => !isNaN(d));
+  return {
+    yer, tur, cat, prices, med, perM2, cityData, bolge, list,
+    min: prices[0] || 0, max: prices[prices.length - 1] || 0,
+    cheapest: prices.length ? list.filter((l) => l.price === prices[0])[0] : null,
+    updated: dates.length ? new Date(Math.max(...dates)) : new Date(),
+    m2Avg: (() => {
+      const v = list.map((l) => l.m2).filter(Boolean);
+      return v.length ? Math.round(v.reduce((a, c) => a + c, 0) / v.length) : 0;
+    })(),
+  };
+}
+
+function seoPageTexts(f, list) {
+  const st = seoStats(f, list);
+  const { yer, tur, cat, med, perM2, cityData, bolge } = st;
+  const h1 = `${f.district || f.city ? (f.district || f.city) + " " : ""}${cat} ${tur} İlanları`;
   const intro = [
     `${yer} bölgesinde ${cat.toLocaleLowerCase("tr-TR")} ${tur.toLocaleLowerCase("tr-TR")} arayanlar için ` +
     (list.length ? `şu anda <b>${list.length} ilan</b> yayında.` : "henüz yayında ilan bulunmuyor; ilk ilanı siz verebilirsiniz."),
@@ -1208,6 +1262,165 @@ function seoPageTexts(f, list) {
     (perM2 ? `, ortalama ${trNum(perM2)} ₺/m²` : "") +
     ". AI fiyat analizi, doğal dil arama ve anında değerleme ile.";
   return { h1, intro, title, desc: desc.slice(0, 300) };
+}
+
+// ── AEO: llms-full.txt — yapay zekâ motorları için tam metin özet ────────
+// Yanıt motorları JS çalıştırmaz ve uzun HTML'i seyreltir; bu düz metin dosya
+// sitenin TÜM gerçeklerini (ilanlar, ilçe fiyatları, SSS cevapları) tek yerde,
+// alıntılanmaya hazır biçimde verir.
+function llmsFullTxt() {
+  const active = LISTINGS.filter((l) => l.status === "active");
+  const bugun = new Date().toISOString().slice(0, 10);
+  const L = [];
+  L.push("# " + CONF.brand.name + " — tam site özeti (llms-full.txt)");
+  L.push("");
+  L.push("> " + CONF.brand.tagline + ". Bu dosya yapay zekâ arama motorları ve asistanlar için hazırlanmıştır;");
+  L.push("> içerikteki sayılar sitedeki canlı verinin aynısıdır. Alıntılarken kaynak: " + SITE);
+  L.push("> Güncelleme: " + bugun + " · Yayındaki ilan sayısı: " + active.length);
+  L.push("");
+  L.push("## Site hakkında");
+  L.push("");
+  L.push("- Ad: " + CONF.brand.name + " (" + SITE + ")");
+  L.push("- Ne yapar: satılık ve kiralık taşınmaz (konut, iş yeri, arsa) ile araç ilanları yayınlar;");
+  L.push("  her ilan için yapay zekâ fiyat analizi, tahmini değer bandı, kira getirisi ve amortisman süresi hesaplar.");
+  L.push("- Ücretsiz araçlar: doğal dil arama, anında değerleme (taşınmaz + araç), konut/taşıt kredisi hesaplayıcı, EVA asistanı.");
+  L.push("- İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.");
+  L.push("- İletişim: " + CONF.company.phone.display + " (WhatsApp) · " + CONF.company.email);
+  if (CONF.company.address) L.push("- Adres: " + CONF.company.address);
+  L.push("");
+  L.push("## Sık sorulan sorular (cevaplarıyla)");
+  L.push("");
+  const sss = [
+    ["EmlakAI nedir?", CONF.brand.name + ", satılık ve kiralık taşınmaz ile araç ilanlarını yapay zekâ fiyat analiziyle birlikte yayınlayan bir ilan platformudur. Her ilan bulunduğu ilçenin m² piyasa ortalamasıyla karşılaştırılır ve Fırsat / Piyasa Uygunu / Piyasa Üstü olarak etiketlenir."],
+    ["İlan vermek ücretli mi?", "Hayır, ücretsizdir. Ücretsiz üyelik açıp ilan formunu doldurmak yeterlidir; yapay zekâ fiyat önerisi ve ilan metni yazarı da ücretsizdir. İlanlar yönetici onayından sonra yayınlanır."],
+    ["Değerleme nasıl hesaplanıyor?", "İlçe bazlı m² piyasa fiyatı, konut/araç yaşı, oda sayısı, alan ve özellik katsayılarıyla tahmini bir değer bandı üretilir. Aylık kira tahmini satış değerinin yaklaşık %" + (CONF.market.rentYieldMonthly * 100).toFixed(2) + "'idir. Sonuçlar bilgi amaçlıdır, yatırım tavsiyesi değildir."],
+    ["Doğal dille arama yapabilir miyim?", "Evet. \"Manavgat'ta 5 milyon altı deniz manzaralı villa\" gibi bir cümle yazdığınızda şehir, ilçe, tür, oda, fiyat, m², bina yaşı ve özellikler ayrıştırılıp filtreye çevrilir."],
+    ["İlanlar güncel mi?", "Evet; ilanlar üyeler tarafından girilir, yönetici onayıyla yayınlanır ve fiyat değişiklikleri fiyat geçmişinde tutulur. Bu dosyadaki liste " + bugun + " tarihinde üretilmiştir."],
+  ];
+  sss.forEach(([q, a2]) => { L.push("### " + q); L.push(""); L.push(a2); L.push(""); });
+  L.push("## İlçe bazlı konut m² fiyatları (" + CONF.seo.dataDate + ")");
+  L.push("");
+  Object.entries(CONF.market.cities).forEach(([city, cd]) => {
+    const rows = Object.entries(cd.districts).sort((a2, b2) => b2[1] - a2[1]);
+    L.push("### " + city + " (yıllık reel değer eğilimi ~%" + cd.yieldTrend + ")");
+    L.push("");
+    rows.forEach(([d, v]) => L.push("- " + city + " / " + d + ": " + trNum(v) + " TL/m² · 100 m² tahmini değer " +
+      trNum(v * 100) + " TL · tahmini aylık kira " + trNum(Math.round(v * 100 * CONF.market.rentYieldMonthly)) + " TL"));
+    L.push("");
+  });
+  if (active.length) {
+    L.push("## Yayındaki ilanlar (" + active.length + " adet, " + bugun + ")");
+    L.push("");
+    active.slice(0, 300).forEach((l) => {
+      L.push("### " + l.title);
+      L.push("");
+      L.push("- Adres (URL): " + listingUrl(l));
+      L.push("- Fiyat: " + trNum(l.price) + " TL" + (l.category === "kiralik" ? " / ay" : ""));
+      L.push("- Konum: " + [l.district, l.city].filter(Boolean).join(", ") + (l.locality ? " (" + l.locality + ")" : ""));
+      L.push("- Özet: " + listingSummary(l));
+      if (l.m2 && l.category === "satilik") L.push("- Birim fiyat: " + trNum(Math.round(l.price / l.m2)) + " TL/m²");
+      if (l.desc) L.push("- Açıklama: " + String(l.desc).replace(/\s+/g, " ").slice(0, 400));
+      L.push("- Güncelleme: " + String(l.updated || l.date).slice(0, 10));
+      L.push("");
+    });
+  }
+  L.push("## Makine okunur veri");
+  L.push("");
+  L.push("- İlan akışı (JSON): " + SITE + "/veri/ilanlar.json");
+  L.push("- Site haritası: " + SITE + "/sitemap.xml");
+  L.push("");
+  L.push("Not: Piyasa değerleri bölgesel ortalamadır; bilgi amaçlıdır, yatırım tavsiyesi değildir.");
+  L.push("Kesin değerleme için yerinde ekspertiz gerekir.");
+  return L.join("\n") + "\n";
+}
+
+// ── AEO: veriden üretilen SSS (yanıt motorları için) ─────────────────────
+// Yapay zekâ arama motorları (ChatGPT, Perplexity, Gemini, Copilot) SORUYA
+// DOĞRUDAN CEVAP veren, sayı içeren ve kaynağı belli metinleri alıntılar.
+// Bu blok hem SAYFADA görünür (ziyaretçi de okur) hem FAQPage JSON-LD olarak
+// basılır — ikisi AYNI metindir (uydurma yanıt riski yok, veri canlıdır).
+function seoFaq(f, list) {
+  const st = seoStats(f, list);
+  const { yer, tur, cat, med, perM2, cityData, bolge, min, max, m2Avg } = st;
+  const kiralik = f.category === "kiralik";
+  const birim = kiralik ? " ₺/ay" : " ₺";
+  const turL = tur.toLocaleLowerCase("tr-TR");
+  const catL = cat.toLocaleLowerCase("tr-TR");
+  const qa = [];
+  if (med) {
+    qa.push([
+      `${yer} ${catL} ${turL} fiyatları ne kadar?`,
+      `${yer} bölgesinde ${CONF.brand.name}'de yayında olan ${list.length} ${catL} ${turL} ilanının medyan fiyatı ` +
+      `${trNum(med)}${birim}. Fiyat aralığı ${trNum(min)}${birim} ile ${trNum(max)}${birim} arasında değişiyor` +
+      (perM2 ? `; ortalama birim fiyat ${trNum(perM2)} ₺/m²` : "") +
+      (m2Avg ? `, ortalama büyüklük ${trNum(m2Avg)} m²` : "") + ". " +
+      `Veriler ${st.updated.toLocaleDateString("tr-TR")} tarihinde güncellendi.`,
+    ]);
+  } else {
+    qa.push([
+      `${yer} ${catL} ${turL} ilanı var mı?`,
+      `${yer} bölgesinde şu anda yayında ${catL} ${turL} ilanı bulunmuyor. ` +
+      `${CONF.brand.name}'de ilan vermek ücretsizdir; yayınlanan ilanlar bu sayfada listelenir.`,
+    ]);
+  }
+  if (bolge) {
+    qa.push([
+      `${f.district}'ta konut m² fiyatı ne kadar?`,
+      `${f.district} (${f.city}) için piyasa ortalaması ${trNum(bolge)} ₺/m². ` +
+      `Bu değere göre 100 m² bir konutun tahmini değeri ${trNum(bolge * 100)} ₺, ` +
+      `tahmini aylık kirası ${trNum(Math.round(bolge * 100 * CONF.market.rentYieldMonthly))} ₺'dir.`,
+    ]);
+    if (!kiralik) {
+      const kira = bolge * 100 * CONF.market.rentYieldMonthly;
+      const yil = Math.round((bolge * 100) / (kira * 12));
+      qa.push([
+        `${f.district}'ta ev almak yatırım olarak mantıklı mı?`,
+        `${f.district}'ta 100 m² bir konut için tahmini yıllık kira geliri ${trNum(Math.round(kira * 12))} ₺, ` +
+        `brüt kira getirisi yaklaşık %${((kira * 12) / (bolge * 100) * 100).toFixed(1)} ve kendini amorti etme süresi ` +
+        `yaklaşık ${yil} yıldır` +
+        (cityData ? `. ${f.city} genelinde yıllık reel değer artış eğilimi yaklaşık %${cityData.yieldTrend}` : "") +
+        `. Bu tahminler bilgi amaçlıdır, yatırım tavsiyesi değildir.`,
+      ]);
+    }
+  }
+  if (st.cheapest) {
+    const c = st.cheapest;
+    qa.push([
+      `${yer} bölgesindeki en uygun ${catL} ${turL} ilanı hangisi?`,
+      `Şu anda en düşük fiyatlı ilan “${c.title}” — ${trNum(c.price)}${birim}` +
+      (c.m2 ? `, ${trNum(c.m2)} m²` : "") + (c.rooms ? `, ${c.rooms}` : "") +
+      `. İlan adresi: ${listingUrl(c)}`,
+    ]);
+  }
+  qa.push([
+    `${CONF.brand.name}'de ilan vermek ücretli mi?`,
+    `Hayır, ${CONF.brand.name}'de ilan vermek ücretsizdir. Ücretsiz üyelik açıp ilan formunu doldurmanız yeterli; ` +
+    `yapay zekâ fiyat önerisi ve otomatik ilan metni yazarı da ücretsiz kullanılır. ` +
+    `Her ilan yayına alınmadan önce yönetici onayından geçer.`,
+  ]);
+  qa.push([
+    `${CONF.brand.name} fiyat analizini nasıl yapıyor?`,
+    `Her ilan, bulunduğu ilçenin m² piyasa ortalaması, konut yaşı, oda sayısı ve özellikleriyle karşılaştırılır; ` +
+    `sonuç "Fırsat Fiyatı", "Piyasa Uygunu" veya "Piyasa Üstü" etiketiyle gösterilir. ` +
+    `İlan detayında tahmini değer bandı, aylık kira tahmini, brüt kira getirisi ve amortisman süresi de yer alır.`,
+  ]);
+  const html = `<div class="container section" style="padding-top:0">
+      <div class="detail-card">
+        <h2 style="font-size:1.05rem">${htmlEsc(yer)} — sık sorulan sorular</h2>
+        ${qa.map(([q, a2]) => `<details class="faq-item" style="margin-top:10px">
+          <summary style="font-weight:700;cursor:pointer">${htmlEsc(q)}</summary>
+          <p style="margin-top:6px;color:var(--muted)">${htmlEsc(a2)}</p>
+        </details>`).join("")}
+      </div>
+    </div>`;
+  const ld = jsonLdTag({
+    "@context": "https://schema.org", "@type": "FAQPage",
+    mainEntity: qa.map(([q, a2]) => ({
+      "@type": "Question", name: q,
+      acceptedAnswer: { "@type": "Answer", text: a2 },
+    })),
+  });
+  return { html, ld };
 }
 
 // İç bağlantı bloğu: arama motorlarının kategori sayfalarını bulmasını sağlar
@@ -1235,17 +1448,28 @@ function renderSeoPage(html, f, list) {
   const crumbs = [{ name: "Ana Sayfa", item: SITE + "/" }, { name: "İlanlar", item: SITE + "/ilanlar.html" }];
   if (f.city) crumbs.push({ name: f.city, item: SITE + "/" + slugify(f.city) });
   crumbs.push({ name: t.h1, item: url });
+  const st = seoStats(f, list);
   const ld = jsonLdTag({
     "@context": "https://schema.org", "@type": "BreadcrumbList",
     itemListElement: crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.name, item: c.item })),
+  }) + jsonLdTag({
+    // Tazelik + kapsam sinyali: yanıt motorları "güncel mi?" diye bakar.
+    "@context": "https://schema.org", "@type": "CollectionPage",
+    name: t.h1, url, description: t.desc,
+    inLanguage: "tr-TR",
+    dateModified: st.updated.toISOString(),
+    isPartOf: { "@type": "WebSite", name: CONF.brand.name, url: SITE },
+    about: [f.city, f.district, t.h1].filter(Boolean).map((n) => ({ "@type": "Thing", name: n })),
+    provider: { "@type": "Organization", name: CONF.brand.name, url: SITE },
   });
+  const faq = seoFaq(f, list);
   // İstemci aynı filtreleri uygulasın diye (satır içi script CSP'de yasak)
   const meta = `<meta name="ea-filters" content="${htmlEsc(new URLSearchParams(
     Object.fromEntries(Object.entries({ segment: f.segment, category: f.category, kind: f.kind, city: f.city, district: f.district })
       .filter(([, v]) => v))).toString())}">`;
   return html
-    .replace(popularLinksHtml(""), popularLinksHtml(seoSlugOf(f)))
-    .replace("</head>", meta + ld + "\n</head>")
+    .replace(popularLinksHtml(""), faq.html + popularLinksHtml(seoSlugOf(f)))
+    .replace("</head>", meta + ld + faq.ld + "\n</head>")
     .replace('<h1>İlanlar</h1>', `<h1>${htmlEsc(t.h1)}</h1>`)
     .replace('<p>Filtrelerle daraltın; her ilan yapay zekâ fiyat etiketiyle gösterilir.</p>',
       `<p>${t.intro}</p>`);
@@ -1451,6 +1675,49 @@ const server = http.createServer((req, res) => {
     req.__query = new URLSearchParams(req.url.split("?")[1] || "");
 
     // Dinamik sitemap: yayındaki ilanları da içerir (statik dosyayı ezer)
+    // AEO: yapay zekâ motorları için ayrıntılı, düz metin site özeti.
+    // llms.txt kısa özet; llms-full.txt ise yayındaki TÜM ilanların künyesi,
+    // ilçe fiyat tablosu ve sık sorulan soruların CEVAPLARINI içerir.
+    if (urlPath === "/llms-full.txt") {
+      const txt = llmsFullTxt();
+      res.writeHead(200, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=900",
+        "X-Content-Type-Options": "nosniff",
+      });
+      return res.end(txt);
+    }
+
+    // Makine okunur ilan akışı (AI ajanları ve olası ortaklar için).
+    // Yalnız YAYINDAKİ ilanların herkese açık alanları döner.
+    if (urlPath === "/veri/ilanlar.json") {
+      const active = LISTINGS.filter((l) => l.status === "active");
+      const body = JSON.stringify({
+        site: CONF.brand.name, url: SITE,
+        aciklama: "Yayındaki ilanların herkese açık listesi. Fiyatlar TL, tarihler ISO-8601.",
+        guncelleme: new Date().toISOString(),
+        lisans: "Kaynak gösterilerek alıntılanabilir.",
+        ilanSayisi: active.length,
+        ilanlar: active.slice(0, 500).map((l) => ({
+          id: l.id, baslik: l.title, url: listingUrl(l),
+          segment: l.segment || "emlak", kategori: l.category, tur: l.kindLabel || l.kind,
+          fiyat: l.price, paraBirimi: "TRY", periyot: l.category === "kiralik" ? "AY" : null,
+          sehir: l.city, ilce: l.district, mahalle: l.locality || null,
+          m2: l.m2 || null, oda: l.rooms || null, binaYasi: l.age == null ? null : l.age,
+          marka: l.brand || null, model: l.model || null, yil: l.year || null, km: l.km || null,
+          ozellikler: l.features || [], eklenme: l.date, guncelleme: l.updated || l.date,
+          fotograf: (l.photos || []).slice(0, 1).map((x) => SITE + "/" + x.replace(/^u\//, "u/")),
+        })),
+      }, null, 1);
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=600",
+        "Access-Control-Allow-Origin": "*",
+        "X-Content-Type-Options": "nosniff",
+      });
+      return res.end(body);
+    }
+
     if (urlPath === "/sitemap.xml") {
       const xml = sitemapXml();
       res.writeHead(200, {
@@ -1594,6 +1861,9 @@ const server = http.createServer((req, res) => {
     }
 
     const ext = path.extname(filePath).toLowerCase();
+    // Diğer TÜM HTML sayfaları da sendHtml'den geçer: böylece kurum + WebSite
+    // şeması (AEO) botlara statik ulaşır ve güvenlik başlıkları tek yerdedir.
+    if (ext === ".html") return sendHtml(req, res, fs.readFileSync(filePath, "utf8"));
     const mime = MIME[ext] || "application/octet-stream";
     const headers = {
       "Content-Type": mime,
