@@ -101,8 +101,72 @@ const DATA_URI = /^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/;
 const EXT_OF = { png: ".png", jpg: ".jpg", jpeg: ".jpg", webp: ".webp" };
 const UP = (CONF && CONF.upload) || {};
 const MAX_PHOTOS = UP.maxPhotos || 6;
-const MAX_PHOTO_BYTES = (UP.maxStoredKB || 1800) * 1024;
+const MAX_PHOTO_BYTES = (UP.maxStoredKB || 900) * 1024;
+// DEPOLAMA KOTASI (config.upload.quota) — disk kontrolden çıkmasın diye üç kat:
+// ilan başına, ÜYE başına ve SİTE toplamı. Aşan fotoğraf yazılmaz, sebebi söylenir.
+const QUOTA = UP.quota || {};
+const LISTING_QUOTA = (QUOTA.perListingMB || 5) * 1024 * 1024;
+const USER_QUOTA = (QUOTA.perUserMB || 40) * 1024 * 1024;
+const SITE_QUOTA = (QUOTA.totalGB || 2) * 1024 * 1024 * 1024;
 
+// Yüklenen dosyaların boyut defteri: yazınca eklenir, silinince düşülür.
+// Böylece her istekte disk taranmaz.
+const PHOTO_SIZES = new Map(); // dosya adı -> bayt
+let USAGE_BYTES = 0;
+function scanUploads() {
+  PHOTO_SIZES.clear(); USAGE_BYTES = 0;
+  try {
+    for (const name of fs.readdirSync(UPLOAD_DIR)) {
+      if (name.startsWith(".")) continue;
+      try {
+        const st = fs.statSync(path.join(UPLOAD_DIR, name));
+        if (!st.isFile()) continue;
+        PHOTO_SIZES.set(name, st.size); USAGE_BYTES += st.size;
+      } catch (e) { /* yarışta silinmiş olabilir */ }
+    }
+  } catch (e) { /* dizin yok */ }
+  return USAGE_BYTES;
+}
+const noteWrite = (name, size) => { PHOTO_SIZES.set(name, size); USAGE_BYTES += size; };
+function noteDelete(name) {
+  const size = PHOTO_SIZES.get(name) || 0;
+  PHOTO_SIZES.delete(name); USAGE_BYTES = Math.max(0, USAGE_BYTES - size);
+}
+const photoBytesOf = (photos) => (photos || []).reduce(
+  (t, p) => t + (typeof p === "string" && p.indexOf("u/") === 0 ? (PHOTO_SIZES.get(p.slice(2)) || 0) : 0), 0);
+// Bir üyenin (belirtilen ilan HARİÇ) toplam fotoğraf alanı.
+function userPhotoBytes(uid, exceptId) {
+  if (!uid) return 0;
+  let sum = 0;
+  for (const l of LISTINGS) {
+    if (l.ownerId !== uid || (exceptId && l.id === exceptId)) continue;
+    sum += photoBytesOf(l.photos);
+  }
+  return sum;
+}
+// Panel/istatistik için depolama özeti (en çok yer kaplayan üyelerle birlikte).
+function storageStats() {
+  const byUser = new Map();
+  for (const l of LISTINGS) {
+    const b = photoBytesOf(l.photos);
+    if (!b) continue;
+    const key = l.ownerId || "(üyesiz)";
+    const cur = byUser.get(key) || { bytes: 0, listings: 0, name: (l.seller && l.seller.name) || "" };
+    cur.bytes += b; cur.listings += 1;
+    byUser.set(key, cur);
+  }
+  const top = [...byUser.entries()]
+    .map(([uid, v]) => ({ uid, name: v.name, bytes: v.bytes, listings: v.listings }))
+    .sort((x, y) => y.bytes - x.bytes).slice(0, 10);
+  return {
+    usedBytes: USAGE_BYTES, files: PHOTO_SIZES.size,
+    siteQuotaBytes: SITE_QUOTA, userQuotaBytes: USER_QUOTA, listingQuotaBytes: LISTING_QUOTA,
+    usedPct: SITE_QUOTA ? Math.round((USAGE_BYTES / SITE_QUOTA) * 100) : 0,
+    warnPct: QUOTA.warnPct || 80, topUsers: top,
+  };
+}
+
+const BODY_PHOTOS = Math.ceil(MAX_PHOTOS * MAX_PHOTO_BYTES * 1.4) + 512 * 1024; // fotoğraflı istek gövdesi sınırı
 // Yükleme dizini açılışta hazırlanır ve GERÇEKTEN yazılabilir mi denenir —
 // yazılamıyorsa fotoğraflar sessizce kaybolmasın, panel/istemci haber alsın.
 let UPLOADS_OK = false, UPLOADS_ERR = "";
@@ -124,22 +188,37 @@ checkUploadDir();
 // base64 fotoğrafları dosyaya yazar.
 // Dönüş: { photos:[yollar], dropped:n, reason:"..."|null } — atlanan varsa
 // çağıran bunu istemciye BİLDİRİR (eskiden sessizce yutuluyordu).
-function persistPhotos(id, photos) {
+// opts: { ownerId } — üye kotası bunun üzerinden hesaplanır (yoksa yalnız
+// ilan ve site sınırları uygulanır).
+function persistPhotos(id, photos, opts) {
   const out = [];
   let dropped = 0, reason = null;
   const note = (r) => { dropped++; if (!reason) reason = r; };
+  const ownerId = opts && opts.ownerId;
+  // Bu ilanın KORUNAN (yeniden gönderilen) dosyaları da bütçeye sayılır;
+  // üye kotasında bu ilan hariç tutulur, yerine burada hesaplanan yeni toplam girer.
+  let listingBytes = 0;
+  const otherBytes = userPhotoBytes(ownerId, id);
   (photos || []).slice(0, MAX_PHOTOS).forEach((p, i) => {
     if (typeof p !== "string") { note("bicim"); return; }
-    if (/^u\/[\w.-]+$/.test(p) || /^assets\/img\//.test(p)) { out.push(p); return; } // zaten dosya
+    if (/^u\/[\w.-]+$/.test(p) || /^assets\/img\//.test(p)) { // zaten dosya
+      listingBytes += photoBytesOf([p]);
+      out.push(p); return;
+    }
     const m = DATA_URI.exec(p);
     if (!m) { note("bicim"); return; }
     const buf = Buffer.from(m[2], "base64");
     if (!buf.length) { note("bicim"); return; }
     if (buf.length > MAX_PHOTO_BYTES) { note("boyut"); return; }
+    if (listingBytes + buf.length > LISTING_QUOTA) { note("ilanKota"); return; }
+    if (ownerId && otherBytes + listingBytes + buf.length > USER_QUOTA) { note("uyeKota"); return; }
+    if (USAGE_BYTES + buf.length > SITE_QUOTA) { note("depo"); return; }
     const name = id + "-" + (i + 1) + "-" + crypto.randomBytes(3).toString("hex") + (EXT_OF[m[1]] || ".jpg");
     try {
       if (!UPLOADS_OK && !checkUploadDir()) throw new Error(UPLOADS_ERR || "disk");
       fs.writeFileSync(path.join(UPLOAD_DIR, name), buf);
+      noteWrite(name, buf.length);
+      listingBytes += buf.length;
       out.push("u/" + name);
     } catch (e) {
       UPLOADS_OK = false;
@@ -152,16 +231,47 @@ function persistPhotos(id, photos) {
 }
 const PHOTO_MSG = {
   disk: "Fotoğraflar sunucuya kaydedilemedi (depolama sorunu). İlan fotoğrafsız kaydedildi; yönetici depolamayı düzelttikten sonra fotoğraf ekleyebilirsiniz.",
-  boyut: "Bazı fotoğraflar çok büyük olduğu için eklenemedi.",
+  boyut: "Bazı fotoğraflar çok büyük olduğu için eklenemedi (fotoğraf başına en fazla " + Math.round(MAX_PHOTO_BYTES / 1024) + " KB).",
   bicim: "Bazı dosyalar desteklenmeyen biçimde olduğu için eklenemedi (yalnızca JPG, PNG, WEBP).",
   adet: "En fazla " + MAX_PHOTOS + " fotoğraf eklenebilir; fazlası atlandı.",
+  ilanKota: "İlan başına fotoğraf alanı (" + Math.round(LISTING_QUOTA / 1048576) + " MB) doldu; kalan fotoğraflar eklenmedi.",
+  uyeKota: "Hesabınızın fotoğraf alanı (" + Math.round(USER_QUOTA / 1048576) + " MB) doldu. Eski ilanlarınızdan fotoğraf silerek yer açabilir ya da bizimle iletişime geçebilirsiniz.",
+  depo: "Sitenin fotoğraf deposu doldu; fotoğraflar şimdilik kaydedilemiyor. Yönetici bilgilendirildi, lütfen daha sonra tekrar deneyin.",
 };
 const photoWarning = (r) => (r.dropped ? { photosDropped: r.dropped, photoWarning: PHOTO_MSG[r.reason] || PHOTO_MSG.bicim } : null);
 function dropPhotos(photos) {
   (photos || []).forEach((p) => {
     if (!/^u\/[\w.-]+$/.test(p)) return;
-    try { fs.unlinkSync(path.join(UPLOAD_DIR, p.slice(2))); } catch (e) {}
+    const name = p.slice(2);
+    try { fs.unlinkSync(path.join(UPLOAD_DIR, name)); } catch (e) {}
+    noteDelete(name);
   });
+}
+
+// Açılışta: boyut defterini kur ve HİÇBİR ilana bağlı olmayan (yetim) dosyaları
+// temizle — ilan silinirken yazma hatası olsa bile disk şişmesin. Yeni yazılmış
+// dosyalar (24 saatten yeni) korunur; kayıt akışının ortasında olabilirler.
+function sweepOrphanPhotos() {
+  scanUploads();
+  const used = new Set();
+  for (const l of LISTINGS) for (const p of l.photos || []) {
+    if (typeof p === "string" && p.indexOf("u/") === 0) used.add(p.slice(2));
+  }
+  const limit = Date.now() - 24 * 3600 * 1000;
+  let freed = 0, n = 0;
+  for (const name of [...PHOTO_SIZES.keys()]) {
+    if (used.has(name)) continue;
+    const file = path.join(UPLOAD_DIR, name);
+    try {
+      if (fs.statSync(file).mtimeMs > limit) continue;
+      const size = PHOTO_SIZES.get(name) || 0;
+      fs.unlinkSync(file);
+      noteDelete(name); freed += size; n += 1;
+    } catch (e) { /* yoksay */ }
+  }
+  if (n) console.log("Yetim fotoğraf temizlendi:", n, "dosya,", Math.round(freed / 1024), "KB");
+  console.log("Fotoğraf deposu:", Math.round(USAGE_BYTES / 1048576) + " MB / " +
+    Math.round(SITE_QUOTA / 1048576) + " MB (" + PHOTO_SIZES.size + " dosya)");
 }
 
 // ── Mesajlar (ilan sahibine gelen talepler) ───────────────────────────────
@@ -458,7 +568,7 @@ async function handleApi(req, res, urlPath) {
     if (!isAdmin && !rateLimit(req, "post", 10, 60 * 60 * 1000)) {
       return sendJson(res, 429, { error: "Saatlik ilan sınırına ulaştınız. Daha sonra tekrar deneyin." });
     }
-    const b = await readBody(req, 16 * 1024 * 1024); // fotoğraflar base64
+    const b = await readBody(req, BODY_PHOTOS); // fotoğraflar base64 (kota kadar)
     const l = NORMALIZE(b);
     if (!l) return sendJson(res, 400, { error: "Geçersiz ilan verisi." });
     if (!l.title || !l.price || !l.district) return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
@@ -481,7 +591,7 @@ async function handleApi(req, res, urlPath) {
       l.seller = { name: rawName || user.name, type: rawSeller.type === "ofis" ? "ofis" : "sahibinden" };
       if (!l.phone && user.phone) l.phone = user.phone;
     }
-    const ph = persistPhotos(l.id, b.photos); // base64 → DATA_DIR/uploads dosyaları
+    const ph = persistPhotos(l.id, b.photos, { ownerId: l.ownerId }); // base64 → DATA_DIR/uploads dosyaları
     l.photos = ph.photos;
     if (!isAdmin) l.featured = false; // öne çıkarma yalnızca admin kararıyla
     LISTINGS.unshift(l);
@@ -570,7 +680,11 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/my/listings" && req.method === "GET") {
     const u = currentUser(req);
     if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
-    return sendJson(res, 200, { listings: LISTINGS.filter((l) => l.ownerId === u.uid) });
+    return sendJson(res, 200, {
+      listings: LISTINGS.filter((l) => l.ownerId === u.uid),
+      // Üye kendi fotoğraf alanını görsün (kota dolmadan haberi olsun).
+      storage: { usedBytes: userPhotoBytes(u.uid), quotaBytes: USER_QUOTA },
+    });
   }
 
   if (urlPath === "/api/my/messages" && req.method === "GET") {
@@ -628,7 +742,7 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/my/action" && req.method === "POST") {
     const u = currentUser(req);
     if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
-    const b = await readBody(req, 12 * 1024 * 1024);
+    const b = await readBody(req, BODY_PHOTOS);
     const i = LISTINGS.findIndex((l) => l.id === b.id && l.ownerId === u.uid);
     if (i < 0) return sendJson(res, 404, { error: "İlan bulunamadı." });
     const l = LISTINGS[i];
@@ -645,7 +759,7 @@ async function handleApi(req, res, urlPath) {
     if (!merged || !merged.title || !merged.price || !merged.district) {
       return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
     }
-    const ph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos) : null;
+    const ph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos, { ownerId: l.ownerId }) : null;
     const keptPhotos = ph ? ph.photos : l.photos;
     if (ph) dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
     pushPriceHistory(l, merged.price);
@@ -674,12 +788,13 @@ async function handleApi(req, res, urlPath) {
       listings: LISTINGS,
       persistent: !!process.env.DATA_DIR,
       uploadsOk: UPLOADS_OK, uploadsError: UPLOADS_ERR, uploadDir: UPLOAD_DIR,
+      storage: storageStats(),
     });
   }
 
   // POST /api/admin/action — {id, action, value}
   if (urlPath === "/api/admin/action" && req.method === "POST") {
-    const b = await readBody(req, 16 * 1024 * 1024); // "edit" fotoğraf taşıyabilir
+    const b = await readBody(req, BODY_PHOTOS); // "edit" fotoğraf taşıyabilir
     let editPhotoResult = null;
     const i = LISTINGS.findIndex((l) => l.id === b.id);
     if (i < 0) return sendJson(res, 404, { error: "İlan bulunamadı." });
@@ -705,7 +820,7 @@ async function handleApi(req, res, urlPath) {
         if (!merged || !merged.title || !merged.price || !merged.district) {
           return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
         }
-        const aph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos) : null;
+        const aph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos, { ownerId: l.ownerId }) : null;
         const keptPhotos = aph ? aph.photos : l.photos;
         if (aph) dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
         editPhotoResult = aph;
@@ -801,7 +916,7 @@ async function handleApi(req, res, urlPath) {
       const l = NORMALIZE(raw);
       if (!l || !l.id || !l.title) return;
       l.status = ["active", "pending", "rejected"].includes(raw.status) ? raw.status : "pending";
-      l.photos = persistPhotos(l.id, raw.photos);
+      l.photos = persistPhotos(l.id, raw.photos, { ownerId: l.ownerId }).photos;
       if (Array.isArray(raw.priceHistory)) l.priceHistory = raw.priceHistory.slice(0, 10);
       fresh.push(l);
     });
@@ -1509,6 +1624,8 @@ const server = http.createServer((req, res) => {
     res.end("Sunucu hatası");
   }
 });
+
+sweepOrphanPhotos(); // boyut defterini kur + yetim fotoğrafları temizle
 
 server.listen(PORT, () => {
   console.log("EmlakAI sunucusu çalışıyor: http://localhost:" + PORT);

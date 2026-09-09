@@ -129,9 +129,11 @@
   const UP_TYPES = UPC.accept || ["image/jpeg", "image/png", "image/webp"];
   const UP_LABEL = UPC.acceptLabel || "JPG · PNG · WEBP";
   const UP_MAX_MB = UPC.maxFileMB || 15;
+  const LISTING_KB = ((UPC.quota && UPC.quota.perListingMB) || 5) * 1024; // ilan başına depolama bütçesi
   const photoAccept = () => UP_TYPES.join(",");
   const photoRuleText = (n) =>
-    `${n} / ${UP_MAX} fotoğraf · İzin verilen biçimler: ${UP_LABEL} · dosya başına en fazla ${UP_MAX_MB} MB`;
+    `${n} / ${UP_MAX} fotoğraf · ${UP_LABEL} · dosya başına en fazla ${UP_MAX_MB} MB` +
+    ` · fotoğraflar otomatik küçültülür (yaklaşık ${UPC.targetKB || 320} KB)`;
 
   // Dosyayı çözer. DİKKAT: `URL.createObjectURL` KULLANILMAZ — sunucunun
   // CSP başlığı `img-src 'self' data:` olduğu için blob: adresleri engellenir
@@ -156,17 +158,46 @@
     });
   }
 
+  // Tarayıcı WebP üretebiliyor mu? (JPEG'e göre aynı kalitede ~%40 küçük)
+  let WEBP_OK = null;
+  function canWebp() {
+    if (WEBP_OK !== null) return WEBP_OK;
+    try {
+      const c = document.createElement("canvas");
+      c.width = c.height = 1;
+      WEBP_OK = c.toDataURL("image/webp").indexOf("data:image/webp") === 0;
+    } catch (e) { WEBP_OK = false; }
+    return WEBP_OK;
+  }
+  const dataUrlKB = (u) => Math.round((u.length - (u.indexOf(",") + 1)) * 0.75 / 1024);
+
   // Fotoğrafı küçültüp base64'e çevirir; çözülemezse null döner (çağıran uyarır).
+  // DEPOLAMA KONTROLÜ: hedef boyuta (config.upload.targetKB) inene kadar önce
+  // kalite, sonra çözünürlük düşürülür — sunucuya devasa dosya gitmez.
   async function resizePhoto(file, maxW) {
     const src = await decodeImage(file);
     if (!src || !src.width) return null;
+    const mime = UPC.preferWebp !== false && canWebp() ? "image/webp" : "image/jpeg";
+    const targetKB = UPC.targetKB || 320;
+    const minQ = UPC.minQuality || 0.5;
+    let width = Math.min(src.width, maxW || UPC.maxWidth || 1400);
     try {
-      const scale = Math.min(1, (maxW || UPC.maxWidth || 1600) / src.width);
-      const cv = document.createElement("canvas");
-      cv.width = Math.max(1, Math.round(src.width * scale));
-      cv.height = Math.max(1, Math.round(src.height * scale));
-      cv.getContext("2d").drawImage(src, 0, 0, cv.width, cv.height);
-      const out = cv.toDataURL("image/jpeg", UPC.quality || 0.82);
+      let out = null;
+      for (let pass = 0; pass < 3; pass += 1) {
+        const cv = document.createElement("canvas");
+        const scale = width / src.width;
+        cv.width = Math.max(1, Math.round(src.width * scale));
+        cv.height = Math.max(1, Math.round(src.height * scale));
+        cv.getContext("2d").drawImage(src, 0, 0, cv.width, cv.height);
+        let q = UPC.quality || 0.82;
+        out = cv.toDataURL(mime, q);
+        while (dataUrlKB(out) > targetKB && q > minQ) {
+          q = Math.max(minQ, q - 0.1);
+          out = cv.toDataURL(mime, q);
+        }
+        if (dataUrlKB(out) <= targetKB || width <= 900) break;
+        width = Math.round(width * 0.8); // hâlâ büyükse çözünürlüğü düşür
+      }
       if (src.close) src.close(); // ImageBitmap belleğini bırak
       return out;
     } catch (e) {
@@ -200,9 +231,21 @@
         errors.push(`“${name}” çok büyük (${(file.size / 1024 / 1024).toFixed(1)} MB). Dosya başına sınır ${UP_MAX_MB} MB.`);
         continue;
       }
-      const data = await resizePhoto(file, D.hasServer() ? (UPC.maxWidth || 1600) : 900);
+      const data = await resizePhoto(file, D.hasServer() ? (UPC.maxWidth || 1400) : 900);
       if (!data) {
         errors.push(`“${name}” açılamadı — dosya bozuk olabilir. Başka bir fotoğraf deneyin.`);
+        continue;
+      }
+      // İlan başına depolama bütçesi: sunucuya boşuna gönderip reddettirmeyelim.
+      const kb = Math.round((data.length - (data.indexOf(",") + 1)) * 0.75 / 1024);
+      if (kb > (UPC.maxStoredKB || 900)) {
+        errors.push(`“${name}” sıkıştırıldıktan sonra bile çok büyük (${kb} KB). Daha küçük çözünürlüklü bir fotoğraf ekleyin.`);
+        continue;
+      }
+      const usedKB = photos.reduce((t, p) => t + (typeof p === "string" && p.indexOf("data:") === 0
+        ? Math.round((p.length - (p.indexOf(",") + 1)) * 0.75 / 1024) : 0), 0);
+      if (usedKB + kb > LISTING_KB) {
+        errors.push(`İlan başına fotoğraf alanı doldu (${Math.round(LISTING_KB / 1024)} MB); “${name}” eklenmedi. Daha az ya da daha küçük fotoğraf seçin.`);
         continue;
       }
       photos.push(data);
@@ -1576,7 +1619,14 @@
         ["Toplam Görüntülenme", listings.reduce((t, l) => t + (l.views || 0), 0)],
         ["Mesaj", messages.length],
         ["Kayıtlı Arama", searches.length],
-      ].map(([k, v]) => `<div class="stat-box"><b>${fmt(v)}</b><span>${esc(k)}</span></div>`).join("");
+      ].map(([k, v]) => `<div class="stat-box"><b>${fmt(v)}</b><span>${esc(k)}</span></div>`).join("")
+        // Fotoğraf alanı: üye kotasını dolmadan görsün.
+        + (a.storage ? (() => {
+          const mb = (x) => (x / 1048576).toFixed(1);
+          const pct = a.storage.quotaBytes ? Math.min(100, Math.round(a.storage.usedBytes / a.storage.quotaBytes * 100)) : 0;
+          return `<div class="stat-box"><b>${mb(a.storage.usedBytes)} / ${mb(a.storage.quotaBytes)} MB</b>` +
+            `<span>Fotoğraf Alanı (%${pct})</span></div>`;
+        })() : "");
       $("#myMsgBadge").textContent = messages.length ? "(" + messages.length + ")" : "";
       const yeni = searches.reduce((t, x) => t + (x.newCount || 0), 0);
       $("#mySearchBadge").textContent = yeni ? "(" + yeni + " yeni)" : (searches.length ? "(" + searches.length + ")" : "");
@@ -1939,6 +1989,33 @@
       rejected: ["Yayında Değil", "var(--over)"],
     };
 
+    // Fotoğraf deposu doluluk kutusu (kota config.upload.quota'dan gelir).
+    function renderStorage(st) {
+      const box = $("#storageBox");
+      if (!box) return;
+      if (!st) { box.style.display = "none"; return; }
+      box.style.display = "";
+      const mb = (b) => (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + " MB";
+      const pct = Math.min(100, st.usedPct || 0);
+      const fill = $("#storageFill");
+      fill.style.width = pct + "%";
+      fill.style.background = pct >= 95 ? "var(--over)" : pct >= (st.warnPct || 80) ? "var(--accent)" : "var(--deal)";
+      $("#storageTxt").textContent =
+        `${mb(st.usedBytes)} / ${mb(st.siteQuotaBytes)} kullanıldı (%${pct}) · ${st.files} dosya · ` +
+        `üye başına ${mb(st.userQuotaBytes)}, ilan başına ${mb(st.listingQuotaBytes)} sınır`;
+      $("#storageTop").innerHTML = (st.topUsers || []).length
+        ? "<b>En çok yer kaplayanlar:</b> " + st.topUsers.slice(0, 5).map((u) =>
+            `${esc(u.name || u.uid)} — ${mb(u.bytes)} (${u.listings} ilan)`).join(" · ")
+        : "";
+      const warn = $("#storageWarn");
+      if (warn) {
+        warn.style.display = pct >= (st.warnPct || 80) ? "" : "none";
+        const t = $("#storageWarnTxt");
+        if (t) t.textContent = `${mb(st.usedBytes)} / ${mb(st.siteQuotaBytes)} (%${pct}). ` +
+          "Eski ilanların fotoğraflarını temizleyin ya da Volume boyutunu büyütün.";
+      }
+    }
+
     async function refresh() {
       const j = await api("api/admin/listings", { method: "GET" });
       rows = j.listings || [];
@@ -1953,6 +2030,7 @@
         const ue = $("#uploadErr");
         if (ue) ue.textContent = (j.uploadsError || "bilinmiyor") + " · " + (j.uploadDir || "");
       }
+      renderStorage(j.storage);
       try {
         const m = await api("api/admin/messages", { method: "GET" });
         msgs = m.messages || [];

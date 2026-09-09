@@ -168,9 +168,26 @@ gömme; değişiklik = config.
 - Yeni AI özelliği eklerken katsayıları `config.js`'e koy, koda gömme.
 - localStorage anahtarları `emlakai.` önekiyle başlar.
 
-## Fotoğraf yükleme (config.upload — TEK KAYNAK)
+## Fotoğraf yükleme + DEPOLAMA KOTASI (config.upload — TEK KAYNAK)
 Adet/biçim/boyut kuralları `config.upload`'tadır (maxPhotos, accept, maxFileMB,
-maxWidth, quality, maxStoredKB); `app.js` ve `server.js` AYNI değerleri okur.
+maxWidth, quality, targetKB, minQuality, preferWebp, maxStoredKB, `quota`);
+`app.js` ve `server.js` AYNI değerleri okur.
+- KÜÇÜLTME (istemci, `resizePhoto`): destekleniyorsa **WebP** üretilir
+  (JPEG'e göre çok daha küçük); dosya `targetKB` altına inene kadar önce
+  kalite `minQuality`'ye kadar düşürülür, sonra genişlik %20 azaltılır
+  (en fazla 3 tur, 900px'in altına inilmez). 4 MP'lik bir fotoğraf ~300 KB olur.
+- KOTA ÜÇ KATMANDIR (`config.upload.quota`, hepsi SUNUCUDA zorlanır —
+  istemci yalnızca erken uyarır): fotoğraf başına `maxStoredKB`, ilan başına
+  `perListingMB`, üye başına `perUserMB`, site toplamı `totalGB`. Aşan fotoğraf
+  YAZILMAZ; `photoWarning` ile sebebi kullanıcıya söylenir (ilanKota/uyeKota/depo).
+- Depo defteri: `PHOTO_SIZES` (dosya→bayt) + `USAGE_BYTES` açılışta
+  `scanUploads()` ile kurulur, her yazma/silmede güncellenir — her istekte disk
+  taranmaz. `sweepOrphanPhotos()` açılışta hiçbir ilana bağlı olmayan (24 saatten
+  eski) dosyaları siler. Üye kotası `userPhotoBytes(uid)` ile ilanlardan hesaplanır.
+- İstek gövdesi sınırı `BODY_PHOTOS` = kota kadar (~8 MB) — sabit 16 MB değil.
+- Panel: `/api/admin/listings` yanıtındaki `storage` alanı doluluk çubuğunu,
+  eşik uyarısını (`warnPct`) ve en çok yer kaplayan üyeleri gösterir; üye kendi
+  alanını `hesap.html` istatistiklerinde görür (`/api/my/listings` → `storage`).
 - **CSP TUZAĞI (tekrar düşme):** sunucu `img-src 'self' data:` gönderir, bu
   yüzden `URL.createObjectURL()` (blob:) ile görsel ÇÖZÜLEMEZ. `decodeImage()`
   önce `createImageBitmap`, olmazsa FileReader → data: URL kullanır. Fotoğraf

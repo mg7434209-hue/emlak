@@ -139,14 +139,30 @@ EMLAK.config = {
   },
 
   // ── Fotoğraf yükleme kuralları (ilan-ver + yönetim düzenleyicisi) ───────
+  // Fotoğraf yükleme + DEPOLAMA KOTASI (tek kaynak; app.js ve server.js okur).
+  // Amaç: onlarca üye ilan verdiğinde disk kontrolden çıkmasın.
+  //  1) İstemci fotoğrafı küçültür ve `targetKB` altına inene kadar kaliteyi
+  //     düşürür (WebP destekleniyorsa çok daha küçük dosya çıkar).
+  //  2) Sunucu tek fotoğraf (maxStoredKB), ilan, ÜYE ve SİTE toplamı için
+  //     sert sınır uygular; sınır aşılırsa fotoğraf yazılmaz ve kullanıcıya
+  //     nedeni söylenir.
   upload: {
     maxPhotos: 6,
-    maxFileMB: 15,
-    maxWidth: 1600,
-    quality: 0.82,
-    maxStoredKB: 1800,
+    maxFileMB: 15,          // seçilebilecek ham dosya sınırı
+    maxWidth: 1400,         // küçültme sonrası en fazla genişlik (px)
+    quality: 0.82,          // başlangıç sıkıştırma kalitesi
+    minQuality: 0.5,        // hedefe inmek için düşülebilecek en düşük kalite
+    targetKB: 320,          // istemcinin hedeflediği fotoğraf başına boyut
+    preferWebp: true,       // destekleniyorsa WebP (JPEG'e göre ~%40 küçük)
+    maxStoredKB: 900,       // sunucunun kabul ettiği fotoğraf başına üst sınır
     accept: ["image/jpeg", "image/png", "image/webp"],
     acceptLabel: "JPG · PNG · WEBP",
+    quota: {
+      perListingMB: 5,      // tek ilanın tüm fotoğrafları
+      perUserMB: 40,        // bir üyenin tüm ilanları toplamı
+      totalGB: 2,           // sitenin tamamı (disk/Volume koruması)
+      warnPct: 80,          // panelde uyarı eşiği (%)
+    },
   },
 
   // ── AI asistan ayarları ─────────────────────────────────────────────────

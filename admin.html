@@ -68,7 +68,18 @@
         her yeni dağıtımda silinir. Railway'de bir Volume bağlayıp <code>DATA_DIR</code> değişkenini ona yönlendirin;
         o zamana kadar “JSON Yedek İndir” ile düzenli yedek alın.
       </div>
+      <div class="notice" id="storageWarn" style="display:none;border:1px solid var(--accent);margin-bottom:14px">
+        <b>Fotoğraf deposu doluyor:</b> <span id="storageWarnTxt">—</span>
+      </div>
       <div class="admin-stats" id="adminStats"></div>
+      <div class="card" id="storageBox" style="margin-top:14px;padding:14px;display:none">
+        <b>Fotoğraf deposu</b>
+        <div id="storageBar" style="height:10px;border-radius:99px;background:var(--surface-2);margin:8px 0;overflow:hidden">
+          <div id="storageFill" style="height:100%;width:0;background:var(--deal)"></div>
+        </div>
+        <div id="storageTxt" class="muted" style="font-size:.86rem">—</div>
+        <div id="storageTop" style="margin-top:8px;font-size:.84rem"></div>
+      </div>
 
       <div class="g-tabs" style="margin-top:22px" id="adminTabs">
         <button class="tab-btn active" data-tab="listings" type="button">İlanlar</button>
