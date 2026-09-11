@@ -175,6 +175,25 @@ fs.writeFileSync(path.join(__dirname, "bolge-fiyatlari.html"), chrome(body, {
 // Kaynak sayfalar elle yazılır ama URL'ler TEK KAYNAKTAN gelir: alan adı
 // değişince yalnızca config.seo.siteUrl güncellenip `npm run build` çalıştırılır.
 const OG_ABS = URL0 + C.seo.ogImage;
+
+// ── Sürüm damgası: assets/*.js|css bağlantılarına ?v=<özet> eklenir ───────
+// ÖNBELLEK TUZAĞI: HTML her zaman taze gelir, ama tarayıcıdaki ESKİ app.js /
+// style.css yeni HTML ile birlikte çalışınca sayfa bozuk görünür (yayında
+// başımıza geldi). Damga içerik değişince değiştiği için tarayıcı yeni
+// dosyayı ZORUNLU indirir; değişmediğinde önbellek çalışmaya devam eder.
+const crypto = require("crypto");
+const assetHash = (rel) => {
+  try {
+    return crypto.createHash("sha1").update(fs.readFileSync(path.join(__dirname, rel))).digest("hex").slice(0, 8);
+  } catch (e) { return ""; }
+};
+const stampAssets = (html) => html.replace(
+  /(src|href)="(assets\/[\w./-]+\.(?:js|css))(\?v=[a-f0-9]+)?"/g,
+  (m, attr, rel) => {
+    const h = assetHash(rel);
+    return `${attr}="${rel}${h ? "?v=" + h : ""}"`;
+  });
+
 let synced = 0;
 fs.readdirSync(__dirname)
   .filter((f) => f.endsWith(".html"))
@@ -183,7 +202,7 @@ fs.readdirSync(__dirname)
     let html = fs.readFileSync(file, "utf8");
     const before = html;
     const pageUrl = URL0 + (f === "index.html" ? "/" : "/" + f);
-    html = html
+    html = stampAssets(html)
       .replace(/(<link rel="canonical" href=")[^"]*(")/g, `$1${pageUrl}$2`)
       .replace(/(<meta property="og:url" content=")[^"]*(")/g, `$1${pageUrl}$2`)
       .replace(/(<meta property="og:image" content=")[^"]*(")/g, `$1${OG_ABS}$2`)
@@ -353,4 +372,4 @@ Not: Piyasa değerleri bölgesel ortalamadır; bilgi amaçlıdır, yatırım tav
 `);
 
 console.log("SEO çıktıları üretildi: bolge-fiyatlari.html, sitemap.xml, robots.txt, llms.txt, llms-full.txt" +
-  (synced ? " · canonical/OG güncellendi: " + synced + " sayfa" : ""));
+  (synced ? " · canonical/OG + varlık sürümü güncellendi: " + synced + " sayfa" : ""));

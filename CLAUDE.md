@@ -148,6 +148,19 @@ türlere ayrılır; `data.js` KINDS'ı bu ağaçtan üretir, form/filtre optgrou
   içinde AYNI dizidir — birini değiştirirsen diğerini de değiştir. "diger"
   türlerinde kart başlığına "Satılık/Kiralık" öneki YAZILMAZ.
 
+### ÖNBELLEK TUZAĞI — YAYINDA BOZUK SAYFA (tekrar düşme)
+HTML `no-cache` ile taze gelirken `assets/*.js|css` 24 saat önbellekteydi:
+yeni dağıtımdan sonra ziyaretçi **yeni HTML + eski JS/CSS** alıyor ve sayfa
+bozuk görünüyordu (kategori sihirbazı boş/stilsiz çıktı). İki katmanlı çözüm:
+1. `server.js`: `.js/.css/.json/.txt` artık `Cache-Control: no-cache` + ETag
+   ile servis edilir (değişmediyse 304, bedava). Görsel/font/medya uzun
+   önbellekte kalır.
+2. `build-seo.js` `stampAssets()`: tüm HTML'lerdeki `assets/*.js|css`
+   bağlantılarına içerik özeti damgası eklenir (`app.js?v=b1f3cb66`). Dosya
+   değişince damga değişir → tarayıcı yeniyi indirmek ZORUNDA kalır.
+KURAL: JS/CSS değiştirdiysen `npm run build` çalıştırıp damgalı HTML'leri de
+commit'le; yoksa kullanıcılar eski kodu görmeye devam eder.
+
 ### İLAN VERME AKIŞI: ÖNCE KATEGORİ, SONRA FORM (`ilan-ver.html`)
 Form 30+ alan taşıyabildiği için tek ekranda gösterilmez:
 1. **Adım 1 — `#catWizard`**: sahibinden tarzı kayan sütunlar

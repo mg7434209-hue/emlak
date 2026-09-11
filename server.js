@@ -1899,10 +1899,25 @@ const server = http.createServer((req, res) => {
     // şeması (AEO) botlara statik ulaşır ve güvenlik başlıkları tek yerdedir.
     if (ext === ".html") return sendHtml(req, res, fs.readFileSync(filePath, "utf8"));
     const mime = MIME[ext] || "application/octet-stream";
+    // ÖNBELLEK TUZAĞI (yayında bir kez düştük): HTML her zaman taze gelirken
+    // app.js/style.css 24 saat önbellekte kalıyordu; yeni dağıtımdan sonra
+    // ziyaretçi YENİ HTML + ESKİ JS/CSS alıyor ve sayfa bozuk görünüyordu.
+    // Kod dosyaları artık HER İSTEKTE doğrulanır (ETag → 304, bedava);
+    // görsel/font/medya uzun önbellekte kalmaya devam eder.
+    const kodDosyasi = ext === ".js" || ext === ".css" || ext === ".json" || ext === ".txt";
+    let etag = "";
+    try {
+      const st = fs.statSync(filePath);
+      etag = 'W/"' + st.size.toString(36) + "-" + Math.floor(st.mtimeMs).toString(36) + '"';
+    } catch (e) { /* dosya yarışta silinmiş olabilir */ }
+    if (etag && req.headers["if-none-match"] === etag) {
+      res.writeHead(304, { ETag: etag, "Cache-Control": "no-cache" });
+      return res.end();
+    }
     const headers = {
       "Content-Type": mime,
       "X-Content-Type-Options": "nosniff",
-      "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=86400",
+      "Cache-Control": kodDosyasi ? "no-cache" : "public, max-age=86400",
       // Satır içi script yok (script-src 'self'); satır içi style= üretildiği
       // için style-src'de 'unsafe-inline' gerekli. img data: → base64 ilan
       // fotoğrafları ve SVG favicon için.
@@ -1910,6 +1925,7 @@ const server = http.createServer((req, res) => {
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "X-Frame-Options": "DENY",
     };
+    if (etag) headers.ETag = etag;
     // HTTPS üzerinden servis ediliyorsa tarayıcıya kalıcı HTTPS talimatı
     if (xfp === "https") headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
 
