@@ -49,6 +49,36 @@
   KINDS.forEach((k) => { SEG_OF[k.kind] = k.segment; });
   const SEG_IDS = SEGMENTS.map((s) => s.segment);
 
+  // Türe özel ek alanlar: grup "fields" listesi + config.fieldDefs tanımları.
+  // İlanda `details` nesnesinde saklanır; başka anahtar KABUL EDİLMEZ.
+  const FIELD_DEFS = C.fieldDefs || {};
+  const FIELDS_OF = {};
+  SEGMENTS.forEach((sg) => (sg.groups || []).forEach((g) => (g.kinds || []).forEach((k) => {
+    FIELDS_OF[k.kind] = (k.fields || g.fields || []).filter((key) => FIELD_DEFS[key]);
+  })));
+  // details doğrulaması — GÜVEN SINIRI: tanımsız anahtar, seçenek dışı değer
+  // ve aşırı uzun metin atılır.
+  function normalizeDetails(kind, raw) {
+    if (!raw || typeof raw !== "object") return undefined;
+    const izin = FIELDS_OF[kind] || [];
+    const out = {};
+    izin.forEach((key) => {
+      const def = FIELD_DEFS[key];
+      const v = raw[key];
+      if (v == null || v === "") return;
+      if (def.type === "bool") { if (v === true || v === "true") out[key] = true; return; }
+      if (def.type === "number") {
+        const n = Number(v);
+        if (Number.isFinite(n) && n >= 0 && n <= (def.max || 1e9)) out[key] = n;
+        return;
+      }
+      const sv = String(v).slice(0, def.max || 60);
+      if (def.type === "select") { if ((def.options || []).indexOf(sv) >= 0) out[key] = sv; return; }
+      out[key] = sv;
+    });
+    return Object.keys(out).length ? out : undefined;
+  }
+
   const cityNames = Object.keys(C.market.cities);
   const brandNames = Object.keys(C.vehicles.brands);
 
@@ -61,7 +91,11 @@
   // sunucunun yazdığı yükleme dosyası (`u/<dosya>` → /u/... ile servis edilir).
   const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+|u\/[\w.-]+)$/;
   const str = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
-  const num = (v) => (Number.isFinite(+v) ? +v : null);
+  // DİKKAT: boş değer 0 SAYILMAZ. `+null === 0` olduğu için eski sürüm
+  // belirtilmemiş bina yaşını "Sıfır bina" yapıyor ve değerlemeye sıfır
+  // bina katsayısı uyguluyordu.
+  const num = (v) => (v === null || v === undefined || v === "" || typeof v === "boolean"
+    ? null : (Number.isFinite(+v) ? +v : null));
   function normalizeListing(l) {
     if (!l || typeof l !== "object") return null;
     // Segment üç değerden biridir; bilinmeyen değer türünden çıkarılır,
@@ -101,6 +135,8 @@
       swap: typeof l.swap === "boolean" ? l.swap : undefined,
       creditOk: typeof l.creditOk === "boolean" ? l.creditOk : undefined,
       kitchen: str(l.kitchen, 60) || undefined,
+      // Türe özel alanlar (ada/parsel/imar, kat/ısıtma/aidat, renk/kasa…)
+      details: normalizeDetails(KINDS.some((k) => k.kind === l.kind) ? l.kind : "daire", l.details),
       status: ["active", "pending", "rejected"].includes(l.status) ? l.status : undefined,
       // İlan sahibi hesabın kimliği (sunucu atar; istemci gönderemez)
       ownerId: str(l.ownerId, 40) || undefined,
@@ -295,6 +331,9 @@
     segmentOf: (kind) => SEG_OF[kind] || "emlak",
     fieldsOf: (segment) => (SEGMENTS.find((s) => s.segment === segment) || {}).fields || "sade",
     canValue: (kind) => (KINDS.find((k) => k.kind === kind) || { valuation: true }).valuation !== false,
+    // Türe özel alan tanımları: [{key, label, type, options, max}]
+    fieldsOfKind: (kind) => (FIELDS_OF[kind] || []).map((key) => Object.assign({ key }, FIELD_DEFS[key])),
+    fieldLabel: (key) => (FIELD_DEFS[key] || {}).label || key,
     brands: brandNames,
     modelsOf: (brand) => (C.vehicles.brands[brand] ? Object.keys(C.vehicles.brands[brand]) : []),
   };

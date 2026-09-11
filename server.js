@@ -1036,7 +1036,10 @@ function renderListingHtml(html, l) {
     ["Isıtma", l.heating], ["Mutfak", l.kitchen], ["Aidat", l.dues ? trNum(l.dues) + " ₺/ay" : ""],
     ["Tapu Durumu", l.deed], ["Krediye Uygun", l.creditOk == null ? "" : (l.creditOk ? "Evet" : "Hayır")],
     ["Takas", l.swap == null ? "" : (l.swap ? "Evet" : "Hayır")],
-  ]).filter(([, v]) => v !== "" && v != null);
+  ]).concat(Object.keys(l.details || {}).map((k) => [
+    (CONF.fieldDefs[k] || {}).label || k,
+    l.details[k] === true ? "Var" : String(l.details[k]),
+  ])).filter(([, v]) => v !== "" && v != null);
 
   // Botların ve JS'siz ziyaretçinin okuyabileceği tam içerik; app.js üzerine yazar
   const body = `

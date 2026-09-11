@@ -38,6 +38,64 @@ EMLAK.config = {
 
   // ── Piyasa verisi: il → ilçe → ortalama satılık ₺/m² (konut) ─────────────
   // Kira ₺/m²/ay = satılık m² fiyatı × rentYieldMonthly
+  // ── TÜRE ÖZEL İLAN ALANLARI (TEK KAYNAK) ───────────────────────────────
+  // Arsada ada/parsel/imar, konutta kat/ısıtma/aidat gibi alanlar sorulur.
+  // Tanım burada; formu `app.js` bu tanımdan çizer, ilanda `details` nesnesine
+  // yazılır, detay künyesinde ve sunucu ön işlemesinde aynı etiketle görünür.
+  // type: "select" (options zorunlu) · "text" · "number" · "bool"
+  fieldDefs: {
+    // — Arsa / arazi —
+    imarDurumu: { label: "İmar Durumu", type: "select", options: [
+      "Konut İmarlı", "Ticari İmarlı", "Turizm İmarlı", "Sanayi İmarlı", "Tarla",
+      "Bağ & Bahçe", "Zeytinlik", "Villa İmarlı", "İmarsız", "Belirtilmemiş"] },
+    adaNo: { label: "Ada No", type: "text", max: 20 },
+    parselNo: { label: "Parsel No", type: "text", max: 20 },
+    paftaNo: { label: "Pafta No", type: "text", max: 20 },
+    kaks: { label: "KAKS (Emsal)", type: "text", max: 20 },
+    gabari: { label: "Gabari", type: "text", max: 20 },
+    // — Konut / iş yeri —
+    binaKat: { label: "Binadaki Kat Sayısı", type: "number", max: 100 },
+    katNo: { label: "Bulunduğu Kat", type: "select", options: [
+      "Bodrum", "Zemin", "Bahçe Katı", "Giriş Katı", "Yüksek Giriş", "1", "2", "3", "4", "5",
+      "6-10 arası", "11-20 arası", "20 ve üzeri", "Çatı Katı", "Villa Tipi"] },
+    isitma: { label: "Isıtma", type: "select", options: [
+      "Kombi (Doğalgaz)", "Merkezi", "Merkezi (Pay Ölçer)", "Klima", "Soba", "Yerden Isıtma",
+      "Şömine", "Güneş Enerjisi", "Isıtma Yok"] },
+    banyoSayisi: { label: "Banyo Sayısı", type: "number", max: 10 },
+    balkon: { label: "Balkon", type: "bool" },
+    esyali: { label: "Eşyalı", type: "bool" },
+    siteIcinde: { label: "Site İçerisinde", type: "bool" },
+    siteAdi: { label: "Site Adı", type: "text", max: 60 },
+    aidat: { label: "Aidat (₺/ay)", type: "number", max: 100000 },
+    kullanimDurumu: { label: "Kullanım Durumu", type: "select", options: [
+      "Boş", "Kiracılı", "Mülk Sahibi Oturuyor"] },
+    // — İş yeri —
+    bolumSayisi: { label: "Bölüm / Oda Sayısı", type: "number", max: 100 },
+    // — Bina —
+    daireSayisi: { label: "Daire Sayısı", type: "number", max: 500 },
+    // — Ortak (emlak) —
+    tapuDurumu: { label: "Tapu Durumu", type: "select", options: [
+      "Kat Mülkiyetli", "Kat İrtifaklı", "Müstakil Tapulu", "Hisseli Tapu",
+      "Arsa Tapulu", "Tarla Tapulu", "Bilinmiyor"] },
+    krediyeUygun: { label: "Krediye Uygunluk", type: "select", options: ["Evet", "Hayır", "Bilinmiyor"] },
+    takas: { label: "Takaslı", type: "select", options: ["Evet", "Hayır"] },
+    tasinmazNo: { label: "Taşınmaz (Tapu) Numarası", type: "text", max: 30 },
+    // — Vasıta —
+    renk: { label: "Renk", type: "select", options: [
+      "Beyaz", "Siyah", "Gri", "Gümüş", "Kırmızı", "Mavi", "Lacivert", "Yeşil",
+      "Kahverengi", "Bej", "Sarı", "Turuncu", "Diğer"] },
+    kasaTipi: { label: "Kasa Tipi", type: "select", options: [
+      "Sedan", "Hatchback", "Station Wagon", "SUV", "Coupe", "Cabrio", "MPV", "Pick-up", "Panelvan"] },
+    motorHacmi: { label: "Motor Hacmi (cc)", type: "text", max: 20 },
+    motorGucu: { label: "Motor Gücü (HP)", type: "text", max: 20 },
+    cekis: { label: "Çekiş", type: "select", options: ["Önden Çekiş", "Arkadan İtiş", "4x4"] },
+    hasarKaydi: { label: "Ağır Hasar Kaydı", type: "select", options: ["Yok", "Var", "Bilinmiyor"] },
+    garanti: { label: "Garanti", type: "bool" },
+    // — Diğer segmenti —
+    urunDurumu: { label: "Ürün Durumu", type: "select", options: ["Sıfır", "İkinci El", "Yenilenmiş"] },
+    garantiSuresi: { label: "Garanti Durumu", type: "select", options: ["Garantili", "Garantisiz"] },
+  },
+
   // ── KATEGORİ AĞACI (TEK KAYNAK) ────────────────────────────────────────
   // Üç segment: emlak · vasita · diger. data.js KINDS'ı buradan üretir;
   // form, filtre, SEO slug'ı ve AI hep aynı listeyi görür.
@@ -47,25 +105,40 @@ EMLAK.config = {
     {
       segment: "emlak", label: "Emlak", short: "Taşınmaz", fields: "emlak",
       groups: [
-        { label: "Konut", kinds: [
+        { label: "Konut",
+          // NOT: Balkon / Eşyalı / Site İçi "Özellikler" kutucuklarında zaten var,
+          // burada TEKRAR edilmez.
+          fields: ["katNo", "binaKat", "banyoSayisi", "isitma", "siteAdi", "aidat",
+                   "kullanimDurumu", "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
+          kinds: [
           { kind: "daire", label: "Daire" },
           { kind: "residence", label: "Rezidans" },
           { kind: "villa", label: "Villa" },
           { kind: "mustakil", label: "Müstakil Ev" },
           { kind: "yazlik", label: "Yazlık" },
         ] },
-        { label: "İş Yeri", kinds: [
+        { label: "İş Yeri",
+          fields: ["katNo", "binaKat", "bolumSayisi", "banyoSayisi", "isitma",
+                   "aidat", "kullanimDurumu", "tapuDurumu", "krediyeUygun", "takas"],
+          kinds: [
           { kind: "dukkan", label: "Dükkan" },
           { kind: "ofis", label: "Ofis" },
           { kind: "depo", label: "Depo & Antrepo" },
           { kind: "fabrika", label: "Fabrika & Atölye" },
         ] },
-        { label: "Arsa & Arazi", kinds: [
+        { label: "Arsa & Arazi",
+          // sahibinden.com arsa formundaki alanlar: imar, ada/parsel/pafta, kaks, gabari
+          fields: ["imarDurumu", "adaNo", "parselNo", "paftaNo", "kaks", "gabari",
+                   "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
+          kinds: [
           { kind: "arsa", label: "Arsa" },
           { kind: "tarla", label: "Tarla" },
           { kind: "bagbahce", label: "Bağ & Bahçe" },
         ] },
-        { label: "Diğer Gayrimenkul", kinds: [
+        { label: "Diğer Gayrimenkul",
+          fields: ["binaKat", "daireSayisi", "isitma", "kullanimDurumu",
+                   "tapuDurumu", "krediyeUygun", "takas"],
+          kinds: [
           { kind: "bina", label: "Komple Bina" },
           { kind: "devremulk", label: "Devre Mülk" },
           { kind: "turistik", label: "Turistik Tesis" },
@@ -75,23 +148,31 @@ EMLAK.config = {
     {
       segment: "vasita", label: "Vasıta", short: "Araç", fields: "vasita",
       groups: [
-        { label: "Otomobil & Arazi", kinds: [
+        { label: "Otomobil & Arazi",
+          fields: ["renk", "kasaTipi", "motorHacmi", "motorGucu", "cekis", "hasarKaydi", "garanti", "takas"],
+          kinds: [
           { kind: "otomobil", label: "Otomobil" },
           { kind: "suv", label: "Arazi, SUV & Pickup" },
           { kind: "elektrikli", label: "Elektrikli Araç" },
           { kind: "klasik", label: "Klasik Araç" },
         ] },
-        { label: "Motosiklet", kinds: [
+        { label: "Motosiklet",
+          fields: ["renk", "motorHacmi", "motorGucu", "hasarKaydi", "garanti", "takas"],
+          kinds: [
           { kind: "motosiklet", label: "Motosiklet" },
           { kind: "atv", label: "ATV & UTV" },
         ] },
-        { label: "Ticari Araçlar", kinds: [
+        { label: "Ticari Araçlar",
+          fields: ["renk", "kasaTipi", "motorHacmi", "motorGucu", "cekis", "hasarKaydi", "garanti", "takas"],
+          kinds: [
           { kind: "minivan", label: "Minivan & Panelvan" },
           { kind: "ticari", label: "Ticari Araç" },
           { kind: "kamyon", label: "Kamyon & Kamyonet" },
           { kind: "otobus", label: "Otobüs & Midibüs" },
         ] },
-        { label: "Diğer Araçlar", kinds: [
+        { label: "Diğer Araçlar",
+          fields: ["renk", "motorHacmi", "hasarKaydi", "garanti", "takas"],
+          kinds: [
           { kind: "karavan", label: "Karavan" },
           { kind: "deniz", label: "Deniz Aracı" },
           { kind: "hasarli", label: "Hasarlı Araç" },
@@ -103,21 +184,29 @@ EMLAK.config = {
       // sade tutulur (başlık, açıklama, fiyat, konum, fotoğraf).
       segment: "diger", label: "Diğer", short: "Diğer", fields: "sade",
       groups: [
-        { label: "Alışveriş", kinds: [
+        { label: "Alışveriş",
+          fields: ["urunDurumu", "garantiSuresi", "takas"],
+          kinds: [
           { kind: "ikinciel", label: "İkinci El & Sıfır Alışveriş", valuation: false },
           { kind: "yedekparca", label: "Yedek Parça & Aksesuar", valuation: false },
           { kind: "antika", label: "Antika & Koleksiyon", valuation: false },
         ] },
-        { label: "Hizmet & İş", kinds: [
+        { label: "Hizmet & İş",
+          fields: [],
+          kinds: [
           { kind: "hizmet", label: "Ustalar & Hizmetler", valuation: false },
           { kind: "ozelders", label: "Özel Ders", valuation: false },
           { kind: "isilani", label: "İş İlanı", valuation: false },
         ] },
-        { label: "Sanayi & Tarım", kinds: [
+        { label: "Sanayi & Tarım",
+          fields: ["urunDurumu", "garantiSuresi", "takas"],
+          kinds: [
           { kind: "ismakinesi", label: "İş Makineleri & Sanayi", valuation: false },
           { kind: "tarim", label: "Tarım & Hayvancılık Ekipmanı", valuation: false },
         ] },
-        { label: "Hayvanlar", kinds: [
+        { label: "Hayvanlar",
+          fields: [],
+          kinds: [
           { kind: "hayvan", label: "Hayvanlar Alemi", valuation: false },
         ] },
       ],

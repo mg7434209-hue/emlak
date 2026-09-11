@@ -148,6 +148,27 @@ türlere ayrılır; `data.js` KINDS'ı bu ağaçtan üretir, form/filtre optgrou
   içinde AYNI dizidir — birini değiştirirsen diğerini de değiştir. "diger"
   türlerinde kart başlığına "Satılık/Kiralık" öneki YAZILMAZ.
 
+### TÜRE ÖZEL İLAN ALANLARI (`config.fieldDefs` + grup `fields`)
+Arsada ada/parsel/pafta/imar/KAKS/gabari, konutta kat/ısıtma/aidat/kullanım
+durumu, araçta renk/kasa/motor/hasar kaydı sorulur. Tanım TEK YERDE:
+`config.fieldDefs` (label + type: select|text|number|bool) ve hangi türün hangi
+alanları sorduğu `config.segments` içindeki grup `fields` dizisi.
+- Form (`ilan-ver.html` `#kindFields`) ve düzenleme penceresi (`#eKindFields`)
+  bunları `renderKindFields()` ile çizer, `collectKindFields()` ile toplar.
+  Boş bırakılan alan YAZILMAZ; bool alanlar "Var/Yok" açılır listesidir.
+- İlanda `details` nesnesinde saklanır. `data.js normalizeDetails()` bir GÜVEN
+  SINIRIDIR: tanımsız anahtar, seçenek dışı değer, aşırı uzun metin ATILIR.
+- Künye hem istemcide hem sunucuda `details`i etiketiyle listeler.
+- Köprüler: `katNo` → değerlemedeki `floorPos` (`floorPosOf()`), `binaKat` →
+  `totalFloors`, `banyoSayisi` → `bath`, `isitma` → `heating`. Yeni bir alan
+  değerlemeyi etkileyecekse köprüyü de ekle.
+- Arsa/arazide oda ve bina yaşı alanları GİZLENİR, m² etiketi "Yüz Ölçümü" olur.
+- Balkon/Eşyalı/Site İçi "Özellikler" kutucuklarındadır; `fieldDefs`'te TEKRAR
+  ETME (bir dönem iki yerde birden vardı).
+- DÜZELTİLEN HATA: `data.js num()` boş değeri 0'a çeviriyordu (`+null === 0`) —
+  belirtilmemiş bina yaşı "Sıfır bina" olarak yayınlanıyor ve değerlemeye sıfır
+  bina katsayısı uygulanıyordu. Artık boş → null.
+
 ### Piyasa verisi: 81 İL · 474 ilçe (`config.market.cities`)
 Tüm Türkiye kapsanır; değerler bölgesel ORTALAMA tahminidir (dönem
 `config.seo.dataDate`). Bu tek tablo şunları besler: AI değerleme, fiyat

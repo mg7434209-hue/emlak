@@ -76,6 +76,12 @@
           <div class="p-vasita"><label for="pFuel">Yakıt</label><select id="pFuel"></select></div>
           <div class="p-vasita"><label for="pGear">Vites</label><select id="pGear"></select></div>
           <div><label for="pPrice">Fiyat (₺)</label><input id="pPrice" type="number" min="0" placeholder="Boş bırakın, AI önersin"></div>
+          <!-- Türe özel alanlar (ada/parsel/imar, kat/ısıtma/aidat, renk/kasa…)
+               app.js config.fieldDefs'ten çizer; boş bırakılanlar kaydedilmez. -->
+          <div class="full" id="kindFieldsWrap" style="display:none">
+            <label style="margin-bottom:8px">İlan Detayları <small style="font-weight:500;color:var(--muted)">— bildiklerinizi doldurun, boş bırakabilirsiniz</small></label>
+            <div class="form-grid" id="kindFields"></div>
+          </div>
           <div class="full p-emlak"><label>Özellikler</label><div class="check-grid" id="featBoxes"></div></div>
           <div><label for="pSellerType">İlanı Veren</label>
             <select id="pSellerType"><option value="sahibinden">Sahibinden</option><option value="ofis">Emlak Ofisi / Galeri</option></select>

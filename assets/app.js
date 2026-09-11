@@ -143,6 +143,59 @@
   // Üç segmentin de türü vardır (emlak · vasıta · diğer) — tek yardımcı.
   // Arsa/arazi türlerinde oda, yaş ve ısıtma sorulmaz (ai.js ile aynı liste).
   const LAND = ["arsa", "tarla", "bagbahce"];
+  // "Bulunduğu Kat" seçimi → değerlemedeki kat konumu katsayısı
+  // (config.valuation.floorBonus anahtarları: zemin/ara/ust/cati/bahce)
+  function floorPosOf(katNo) {
+    if (!katNo) return null;
+    if (/bahçe/i.test(katNo)) return "bahce";
+    if (/çatı/i.test(katNo)) return "cati";
+    if (/zemin|giriş|bodrum/i.test(katNo)) return "zemin";
+    const n = parseInt(katNo, 10);
+    if (Number.isFinite(n)) return n >= 4 ? "ust" : "ara";
+    if (/6-10|11-20|20 ve üzeri/.test(katNo)) return "ust";
+    return "ara";
+  }
+
+  // Türe özel alanları (ada/parsel/imar, kat/ısıtma, renk/kasa…) bir kapsayıcıya
+  // çizer. `values` varsa alanlar dolu gelir (düzenleme penceresi).
+  function renderKindFields(wrap, kind, values) {
+    if (!wrap) return [];
+    const defs = D.fieldsOfKind(kind);
+    const v = values || {};
+    wrap.innerHTML = defs.map((f) => {
+      const id = "kf_" + f.key;
+      // Evet/hayır alanları da açılır liste: form ızgarası hizalı kalsın
+      if (f.type === "bool") {
+        return `<div><label for="${id}">${esc(f.label)}</label>
+          <select id="${id}" data-kf="${esc(f.key)}" data-kf-bool="1">
+            <option value="">Seçiniz</option>
+            <option value="1"${v[f.key] ? " selected" : ""}>Var</option>
+            <option value="0"${v[f.key] === false ? " selected" : ""}>Yok</option>
+          </select></div>`;
+      }
+      const inner = f.type === "select"
+        ? `<select id="${id}" data-kf="${esc(f.key)}"><option value="">Seçiniz</option>` +
+          (f.options || []).map((o) => `<option${o === v[f.key] ? " selected" : ""}>${esc(o)}</option>`).join("") + "</select>"
+        : `<input id="${id}" data-kf="${esc(f.key)}" type="${f.type === "number" ? "number" : "text"}"` +
+          (f.type === "number" ? ` min="0" max="${f.max || 1000000}"` : ` maxlength="${f.max || 60}"`) +
+          ` value="${v[f.key] == null ? "" : esc(String(v[f.key]))}">`;
+      return `<div><label for="${id}">${esc(f.label)}</label>${inner}</div>`;
+    }).join("");
+    return defs;
+  }
+  // Çizilen alanları toplar: boş bırakılanlar YAZILMAZ.
+  function collectKindFields(wrap) {
+    const out = {};
+    if (!wrap) return out;
+    $$("[data-kf]", wrap).forEach((el) => {
+      const key = el.dataset.kf;
+      const val = (el.value || "").trim();
+      if (!val) return;                       // boş bırakılan alan yazılmaz
+      if (el.dataset.kfBool) { if (val === "1") out[key] = true; return; }
+      out[key] = el.type === "number" ? +val : val;
+    });
+    return out;
+  }
 
   function fillKindSelect(el, segment, opts) {
     if (!el) return;
@@ -291,9 +344,12 @@
   // save(patch) → sunucuya yazan söz (promise); {error} dönerse pencere açık kalır.
   function openListingEditor(l, save) {
     if (!l) return;
-    const seg = l.segment === "vasita" ? "vasita" : "emlak";
+    const seg = D.segmentOf(l.kind) === (l.segment || "emlak") ? (l.segment || "emlak") : D.segmentOf(l.kind);
     let photos = (l.photos || []).slice();
-    const kindOpts = D.kinds.map((k) => `<option value="${k.kind}"${k.kind === l.kind ? " selected" : ""}>${esc(k.label)}</option>`).join("");
+    // Tür listesi ilanın segmentine göre gruplanır (aynı segment içinde değişir)
+    const kindOpts = D.groupsOf(seg).map((g) => `<optgroup label="${esc(g.label)}">` +
+      g.kinds.map((k) => `<option value="${k.kind}"${k.kind === l.kind ? " selected" : ""}>${esc(k.label)}</option>`).join("") +
+      "</optgroup>").join("");
     const sel = (arr, v) => arr.map((x) => `<option${x === v ? " selected" : ""}>${esc(x)}</option>`).join("");
     const numField = (id, label, val, extra) => `<div><label for="${id}">${esc(label)}</label><input id="${id}" type="number" ${extra || ""} value="${val == null ? "" : val}"></div>`;
     const modal = $("#editModal");
@@ -309,7 +365,13 @@
           ${numField("ePrice", "Fiyat (₺)", l.price, 'min="0"')}
           <div><label for="eCity">Şehir</label><select id="eCity"></select></div>
           <div><label for="eDistrict">İlçe</label><select id="eDistrict"></select></div>
-          ${seg === "emlak" ? `
+          ${seg === "diger" ? `
+            <div><label for="eKind">Tür</label><select id="eKind">${kindOpts}</select></div>
+            <div class="full" id="eKindFieldsWrap" style="display:none">
+              <label style="margin-bottom:8px">İlan Detayları</label>
+              <div class="form-grid" id="eKindFields"></div>
+            </div>
+          ` : seg === "emlak" ? `
             <div><label for="eKind">Tür</label><select id="eKind">${kindOpts}</select></div>
             ${numField("eM2", "Brüt m²", l.m2, 'min="0"')}
             ${numField("eM2Net", "Net m²", l.m2Net, 'min="0"')}
@@ -325,6 +387,10 @@
             <div class="full"><label for="eLocality">Mahalle / Site</label><input id="eLocality" type="text" maxlength="120" value="${esc(l.locality || "")}"></div>
             <div><label style="display:flex;gap:8px;align-items:center"><input id="eSwap" type="checkbox" style="width:auto"${l.swap ? " checked" : ""}> Takas</label></div>
             <div><label style="display:flex;gap:8px;align-items:center"><input id="eCredit" type="checkbox" style="width:auto"${l.creditOk ? " checked" : ""}> Krediye uygun</label></div>
+            <div class="full" id="eKindFieldsWrap" style="display:none">
+              <label style="margin-bottom:8px">İlan Detayları</label>
+              <div class="form-grid" id="eKindFields"></div>
+            </div>
             <div class="full"><label>Özellikler</label><div class="check-grid" id="eFeats">${Object.keys(C.valuation.features).map((f) => `<label><input type="checkbox" value="${esc(f)}"${(l.features || []).includes(f) ? " checked" : ""}> ${esc(f)}</label>`).join("")}</div></div>
           ` : `
             <div><label for="eBrand">Marka</label><select id="eBrand">${sel(D.brands, l.brand)}</select></div>
@@ -333,6 +399,10 @@
             ${numField("eKm", "Kilometre", l.km, 'min="0"')}
             <div><label for="eFuel">Yakıt</label><select id="eFuel">${sel(C.vehicles.fuels, l.fuel)}</select></div>
             <div><label for="eGear">Vites</label><select id="eGear">${sel(C.vehicles.gears, l.gear)}</select></div>
+            <div class="full" id="eKindFieldsWrap" style="display:none">
+              <label style="margin-bottom:8px">İlan Detayları</label>
+              <div class="form-grid" id="eKindFields"></div>
+            </div>
           `}
           <div><label for="eSellerName">İlan Sahibi</label><input id="eSellerName" type="text" maxlength="80" value="${esc((l.seller || {}).name || "")}"></div>
           <div><label for="eSellerType">Satıcı Tipi</label><select id="eSellerType">
@@ -394,6 +464,19 @@
       renderPhotos();
       ePhotoStatus(errors);
     });
+    // Türe özel alanlar (ada/parsel/imar, kat/ısıtma, renk/kasa…) mevcut
+    // değerleriyle çizilir; tür değişince yeniden çizilir.
+    function eSyncKindFields() {
+      const wrap = $("#eKindFieldsWrap");
+      if (!wrap) return;
+      const kindEl = $("#eKind");
+      const kind = kindEl ? kindEl.value : l.kind;
+      const defs = renderKindFields($("#eKindFields"), kind, kind === l.kind ? (l.details || {}) : {});
+      wrap.style.display = defs.length ? "" : "none";
+    }
+    eSyncKindFields();
+    if ($("#eKind")) $("#eKind").addEventListener("change", eSyncKindFields);
+
     const close = () => { modal.innerHTML = ""; };
     $("#editClose").addEventListener("click", close);
     $("#eCancel").addEventListener("click", close);
@@ -409,7 +492,13 @@
         phone: val("ePhone") ? normPhone(val("ePhone")) : null,
       };
       if (val("ePhone") && !patch.phone) { $("#eOut").innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz.</span>'; return; }
-      if (seg === "emlak") {
+      if (seg === "diger") {
+        const kind = $("#eKind").value;
+        Object.assign(patch, {
+          kind, kindLabel: (D.kinds.find((k) => k.kind === kind) || {}).label || kind,
+          details: collectKindFields($("#eKindFields")),
+        });
+      } else if (seg === "emlak") {
         const kind = $("#eKind").value;
         Object.assign(patch, {
           kind, kindLabel: (D.kinds.find((k) => k.kind === kind) || {}).label || kind,
@@ -420,12 +509,14 @@
           deed: val("eDeed") || undefined, locality: val("eLocality") || undefined,
           swap: $("#eSwap").checked, creditOk: $("#eCredit").checked,
           features: $$("#eFeats input:checked").map((i) => i.value),
+          details: collectKindFields($("#eKindFields")),
         });
       } else {
         Object.assign(patch, {
           brand: $("#eBrand").value, model: $("#eModel").value,
           year: numv("eYear"), km: numv("eKm"),
           fuel: $("#eFuel").value, gear: $("#eGear").value,
+          details: collectKindFields($("#eKindFields")),
         });
       }
       const btn = $("#eSave");
@@ -1165,7 +1256,13 @@
       l.creditOk != null && ["Krediye Uygun", l.creditOk ? "Evet" : "Hayır"],
       l.swap != null && ["Takas", l.swap ? "Evet" : "Hayır"],
       ["İlan Tarihi", new Date(l.date).toLocaleDateString("tr-TR")],
-    ]).filter(Boolean);
+    ])
+      // Türe özel alanlar (ada/parsel/imar, kat/ısıtma, renk/kasa…) künyeye eklenir
+      .concat(Object.keys(l.details || {}).map((k) => {
+        const v = l.details[k];
+        return [D.fieldLabel(k), v === true ? "Var" : String(v)];
+      }))
+      .filter(Boolean);
 
     const dotPos = est ? Math.max(4, Math.min(96, 50 + ((l.price / est.mid - 1) / 0.25) * 50)) : 50;
     const contact = l.phone || C.company.phone; // ilana özel telefon varsa o kullanılır
@@ -1417,12 +1514,30 @@
       $$(".p-vasita").forEach((el) => { el.style.display = seg === "vasita" ? "" : "none"; });
       const kindEl = $("#pKind");
       if (kindEl && kindEl.dataset.seg !== seg) { fillKindSelect(kindEl, seg); kindEl.dataset.seg = seg; }
+      syncKindFields();
       // "Diğer" segmentinde piyasa verisi yok → AI fiyat önerisi anlamsız.
       const sug = $("#suggestBtn");
       if (sug) sug.style.display = seg === "diger" ? "none" : "";
       const sugOut = $("#suggestOut");
       if (sugOut && seg === "diger") sugOut.textContent = "";
     }
+    // Türe özel alanlar (arsada ada/parsel/imar, konutta kat/ısıtma/aidat…)
+    function syncKindFields() {
+      const wrap = $("#kindFieldsWrap");
+      if (!wrap) return;
+      const kind = $("#pKind").value;
+      const defs = renderKindFields($("#kindFields"), kind, null);
+      wrap.style.display = defs.length ? "" : "none";
+      // Arsa/arazide oda ve bina yaşı sorulmaz (ai.js ile aynı kural)
+      const arazi = LAND.indexOf(kind) >= 0;
+      [["#pRooms", arazi], ["#pAge", arazi]].forEach(([sel, gizle]) => {
+        const el = $(sel);
+        if (el && el.parentElement) el.parentElement.style.display = gizle ? "none" : "";
+      });
+      const m2Label = $("#pM2") && $("#pM2").parentElement.querySelector("label");
+      if (m2Label) m2Label.textContent = arazi ? "Yüz Ölçümü (m²)" : "Alan (m²)";
+    }
+    $("#pKind").addEventListener("change", syncKindFields);
     $("#pSeg").addEventListener("change", syncSegmentUI);
     syncSegmentUI();
 
@@ -1472,6 +1587,8 @@
       const sellerType = $("#pSellerType").value;
       const sellerName = $("#pSellerName").value.trim() || (sellerType === "ofis" ? "Emlak Ofisi" : "Sahibinden");
       const base = {
+        // Türe özel alanlar (config.fieldDefs) — boş bırakılanlar yazılmaz
+        details: collectKindFields($("#kindFields")),
         segment: seg,
         category: $("#pCat").value,
         city: $("#pCity").value, district: $("#pDistrict").value,
@@ -1511,8 +1628,13 @@
         // Boş bırakılan bina yaşı null kalır ("Sıfır bina" varsayılmaz,
         // değerlemeye yaş katsayısı uygulanmaz)
         age: LAND.indexOf(kind) >= 0 || $("#pAge").value === "" ? null : Math.max(0, +$("#pAge").value || 0),
-        bath: 1, floorPos: null, floor: null, totalFloors: null,
-        heating: LAND.indexOf(kind) >= 0 ? null : "Kombi (Doğalgaz)",
+        // Banyo, ısıtma ve kat bilgisi türe özel alanlardan (details) gelir;
+        // varsayılan DEĞER UYDURULMAZ. Değerleme kat konumu katsayısını
+        // kullandığı için "Bulunduğu Kat" seçimi floorPos'a çevrilir.
+        bath: base.details.banyoSayisi || null,
+        floorPos: floorPosOf(base.details.katNo),
+        floor: null, totalFloors: base.details.binaKat || null,
+        heating: base.details.isitma || null,
         features: $$("#featBoxes input:checked").map((i) => i.value),
       });
     }
