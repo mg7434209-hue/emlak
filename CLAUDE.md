@@ -148,6 +148,19 @@ türlere ayrılır; `data.js` KINDS'ı bu ağaçtan üretir, form/filtre optgrou
   içinde AYNI dizidir — birini değiştirirsen diğerini de değiştir. "diger"
   türlerinde kart başlığına "Satılık/Kiralık" öneki YAZILMAZ.
 
+### İLAN VERME AKIŞI: ÖNCE KATEGORİ, SONRA FORM (`ilan-ver.html`)
+Form 30+ alan taşıyabildiği için tek ekranda gösterilmez:
+1. **Adım 1 — `#catWizard`**: sahibinden tarzı kayan sütunlar
+   (İlan Türü → Kategori/grup → Tür → Satılık/Kiralık) + "Devam" kartı.
+   `app.js` içindeki `katalogSihirbazi()` IIFE'si çizer; seçim yolu `#wzCrumb`
+   içinde kırıntı olarak yazılır. Sırası gelmemiş sütun dar ekranda gizlenir
+   (`.pick-col--bos`).
+2. **Adım 2 — `#ilanVerForm`**: seçim `#pSeg`/`#pKind`/`#pCat` alanlarına
+   yazılır, bu üç seçici GİZLENİR (kırıntı şeridinde `#formCrumbText` +
+   "Değiştir" düğmesi vardır) ve yalnız o türe ait alanlar görünür.
+Üyelik kapısı açıkken sihirbaz da gizlenir. Form mantığı (collect/validate/AI)
+DEĞİŞMEDİ — sihirbaz yalnızca aynı seçicileri doldurur.
+
 ### TÜRE ÖZEL İLAN ALANLARI (`config.fieldDefs` + grup `fields`)
 Arsada ada/parsel/pafta/imar/KAKS/gabari, konutta kat/ısıtma/aidat/kullanım
 durumu, araçta renk/kasa/motor/hasar kaydı sorulur. Tanım TEK YERDE:

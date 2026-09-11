@@ -52,8 +52,33 @@
       </div>
     </div>
 
-    <div class="container section" id="ilanVerForm" style="padding-top:18px">
+    <!-- ADIM 1: Adım adım kategori seçimi. Form ancak kategori seçilince
+         açılır; böylece kullanıcı 30 alanlık bir formla karşılaşmaz. -->
+    <div class="container section" id="catWizard" style="padding-top:18px">
       <div class="form-card">
+        <h2 style="font-size:1.05rem;margin-bottom:4px">Adım Adım Kategori Seç</h2>
+        <div class="wz-crumb" id="wzCrumb"></div>
+        <div class="pick-cols">
+          <div class="pick-col"><b>İlan Türü</b><ul id="wzSeg"></ul></div>
+          <div class="pick-col"><b>Kategori</b><ul id="wzGroup"></ul></div>
+          <div class="pick-col"><b>Tür</b><ul id="wzKind"></ul></div>
+          <div class="pick-col"><b>Durum</b><ul id="wzCat"></ul></div>
+          <div class="pick-done" id="wzDone">
+            <div class="pick-check" aria-hidden="true">✓</div>
+            <b>Kategori seçimi tamamlandı</b>
+            <button class="btn" id="wzGo" type="button">Devam →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container section" id="ilanVerForm" style="padding-top:18px;display:none">
+      <div class="form-card">
+        <!-- Seçilen kategori + değiştirme bağlantısı -->
+        <div class="form-crumb" id="formCrumb">
+          <span id="formCrumbText"></span>
+          <button class="btn ghost sm" id="crumbChange" type="button">Değiştir</button>
+        </div>
         <div class="form-grid">
           <div><label for="pSeg">İlan Türü</label>
             <select id="pSeg"><option value="emlak">Emlak</option><option value="vasita">Vasıta</option><option value="diger">Diğer</option></select>

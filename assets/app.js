@@ -1481,6 +1481,8 @@
     if (D.hasServer() && !me && !adminToken()) {
       $("#ilanVerGate").style.display = "";
       $("#ilanVerForm").style.display = "none";
+      const wizEl = $("#catWizard");
+      if (wizEl) wizEl.style.display = "none";   // kategori seçici de kapanır
       const ph = $(".page-head p");
       if (ph) ph.textContent = "İlan vermek için ücretsiz hesabınızla giriş yapın.";
       return;
@@ -1540,6 +1542,92 @@
     $("#pKind").addEventListener("change", syncKindFields);
     $("#pSeg").addEventListener("change", syncSegmentUI);
     syncSegmentUI();
+
+    // ── ADIM ADIM KATEGORİ SEÇİCİ ────────────────────────────────────────
+    // Form 30+ alan taşıyabiliyor; hepsini birden göstermek yerine önce
+    // kategori sorulur (İlan Türü → Kategori → Tür → Durum), sonra YALNIZCA
+    // o türe ait alanlarla form açılır. Seçimler gizlenen #pSeg/#pKind/#pCat
+    // alanlarına yazılır — formun geri kalanı değişmeden çalışmaya devam eder.
+    (function katalogSihirbazi() {
+      const wiz = $("#catWizard");
+      const form = $("#ilanVerForm");
+      if (!wiz || !form) return;
+      const secim = { segment: "", group: "", kind: "", category: "" };
+      const liste = (el, items, secili, onPick, bosMetin) => {
+        // Sırası gelmemiş sütun mobilde gizlenir (sayfa uzamasın)
+        if (el.parentElement) el.parentElement.classList.toggle("pick-col--bos", !items.length);
+        if (!items.length) {
+          el.innerHTML = `<li class="pick-empty">${esc(bosMetin || "Önceki adımı seçin")}</li>`;
+          return;
+        }
+        el.innerHTML = items.map((it) =>
+          `<li role="option" tabindex="0" data-v="${esc(it.v)}" aria-selected="${it.v === secili}">${esc(it.t)}</li>`).join("");
+        $$("li[data-v]", el).forEach((li) => {
+          const sec = () => onPick(li.dataset.v);
+          li.addEventListener("click", sec);
+          li.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sec(); } });
+        });
+      };
+      const gruplar = () => (secim.segment ? D.groupsOf(secim.segment) : []);
+      const turler = () => {
+        const g = gruplar().find((x) => x.label === secim.group);
+        return g ? g.kinds : [];
+      };
+      function ciz() {
+        liste($("#wzSeg"), D.segments.map((sg) => ({ v: sg.segment, t: sg.label })), secim.segment,
+          (v) => { secim.segment = v; secim.group = secim.kind = secim.category = ""; ciz(); });
+        liste($("#wzGroup"), gruplar().map((g) => ({ v: g.label, t: g.label })), secim.group,
+          (v) => { secim.group = v; secim.kind = secim.category = ""; ciz(); }, "İlan türünü seçin");
+        liste($("#wzKind"), turler().map((k) => ({ v: k.kind, t: k.label })), secim.kind,
+          (v) => { secim.kind = v; secim.category = ""; ciz(); }, "Kategori seçin");
+        liste($("#wzCat"), secim.kind ? [{ v: "satilik", t: "Satılık" }, { v: "kiralik", t: "Kiralık" }] : [],
+          secim.category, (v) => { secim.category = v; ciz(); }, "Tür seçin");
+        $("#wzDone").classList.toggle("on", !!secim.category);
+        const yol = [
+          D.segments.find((x) => x.segment === secim.segment),
+          secim.group ? { label: secim.group } : null,
+          turler().find((k) => k.kind === secim.kind),
+          secim.category ? { label: secim.category === "satilik" ? "Satılık" : "Kiralık" } : null,
+        ].filter(Boolean).map((x) => esc(x.label));
+        $("#wzCrumb").innerHTML = yol.length ? yol.map((x, i) => (i === yol.length - 1 ? `<b>${x}</b>` : x)).join(" › ") : "Bir kategori seçerek başlayın.";
+      }
+      function formaGec() {
+        $("#pSeg").value = secim.segment;
+        $("#pSeg").dispatchEvent(new Event("change"));
+        $("#pKind").value = secim.kind;
+        $("#pKind").dispatchEvent(new Event("change"));
+        $("#pCat").value = secim.category;
+        // Kategori bilgisi üstteki şeritte durur; form ızgarasında tekrar etmez.
+        [["#pSeg", 1], ["#pKind", 1], ["#pCat", 1]].forEach(([sel]) => {
+          const el = $(sel);
+          if (el && el.parentElement) el.parentElement.style.display = "none";
+        });
+        $("#formCrumbText").innerHTML = $("#wzCrumb").innerHTML;
+        wiz.style.display = "none";
+        form.style.display = "";
+        basMetni(false);
+        window.scrollTo({ top: form.offsetTop - 70, behavior: "smooth" });
+      }
+      // Sayfa açıklaması adıma göre değişir
+      const basMetni = (adim1) => {
+        const ph = $(".page-head p");
+        if (!ph) return;
+        ph.textContent = adim1
+          ? "Önce ilanınızın kategorisini seçin; ardından yalnızca o türe ait alanlar sorulur."
+          : (adminToken()
+            ? "Yönetici oturumu açık: yayınladığınız ilanlar onay beklemeden herkese açılır."
+            : "Bilgileri girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. İlanınız yönetici onayından sonra tüm ziyaretçilere yayınlanır.");
+      };
+      basMetni(true);
+      $("#wzGo").addEventListener("click", formaGec);
+      $("#crumbChange").addEventListener("click", () => {
+        form.style.display = "none";
+        wiz.style.display = "";
+        basMetni(true);
+        window.scrollTo({ top: wiz.offsetTop - 70, behavior: "smooth" });
+      });
+      ciz();
+    })();
 
     // Hesap bilgileri ön-doldurulur (kullanıcı değiştirebilir)
     if (me) {
