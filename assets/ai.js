@@ -71,11 +71,21 @@
     const rm = q.match(/(\d)\s*\+\s*(\d)/);
     if (rm && f.segment !== "vasita") { f.rooms = rm[1] + "+" + rm[2]; f.segment = "emlak"; }
 
-    // Şehir / ilçe eşleşmesi (config'teki gerçek adlardan)
-    for (const city of Object.keys(C.market.cities)) {
-      if (q.includes(strip(city))) f.city = city;
+    // Şehir / ilçe eşleşmesi (config'teki gerçek adlardan).
+    // DİKKAT: 81 ilde ilçe adları çakışır ("Merkez" 51 ilde; Gölbaşı, Edremit,
+    // Yenişehir, Ereğli iki ilde). Çakışan ad, YALNIZCA ili de yazılmışsa
+    // kabul edilir — yoksa sorgu yanlış şehre kayardı.
+    const iller = Object.keys(C.market.cities);
+    const sayac = {};
+    iller.forEach((city) => Object.keys(C.market.cities[city].districts)
+      .forEach((d) => { sayac[d] = (sayac[d] || 0) + 1; }));
+    for (const city of iller) {
+      const sehirVar = q.includes(strip(city));
+      if (sehirVar) f.city = city;
       for (const d of Object.keys(C.market.cities[city].districts)) {
-        if (q.includes(strip(d))) { f.city = city; f.district = d; }
+        if (!q.includes(strip(d))) continue;
+        if (sayac[d] > 1 && !sehirVar) continue;   // belirsiz ilçe adı, il yok
+        f.city = city; f.district = d;
       }
     }
 

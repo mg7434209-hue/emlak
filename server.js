@@ -1103,7 +1103,10 @@ function renderListHtml(html, list) {
 // botlar JS çalıştırmadığı için app.js'in enjekte ettiği şema onlara ulaşmıyordu.
 // `data-sld` işaretli olduğundan istemci aynısını tekrar eklemez.
 function siteJsonLd() {
+  // 81 ilin tamamı kapsamda: şemayı şişirmemek için ülke + en büyük iller.
   const sehirler = Object.keys(CONF.market.cities);
+  const oneCikan = ["İstanbul", "Ankara", "İzmir", "Antalya", "Bursa", "Muğla", "Mersin", "Kocaeli"]
+    .filter((c) => sehirler.indexOf(c) >= 0);
   return jsonLdTag({
     "@context": "https://schema.org", "@type": "RealEstateAgent",
     "@id": SITE + "/#kurum",
@@ -1112,7 +1115,8 @@ function siteJsonLd() {
     description: CONF.brand.tagline,
     email: CONF.company.email, telephone: CONF.company.phone.intl,
     address: { "@type": "PostalAddress", streetAddress: CONF.company.address, addressCountry: "TR" },
-    areaServed: sehirler.map((c) => ({ "@type": "City", name: c })),
+    areaServed: [{ "@type": "Country", name: "Türkiye" }]
+      .concat(oneCikan.map((c) => ({ "@type": "City", name: c }))),
     knowsAbout: [
       "satılık daire", "kiralık daire", "villa", "arsa", "iş yeri", "ikinci el araç",
       "konut değerleme", "kira getirisi", "konut kredisi", "emlak piyasa analizi",
@@ -1170,13 +1174,18 @@ const slugify = (v) => String(v || "").toLocaleLowerCase("tr-TR")
 const KIND_SLUGS = {}; // slug → {kind,label}
 (global.EMLAK.data.kinds || []).forEach((k) => { KIND_SLUGS[slugify(k.label)] = k; });
 KIND_SLUGS["is-yeri"] = KIND_SLUGS["dukkan"];
+// 81 ilde ilçe adları ÇAKIŞIR ("Merkez" 51 ilde, ayrıca Gölbaşı/Edremit/
+// Yenişehir/Ereğli). Bu yüzden ilçe slug'ı birden çok ile işaret edebilir:
+// çakışanlarda kanonik adres İL'i de taşır (ör. /sivas-merkez-satilik-daire).
 const CITY_SLUGS = {}, DISTRICT_SLUGS = {};
 Object.keys(CONF.market.cities).forEach((city) => {
   CITY_SLUGS[slugify(city)] = city;
   Object.keys(CONF.market.cities[city].districts).forEach((d) => {
-    DISTRICT_SLUGS[slugify(d)] = { city, district: d };
+    const k = slugify(d);
+    (DISTRICT_SLUGS[k] = DISTRICT_SLUGS[k] || []).push({ city, district: d });
   });
 });
+const districtAmbiguous = (district) => (DISTRICT_SLUGS[slugify(district)] || []).length > 1;
 const CAT_SLUGS = { satilik: "satilik", kiralik: "kiralik" };
 
 // "/manavgat-satilik-villa" → {city, district, category, kind} (sırası önemsiz)
@@ -1187,12 +1196,19 @@ function parseSeoSlug(slug) {
     if (rest.includes("-" + key + "-")) { rest = rest.replace("-" + key + "-", "-"); return true; }
     return false;
   };
-  // Uzun eşleşmeler önce denenir (ör. "mustakil-ev" > "ev")
-  Object.keys(DISTRICT_SLUGS).sort((a, b) => b.length - a.length).forEach((k) => {
-    if (!f.district && take(k)) Object.assign(f, DISTRICT_SLUGS[k]);
-  });
+  // Önce İL okunur: çakışan ilçe adları ancak ille birlikte çözülebilir.
   Object.keys(CITY_SLUGS).sort((a, b) => b.length - a.length).forEach((k) => {
     if (!f.city && take(k)) f.city = CITY_SLUGS[k];
+  });
+  // Uzun eşleşmeler önce denenir (ör. "mustakil-ev" > "ev")
+  Object.keys(DISTRICT_SLUGS).sort((a, b) => b.length - a.length).forEach((k) => {
+    if (f.district) return;
+    const adaylar = DISTRICT_SLUGS[k];
+    // Çakışan ilçe adı, il belirtilmemişse SEO sayfası DEĞİLDİR (yanlış
+    // şehrin sayfasını açmaktansa 404 daha doğrudur).
+    const sec = adaylar.length === 1 ? adaylar[0] : adaylar.filter((x) => x.city === f.city)[0];
+    if (!sec) return;
+    if (take(k)) { f.city = sec.city; f.district = sec.district; }
   });
   Object.keys(KIND_SLUGS).sort((a, b) => b.length - a.length).forEach((k) => {
     if (!f.kind && take(k)) { f.kind = KIND_SLUGS[k].kind; f.kindLabel = KIND_SLUGS[k].label; }
@@ -1205,7 +1221,11 @@ function parseSeoSlug(slug) {
 
 // Filtrelerden kanonik adres üretir (aynı sayfaya tek URL: /ilce-kategori-tur)
 function seoSlugOf(f) {
-  return [f.district || f.city, f.category, f.kind ? slugify(f.kindLabel || f.kind) : (f.segment === "vasita" ? "arac" : "")]
+  // Çakışan ilçe adında (Merkez, Gölbaşı…) il de adrese girer — tek adres kuralı.
+  const yer = f.district
+    ? (districtAmbiguous(f.district) && f.city ? [f.city, f.district] : [f.district])
+    : (f.city ? [f.city] : []);
+  return yer.concat([f.category, f.kind ? slugify(f.kindLabel || f.kind) : (f.segment === "vasita" ? "arac" : "")])
     .filter(Boolean).map(slugify).join("-");
 }
 
@@ -1525,7 +1545,7 @@ function renderHomeHtml(html) {
   });
   regions.sort((a, b) => (b.n - a.n) || (b.perM2 - a.perM2));
   const regionCards = regions.slice(0, 12).map((r) => `
-          <a class="region-card" href="/${slugify(r.d)}"><b>${htmlEsc(r.d)}</b><small>${htmlEsc(r.city)}</small>
+          <a class="region-card" href="/${districtAmbiguous(r.d) ? slugify(r.city) + "-" + slugify(r.d) : slugify(r.d)}"><b>${htmlEsc(r.d)}</b><small>${htmlEsc(r.city)}</small>
             <div class="rc-count">${r.n ? trNum(r.n) + " ilan" : "İlan bekleniyor"}</div>
             <small>${trNum(r.perM2)} ₺/m² · kira ≈ ${trNum(r.perM2 * CONF.market.rentYieldMonthly)} ₺/m²</small></a>`).join("");
 

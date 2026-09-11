@@ -699,8 +699,13 @@
         });
       });
       bolgeler.sort((a, b) => (b.n - a.n) || (b.perM2 - a.perM2));
+      // 81 ilde ilçe adları çakışır ("Merkez" 51 ilde) — çakışanda adres İL'i
+      // de taşır, sunucudaki seoSlugOf ile AYNI kanonik biçim.
+      const ilceSayac = {};
+      D.cities.forEach((c) => D.districtsOf(c).forEach((d) => { ilceSayac[d] = (ilceSayac[d] || 0) + 1; }));
+      const bolgeSlug = (r) => (ilceSayac[r.d] > 1 ? slug(r.city) + "-" + slug(r.d) : slug(r.d));
       regEl.innerHTML = bolgeler.slice(0, 12).map((r) =>
-        `<a class="region-card" href="/${slug(r.d)}">
+        `<a class="region-card" href="/${bolgeSlug(r)}">
           <b>${esc(r.d)}</b><small>${esc(r.city)}</small>
           <div class="rc-count">${r.n ? fmt(r.n) + " ilan" : "İlan bekleniyor"}</div>
           <small>${fmt(r.perM2)} ₺/m² · kira ≈ ${fmt(Math.round(r.perM2 * C.market.rentYieldMonthly))} ₺/m²</small>

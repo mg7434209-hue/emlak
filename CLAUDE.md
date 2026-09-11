@@ -129,6 +129,24 @@ fiyatları ve amortisman eğrisi (`config.vehicles`), değerleme katsayıları,
 kredi varsayılanları (konut + taşıt) YALNIZCA burada. Sayfalara/JS'e sayı
 gömme; değişiklik = config.
 
+### Piyasa verisi: 81 İL · 474 ilçe (`config.market.cities`)
+Tüm Türkiye kapsanır; değerler bölgesel ORTALAMA tahminidir (dönem
+`config.seo.dataDate`). Bu tek tablo şunları besler: AI değerleme, fiyat
+etiketi, kira/amortisman hesapları, `bolge-fiyatlari.html`, SEO kategori
+sayfaları, SSS metinleri ve llms dosyaları. Fiyat güncellemesi = burayı
+düzenle + `npm run build` + çıktıyı commit'le.
+**ÇAKIŞAN İLÇE ADI TUZAĞI:** "Merkez" 51 ilde, ayrıca Gölbaşı · Edremit ·
+Yenişehir · Ereğli iki ilde geçer. Bu yüzden:
+- `DISTRICT_SLUGS` her slug için DİZİ tutar; `districtAmbiguous()` çakışmayı
+  söyler. Kanonik adres çakışanlarda İL'i de taşır
+  (`/sivas-merkez-satilik-daire`), çakışmayanda taşımaz (`/manavgat-...`).
+- `parseSeoSlug()` önce İL'i okur; çakışan ilçe adı il olmadan gelirse sayfa
+  ÜRETİLMEZ (404) — yanlış şehrin sayfasını açmaktansa doğrusu budur.
+- `ai.js parseQuery()` aynı kuralı uygular: çakışan ilçe adı ancak il de
+  yazılmışsa kabul edilir ("gölbaşı satılık villa" → il/ilçe boş).
+- Ana sayfa bölge kartları (hem `app.js` hem `renderHomeHtml`) aynı kanonik
+  slug'ı üretir — birini değiştirirsen diğerini de değiştir.
+
 ## Dosya mimarisi
 - `assets/config.js` — konfig (yukarıda).
 - `assets/data.js`   — ilan veri katmanı (`EMLAK.data`): demo/örnek ilan

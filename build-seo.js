@@ -104,12 +104,22 @@ let body = `
     </div>
     <div class="container section" style="padding-top:10px">`;
 
+// 81 il tek sayfada: en üste il indeksi (hem okur hem arama motoru için iç bağlantı)
+const anchor = (city) => esc(city.toLocaleLowerCase("tr-TR").replace(/[^a-zçğıöşü]/g, ""));
+body += `
+      <div class="detail-card" style="margin-bottom:18px">
+        <h2 style="font-size:1.05rem">İllere göre git (${Object.keys(cities).length} il)</h2>
+        <div class="tags" style="margin-top:10px">
+          ${Object.keys(cities).map((c) => `<a class="chip" href="#${anchor(c)}">${esc(c)}</a>`).join("")}
+        </div>
+      </div>`;
+
 for (const [city, cd] of Object.entries(cities)) {
   const rows = Object.entries(cd.districts).sort((a, b) => b[1] - a[1]);
   const cityAvg = rows.reduce((s, r) => s + r[1], 0) / rows.length;
   body += `
       <div class="prose">
-        <h2 id="${esc(city.toLocaleLowerCase("tr-TR").replace(/[^a-zçğıöşü]/g, ""))}">${esc(city)} Konut Fiyatları</h2>
+        <h2 id="${anchor(city)}">${esc(city)} Konut Fiyatları</h2>
         <p>${esc(city)} genelinde takip edilen ${rows.length} ilçenin ortalama satılık konut fiyatı
         <b>${fmt(cityAvg)} ₺/m²</b>; yıllık reel değer artış eğilimi yaklaşık <b>%${cd.yieldTrend}</b>'dir.
         En pahalı ilçe <b>${esc(rows[0][0])}</b> (${fmt(rows[0][1])} ₺/m²), en uygun ilçe

@@ -32,50 +32,722 @@ bandı üretilir. Aylık kira tahmini satış değerinin yaklaşık %0.42'idir.
 
 ## İlçe bazlı konut m² fiyatları (2026-07)
 
-### İstanbul (yıllık reel değer eğilimi ~%1.9)
+### Adana (yıllık reel değer eğilimi ~%1.5)
 
-- İstanbul / Beşiktaş: 125.000 TL/m² · 100 m² tahmini değer 12.500.000 TL · tahmini aylık kira 52.500 TL
-- İstanbul / Sarıyer: 110.000 TL/m² · 100 m² tahmini değer 11.000.000 TL · tahmini aylık kira 46.200 TL
-- İstanbul / Bakırköy: 98.000 TL/m² · 100 m² tahmini değer 9.800.000 TL · tahmini aylık kira 41.160 TL
-- İstanbul / Kadıköy: 95.000 TL/m² · 100 m² tahmini değer 9.500.000 TL · tahmini aylık kira 39.900 TL
-- İstanbul / Üsküdar: 78.000 TL/m² · 100 m² tahmini değer 7.800.000 TL · tahmini aylık kira 32.760 TL
-- İstanbul / Maltepe: 56.000 TL/m² · 100 m² tahmini değer 5.600.000 TL · tahmini aylık kira 23.520 TL
-- İstanbul / Kartal: 48.000 TL/m² · 100 m² tahmini değer 4.800.000 TL · tahmini aylık kira 20.160 TL
-- İstanbul / Esenyurt: 27.000 TL/m² · 100 m² tahmini değer 2.700.000 TL · tahmini aylık kira 11.340 TL
+- Adana / Çukurova: 36.000 TL/m² · 100 m² tahmini değer 3.600.000 TL · tahmini aylık kira 15.120 TL
+- Adana / Seyhan: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Adana / Sarıçam: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Adana / Yüreğir: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Adana / Ceyhan: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Adana / Kozan: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+
+### Adıyaman (yıllık reel değer eğilimi ~%1.2)
+
+- Adıyaman / Merkez: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Adıyaman / Kâhta: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Adıyaman / Gölbaşı: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Adıyaman / Besni: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+
+### Afyonkarahisar (yıllık reel değer eğilimi ~%1.3)
+
+- Afyonkarahisar / Merkez: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Afyonkarahisar / Sandıklı: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Afyonkarahisar / Bolvadin: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Afyonkarahisar / Dinar: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Afyonkarahisar / Sinanpaşa: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Ağrı (yıllık reel değer eğilimi ~%1)
+
+- Ağrı / Merkez: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Ağrı / Doğubayazıt: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Ağrı / Patnos: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Ağrı / Diyadin: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Aksaray (yıllık reel değer eğilimi ~%1.2)
+
+- Aksaray / Merkez: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Aksaray / Ortaköy: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Aksaray / Eskil: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+- Aksaray / Gülağaç: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Amasya (yıllık reel değer eğilimi ~%1.2)
+
+- Amasya / Merkez: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Amasya / Merzifon: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Amasya / Suluova: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Amasya / Taşova: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
 
 ### Ankara (yıllık reel değer eğilimi ~%1.4)
 
 - Ankara / Çankaya: 45.000 TL/m² · 100 m² tahmini değer 4.500.000 TL · tahmini aylık kira 18.900 TL
 - Ankara / Yenimahalle: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- Ankara / Gölbaşı: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
 - Ankara / Etimesgut: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
 - Ankara / Keçiören: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
 - Ankara / Mamak: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
-
-### İzmir (yıllık reel değer eğilimi ~%1.7)
-
-- İzmir / Çeşme: 95.000 TL/m² · 100 m² tahmini değer 9.500.000 TL · tahmini aylık kira 39.900 TL
-- İzmir / Urla: 78.000 TL/m² · 100 m² tahmini değer 7.800.000 TL · tahmini aylık kira 32.760 TL
-- İzmir / Karşıyaka: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
-- İzmir / Konak: 46.000 TL/m² · 100 m² tahmini değer 4.600.000 TL · tahmini aylık kira 19.320 TL
-- İzmir / Bornova: 42.000 TL/m² · 100 m² tahmini değer 4.200.000 TL · tahmini aylık kira 17.640 TL
-- İzmir / Buca: 33.000 TL/m² · 100 m² tahmini değer 3.300.000 TL · tahmini aylık kira 13.860 TL
+- Ankara / Pursaklar: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Ankara / Sincan: 21.000 TL/m² · 100 m² tahmini değer 2.100.000 TL · tahmini aylık kira 8.820 TL
+- Ankara / Kahramankazan: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Ankara / Altındağ: 19.000 TL/m² · 100 m² tahmini değer 1.900.000 TL · tahmini aylık kira 7.980 TL
+- Ankara / Polatlı: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Ankara / Beypazarı: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
 
 ### Antalya (yıllık reel değer eğilimi ~%2.2)
 
 - Antalya / Konyaaltı: 68.000 TL/m² · 100 m² tahmini değer 6.800.000 TL · tahmini aylık kira 28.560 TL
 - Antalya / Lara: 62.000 TL/m² · 100 m² tahmini değer 6.200.000 TL · tahmini aylık kira 26.040 TL
+- Antalya / Kemer: 60.000 TL/m² · 100 m² tahmini değer 6.000.000 TL · tahmini aylık kira 25.200 TL
+- Antalya / Kaş: 58.000 TL/m² · 100 m² tahmini değer 5.800.000 TL · tahmini aylık kira 24.360 TL
 - Antalya / Side: 55.000 TL/m² · 100 m² tahmini değer 5.500.000 TL · tahmini aylık kira 23.100 TL
 - Antalya / Muratpaşa: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
+- Antalya / Belek: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
 - Antalya / Alanya: 47.000 TL/m² · 100 m² tahmini değer 4.700.000 TL · tahmini aylık kira 19.740 TL
 - Antalya / Manavgat: 40.000 TL/m² · 100 m² tahmini değer 4.000.000 TL · tahmini aylık kira 16.800 TL
+- Antalya / Serik: 33.000 TL/m² · 100 m² tahmini değer 3.300.000 TL · tahmini aylık kira 13.860 TL
+- Antalya / Döşemealtı: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
 - Antalya / Kepez: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Antalya / Gazipaşa: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Antalya / Finike: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+
+### Ardahan (yıllık reel değer eğilimi ~%1)
+
+- Ardahan / Merkez: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Ardahan / Göle: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Ardahan / Çıldır: 7.500 TL/m² · 100 m² tahmini değer 750.000 TL · tahmini aylık kira 3.150 TL
+- Ardahan / Posof: 7.500 TL/m² · 100 m² tahmini değer 750.000 TL · tahmini aylık kira 3.150 TL
+
+### Artvin (yıllık reel değer eğilimi ~%1.3)
+
+- Artvin / Merkez: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Artvin / Arhavi: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Artvin / Hopa: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Artvin / Borçka: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Artvin / Yusufeli: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Aydın (yıllık reel değer eğilimi ~%1.8)
+
+- Aydın / Kuşadası: 55.000 TL/m² · 100 m² tahmini değer 5.500.000 TL · tahmini aylık kira 23.100 TL
+- Aydın / Didim: 42.000 TL/m² · 100 m² tahmini değer 4.200.000 TL · tahmini aylık kira 17.640 TL
+- Aydın / Efeler: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Aydın / Söke: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Aydın / Nazilli: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Aydın / İncirliova: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Aydın / Çine: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+
+### Balıkesir (yıllık reel değer eğilimi ~%1.7)
+
+- Balıkesir / Ayvalık: 48.000 TL/m² · 100 m² tahmini değer 4.800.000 TL · tahmini aylık kira 20.160 TL
+- Balıkesir / Erdek: 40.000 TL/m² · 100 m² tahmini değer 4.000.000 TL · tahmini aylık kira 16.800 TL
+- Balıkesir / Edremit: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
+- Balıkesir / Burhaniye: 34.000 TL/m² · 100 m² tahmini değer 3.400.000 TL · tahmini aylık kira 14.280 TL
+- Balıkesir / Bandırma: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Balıkesir / Altıeylül: 25.000 TL/m² · 100 m² tahmini değer 2.500.000 TL · tahmini aylık kira 10.500 TL
+- Balıkesir / Karesi: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Balıkesir / Gönen: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+
+### Bartın (yıllık reel değer eğilimi ~%1.3)
+
+- Bartın / Amasra: 34.000 TL/m² · 100 m² tahmini değer 3.400.000 TL · tahmini aylık kira 14.280 TL
+- Bartın / Merkez: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Bartın / Kurucaşile: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Bartın / Ulus: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+
+### Batman (yıllık reel değer eğilimi ~%1.1)
+
+- Batman / Merkez: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Batman / Kozluk: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Batman / Beşiri: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Batman / Sason: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Bayburt (yıllık reel değer eğilimi ~%1)
+
+- Bayburt / Merkez: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Bayburt / Demirözü: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Bayburt / Aydıntepe: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Bilecik (yıllık reel değer eğilimi ~%1.2)
+
+- Bilecik / Merkez: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Bilecik / Bozüyük: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Bilecik / Osmaneli: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Bilecik / Söğüt: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Bingöl (yıllık reel değer eğilimi ~%1)
+
+- Bingöl / Merkez: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Bingöl / Genç: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Bingöl / Solhan: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+- Bingöl / Karlıova: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Bitlis (yıllık reel değer eğilimi ~%1)
+
+- Bitlis / Tatvan: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Bitlis / Merkez: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Bitlis / Ahlat: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Bitlis / Güroymak: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+
+### Bolu (yıllık reel değer eğilimi ~%1.5)
+
+- Bolu / Merkez: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Bolu / Mudurnu: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Bolu / Gerede: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Bolu / Göynük: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Bolu / Mengen: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Burdur (yıllık reel değer eğilimi ~%1.2)
+
+- Burdur / Merkez: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Burdur / Bucak: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Burdur / Gölhisar: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Burdur / Yeşilova: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
 
 ### Bursa (yıllık reel değer eğilimi ~%1.3)
 
 - Bursa / Mudanya: 44.000 TL/m² · 100 m² tahmini değer 4.400.000 TL · tahmini aylık kira 18.480 TL
 - Bursa / Nilüfer: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
 - Bursa / Osmangazi: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Bursa / Gemlik: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Bursa / Gürsu: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Bursa / Kestel: 23.000 TL/m² · 100 m² tahmini değer 2.300.000 TL · tahmini aylık kira 9.660 TL
 - Bursa / Yıldırım: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Bursa / İznik: 21.000 TL/m² · 100 m² tahmini değer 2.100.000 TL · tahmini aylık kira 8.820 TL
+- Bursa / İnegöl: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Bursa / Orhangazi: 19.000 TL/m² · 100 m² tahmini değer 1.900.000 TL · tahmini aylık kira 7.980 TL
+
+### Çanakkale (yıllık reel değer eğilimi ~%1.6)
+
+- Çanakkale / Bozcaada: 75.000 TL/m² · 100 m² tahmini değer 7.500.000 TL · tahmini aylık kira 31.500 TL
+- Çanakkale / Gökçeada: 45.000 TL/m² · 100 m² tahmini değer 4.500.000 TL · tahmini aylık kira 18.900 TL
+- Çanakkale / Merkez: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- Çanakkale / Ayvacık: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Çanakkale / Biga: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Çanakkale / Ezine: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Çanakkale / Çan: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+
+### Çankırı (yıllık reel değer eğilimi ~%1)
+
+- Çankırı / Merkez: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Çankırı / Ilgaz: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Çankırı / Çerkeş: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+- Çankırı / Orta: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Çorum (yıllık reel değer eğilimi ~%1.2)
+
+- Çorum / Merkez: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Çorum / Sungurlu: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Çorum / Osmancık: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Çorum / İskilip: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Çorum / Alaca: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Denizli (yıllık reel değer eğilimi ~%1.5)
+
+- Denizli / Pamukkale: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Denizli / Merkezefendi: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Denizli / Sarayköy: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Denizli / Çivril: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Denizli / Acıpayam: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Denizli / Tavas: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+
+### Diyarbakır (yıllık reel değer eğilimi ~%1.2)
+
+- Diyarbakır / Kayapınar: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Diyarbakır / Yenişehir: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Diyarbakır / Bağlar: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Diyarbakır / Sur: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Diyarbakır / Ergani: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Diyarbakır / Bismil: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+
+### Düzce (yıllık reel değer eğilimi ~%1.5)
+
+- Düzce / Akçakoca: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Düzce / Merkez: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Düzce / Gölyaka: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Düzce / Kaynaşlı: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+
+### Edirne (yıllık reel değer eğilimi ~%1.3)
+
+- Edirne / Merkez: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Edirne / Enez: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Edirne / Keşan: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Edirne / Uzunköprü: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Edirne / İpsala: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Elazığ (yıllık reel değer eğilimi ~%1.2)
+
+- Elazığ / Merkez: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Elazığ / Kovancılar: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Elazığ / Karakoçan: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Elazığ / Palu: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+
+### Erzincan (yıllık reel değer eğilimi ~%1.1)
+
+- Erzincan / Merkez: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Erzincan / Üzümlü: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Erzincan / Tercan: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Erzincan / Refahiye: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+
+### Erzurum (yıllık reel değer eğilimi ~%1.2)
+
+- Erzurum / Palandöken: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Erzurum / Yakutiye: 19.000 TL/m² · 100 m² tahmini değer 1.900.000 TL · tahmini aylık kira 7.980 TL
+- Erzurum / Aziziye: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Erzurum / Oltu: 9.500 TL/m² · 100 m² tahmini değer 950.000 TL · tahmini aylık kira 3.990 TL
+- Erzurum / Horasan: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Eskişehir (yıllık reel değer eğilimi ~%1.5)
+
+- Eskişehir / Tepebaşı: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Eskişehir / Odunpazarı: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Eskişehir / Sivrihisar: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Eskişehir / Çifteler: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Eskişehir / Seyitgazi: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Gaziantep (yıllık reel değer eğilimi ~%1.5)
+
+- Gaziantep / Şehitkamil: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Gaziantep / Şahinbey: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Gaziantep / Oğuzeli: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Gaziantep / Nizip: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Gaziantep / İslahiye: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Giresun (yıllık reel değer eğilimi ~%1.4)
+
+- Giresun / Merkez: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Giresun / Bulancak: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Giresun / Tirebolu: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Giresun / Espiye: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Giresun / Görele: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+
+### Gümüşhane (yıllık reel değer eğilimi ~%1)
+
+- Gümüşhane / Merkez: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Gümüşhane / Torul: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Gümüşhane / Kelkit: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Gümüşhane / Şiran: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+
+### Hakkâri (yıllık reel değer eğilimi ~%1)
+
+- Hakkâri / Merkez: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Hakkâri / Yüksekova: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Hakkâri / Şemdinli: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Hakkâri / Çukurca: 7.500 TL/m² · 100 m² tahmini değer 750.000 TL · tahmini aylık kira 3.150 TL
+
+### Hatay (yıllık reel değer eğilimi ~%1.4)
+
+- Hatay / İskenderun: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Hatay / Arsuz: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Hatay / Antakya: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Hatay / Dörtyol: 19.000 TL/m² · 100 m² tahmini değer 1.900.000 TL · tahmini aylık kira 7.980 TL
+- Hatay / Defne: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Hatay / Samandağ: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Hatay / Kırıkhan: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+
+### Iğdır (yıllık reel değer eğilimi ~%1)
+
+- Iğdır / Merkez: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Iğdır / Aralık: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+- Iğdır / Tuzluca: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Iğdır / Karakoyunlu: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Isparta (yıllık reel değer eğilimi ~%1.3)
+
+- Isparta / Eğirdir: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Isparta / Merkez: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Isparta / Yalvaç: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Isparta / Şarkikaraağaç: 9.500 TL/m² · 100 m² tahmini değer 950.000 TL · tahmini aylık kira 3.990 TL
+- Isparta / Gelendost: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### İstanbul (yıllık reel değer eğilimi ~%1.9)
+
+- İstanbul / Beşiktaş: 125.000 TL/m² · 100 m² tahmini değer 12.500.000 TL · tahmini aylık kira 52.500 TL
+- İstanbul / Sarıyer: 110.000 TL/m² · 100 m² tahmini değer 11.000.000 TL · tahmini aylık kira 46.200 TL
+- İstanbul / Bakırköy: 98.000 TL/m² · 100 m² tahmini değer 9.800.000 TL · tahmini aylık kira 41.160 TL
+- İstanbul / Kadıköy: 95.000 TL/m² · 100 m² tahmini değer 9.500.000 TL · tahmini aylık kira 39.900 TL
+- İstanbul / Adalar: 90.000 TL/m² · 100 m² tahmini değer 9.000.000 TL · tahmini aylık kira 37.800 TL
+- İstanbul / Şişli: 88.000 TL/m² · 100 m² tahmini değer 8.800.000 TL · tahmini aylık kira 36.960 TL
+- İstanbul / Üsküdar: 78.000 TL/m² · 100 m² tahmini değer 7.800.000 TL · tahmini aylık kira 32.760 TL
+- İstanbul / Beyoğlu: 72.000 TL/m² · 100 m² tahmini değer 7.200.000 TL · tahmini aylık kira 30.240 TL
+- İstanbul / Ataşehir: 72.000 TL/m² · 100 m² tahmini değer 7.200.000 TL · tahmini aylık kira 30.240 TL
+- İstanbul / Beykoz: 65.000 TL/m² · 100 m² tahmini değer 6.500.000 TL · tahmini aylık kira 27.300 TL
+- İstanbul / Zeytinburnu: 58.000 TL/m² · 100 m² tahmini değer 5.800.000 TL · tahmini aylık kira 24.360 TL
+- İstanbul / Maltepe: 56.000 TL/m² · 100 m² tahmini değer 5.600.000 TL · tahmini aylık kira 23.520 TL
+- İstanbul / Fatih: 55.000 TL/m² · 100 m² tahmini değer 5.500.000 TL · tahmini aylık kira 23.100 TL
+- İstanbul / Bahçelievler: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
+- İstanbul / Ümraniye: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
+- İstanbul / Kartal: 48.000 TL/m² · 100 m² tahmini değer 4.800.000 TL · tahmini aylık kira 20.160 TL
+- İstanbul / Eyüpsultan: 46.000 TL/m² · 100 m² tahmini değer 4.600.000 TL · tahmini aylık kira 19.320 TL
+- İstanbul / Başakşehir: 45.000 TL/m² · 100 m² tahmini değer 4.500.000 TL · tahmini aylık kira 18.900 TL
+- İstanbul / Çekmeköy: 44.000 TL/m² · 100 m² tahmini değer 4.400.000 TL · tahmini aylık kira 18.480 TL
+- İstanbul / Pendik: 42.000 TL/m² · 100 m² tahmini değer 4.200.000 TL · tahmini aylık kira 17.640 TL
+- İstanbul / Büyükçekmece: 42.000 TL/m² · 100 m² tahmini değer 4.200.000 TL · tahmini aylık kira 17.640 TL
+- İstanbul / Tuzla: 40.000 TL/m² · 100 m² tahmini değer 4.000.000 TL · tahmini aylık kira 16.800 TL
+- İstanbul / Küçükçekmece: 40.000 TL/m² · 100 m² tahmini değer 4.000.000 TL · tahmini aylık kira 16.800 TL
+- İstanbul / Beylikdüzü: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
+- İstanbul / Bağcılar: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
+- İstanbul / Şile: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
+- İstanbul / Avcılar: 36.000 TL/m² · 100 m² tahmini değer 3.600.000 TL · tahmini aylık kira 15.120 TL
+- İstanbul / Sancaktepe: 34.000 TL/m² · 100 m² tahmini değer 3.400.000 TL · tahmini aylık kira 14.280 TL
+- İstanbul / Gaziosmanpaşa: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- İstanbul / Esenler: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- İstanbul / Sultanbeyli: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- İstanbul / Silivri: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- İstanbul / Esenyurt: 27.000 TL/m² · 100 m² tahmini değer 2.700.000 TL · tahmini aylık kira 11.340 TL
+- İstanbul / Arnavutköy: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+
+### İzmir (yıllık reel değer eğilimi ~%1.7)
+
+- İzmir / Çeşme: 95.000 TL/m² · 100 m² tahmini değer 9.500.000 TL · tahmini aylık kira 39.900 TL
+- İzmir / Urla: 78.000 TL/m² · 100 m² tahmini değer 7.800.000 TL · tahmini aylık kira 32.760 TL
+- İzmir / Güzelbahçe: 58.000 TL/m² · 100 m² tahmini değer 5.800.000 TL · tahmini aylık kira 24.360 TL
+- İzmir / Foça: 56.000 TL/m² · 100 m² tahmini değer 5.600.000 TL · tahmini aylık kira 23.520 TL
+- İzmir / Karşıyaka: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
+- İzmir / Seferihisar: 52.000 TL/m² · 100 m² tahmini değer 5.200.000 TL · tahmini aylık kira 21.840 TL
+- İzmir / Narlıdere: 50.000 TL/m² · 100 m² tahmini değer 5.000.000 TL · tahmini aylık kira 21.000 TL
+- İzmir / Balçova: 48.000 TL/m² · 100 m² tahmini değer 4.800.000 TL · tahmini aylık kira 20.160 TL
+- İzmir / Konak: 46.000 TL/m² · 100 m² tahmini değer 4.600.000 TL · tahmini aylık kira 19.320 TL
+- İzmir / Bornova: 42.000 TL/m² · 100 m² tahmini değer 4.200.000 TL · tahmini aylık kira 17.640 TL
+- İzmir / Gaziemir: 42.000 TL/m² · 100 m² tahmini değer 4.200.000 TL · tahmini aylık kira 17.640 TL
+- İzmir / Bayraklı: 40.000 TL/m² · 100 m² tahmini değer 4.000.000 TL · tahmini aylık kira 16.800 TL
+- İzmir / Dikili: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
+- İzmir / Buca: 33.000 TL/m² · 100 m² tahmini değer 3.300.000 TL · tahmini aylık kira 13.860 TL
+- İzmir / Karabağlar: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- İzmir / Menemen: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- İzmir / Torbalı: 25.000 TL/m² · 100 m² tahmini değer 2.500.000 TL · tahmini aylık kira 10.500 TL
+- İzmir / Ödemiş: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- İzmir / Bergama: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+
+### Kahramanmaraş (yıllık reel değer eğilimi ~%1.3)
+
+- Kahramanmaraş / Onikişubat: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Kahramanmaraş / Dulkadiroğlu: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Kahramanmaraş / Elbistan: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Kahramanmaraş / Afşin: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Kahramanmaraş / Pazarcık: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Karabük (yıllık reel değer eğilimi ~%1.2)
+
+- Karabük / Safranbolu: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Karabük / Merkez: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Karabük / Yenice: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Karabük / Eskipazar: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Karaman (yıllık reel değer eğilimi ~%1.2)
+
+- Karaman / Merkez: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Karaman / Ermenek: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Karaman / Ayrancı: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Karaman / Sarıveliler: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Kars (yıllık reel değer eğilimi ~%1)
+
+- Kars / Sarıkamış: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Kars / Merkez: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Kars / Kağızman: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+- Kars / Selim: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Kastamonu (yıllık reel değer eğilimi ~%1.2)
+
+- Kastamonu / Merkez: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Kastamonu / İnebolu: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Kastamonu / Cide: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Kastamonu / Tosya: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Kastamonu / Taşköprü: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+
+### Kayseri (yıllık reel değer eğilimi ~%1.4)
+
+- Kayseri / Talas: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Kayseri / Melikgazi: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Kayseri / Kocasinan: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Kayseri / Hacılar: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Kayseri / İncesu: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Kayseri / Develi: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Kırıkkale (yıllık reel değer eğilimi ~%1.1)
+
+- Kırıkkale / Merkez: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Kırıkkale / Yahşihan: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Kırıkkale / Keskin: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Kırıkkale / Delice: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Kırklareli (yıllık reel değer eğilimi ~%1.3)
+
+- Kırklareli / Merkez: 19.000 TL/m² · 100 m² tahmini değer 1.900.000 TL · tahmini aylık kira 7.980 TL
+- Kırklareli / Lüleburgaz: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Kırklareli / Demirköy: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Kırklareli / Babaeski: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Kırklareli / Vize: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+
+### Kırşehir (yıllık reel değer eğilimi ~%1.1)
+
+- Kırşehir / Merkez: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Kırşehir / Kaman: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Kırşehir / Mucur: 9.500 TL/m² · 100 m² tahmini değer 950.000 TL · tahmini aylık kira 3.990 TL
+- Kırşehir / Çiçekdağı: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Kilis (yıllık reel değer eğilimi ~%1.1)
+
+- Kilis / Merkez: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Kilis / Musabeyli: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Kilis / Elbeyli: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Kilis / Polateli: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Kocaeli (yıllık reel değer eğilimi ~%1.6)
+
+- Kocaeli / Gebze: 34.000 TL/m² · 100 m² tahmini değer 3.400.000 TL · tahmini aylık kira 14.280 TL
+- Kocaeli / Darıca: 33.000 TL/m² · 100 m² tahmini değer 3.300.000 TL · tahmini aylık kira 13.860 TL
+- Kocaeli / İzmit: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- Kocaeli / Çayırova: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Kocaeli / Başiskele: 29.000 TL/m² · 100 m² tahmini değer 2.900.000 TL · tahmini aylık kira 12.180 TL
+- Kocaeli / Gölcük: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Kocaeli / Kartepe: 27.000 TL/m² · 100 m² tahmini değer 2.700.000 TL · tahmini aylık kira 11.340 TL
+- Kocaeli / Körfez: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Kocaeli / Kandıra: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+
+### Konya (yıllık reel değer eğilimi ~%1.4)
+
+- Konya / Selçuklu: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Konya / Meram: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Konya / Karatay: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Konya / Ereğli: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Konya / Beyşehir: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Konya / Akşehir: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Konya / Seydişehir: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Kütahya (yıllık reel değer eğilimi ~%1.2)
+
+- Kütahya / Merkez: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Kütahya / Tavşanlı: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Kütahya / Simav: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Kütahya / Gediz: 9.500 TL/m² · 100 m² tahmini değer 950.000 TL · tahmini aylık kira 3.990 TL
+- Kütahya / Emet: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Malatya (yıllık reel değer eğilimi ~%1.2)
+
+- Malatya / Yeşilyurt: 21.000 TL/m² · 100 m² tahmini değer 2.100.000 TL · tahmini aylık kira 8.820 TL
+- Malatya / Battalgazi: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Malatya / Doğanşehir: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Malatya / Darende: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Malatya / Akçadağ: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+
+### Manisa (yıllık reel değer eğilimi ~%1.4)
+
+- Manisa / Yunusemre: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Manisa / Şehzadeler: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Manisa / Turgutlu: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Manisa / Akhisar: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Manisa / Salihli: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Manisa / Alaşehir: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Manisa / Soma: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Mardin (yıllık reel değer eğilimi ~%1.2)
+
+- Mardin / Artuklu: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Mardin / Midyat: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Mardin / Kızıltepe: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Mardin / Nusaybin: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Mardin / Derik: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Mersin (yıllık reel değer eğilimi ~%1.7)
+
+- Mersin / Mezitli: 34.000 TL/m² · 100 m² tahmini değer 3.400.000 TL · tahmini aylık kira 14.280 TL
+- Mersin / Yenişehir: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- Mersin / Erdemli: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Mersin / Toroslar: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Mersin / Silifke: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Mersin / Anamur: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Mersin / Akdeniz: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Mersin / Tarsus: 19.000 TL/m² · 100 m² tahmini değer 1.900.000 TL · tahmini aylık kira 7.980 TL
+
+### Muğla (yıllık reel değer eğilimi ~%2.1)
+
+- Muğla / Bodrum: 85.000 TL/m² · 100 m² tahmini değer 8.500.000 TL · tahmini aylık kira 35.700 TL
+- Muğla / Datça: 70.000 TL/m² · 100 m² tahmini değer 7.000.000 TL · tahmini aylık kira 29.400 TL
+- Muğla / Marmaris: 62.000 TL/m² · 100 m² tahmini değer 6.200.000 TL · tahmini aylık kira 26.040 TL
+- Muğla / Fethiye: 58.000 TL/m² · 100 m² tahmini değer 5.800.000 TL · tahmini aylık kira 24.360 TL
+- Muğla / Menteşe: 36.000 TL/m² · 100 m² tahmini değer 3.600.000 TL · tahmini aylık kira 15.120 TL
+- Muğla / Ortaca: 34.000 TL/m² · 100 m² tahmini değer 3.400.000 TL · tahmini aylık kira 14.280 TL
+- Muğla / Dalaman: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- Muğla / Milas: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Muğla / Köyceğiz: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Muğla / Seydikemer: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+
+### Muş (yıllık reel değer eğilimi ~%1)
+
+- Muş / Merkez: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Muş / Bulanık: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+- Muş / Malazgirt: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Muş / Varto: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Nevşehir (yıllık reel değer eğilimi ~%1.4)
+
+- Nevşehir / Göreme: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
+- Nevşehir / Ürgüp: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Nevşehir / Avanos: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Nevşehir / Merkez: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Nevşehir / Gülşehir: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Niğde (yıllık reel değer eğilimi ~%1.1)
+
+- Niğde / Merkez: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Niğde / Bor: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Niğde / Çamardı: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Niğde / Ulukışla: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Ordu (yıllık reel değer eğilimi ~%1.4)
+
+- Ordu / Altınordu: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Ordu / Ünye: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Ordu / Fatsa: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Ordu / Perşembe: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Ordu / Gölköy: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Osmaniye (yıllık reel değer eğilimi ~%1.2)
+
+- Osmaniye / Merkez: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Osmaniye / Kadirli: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Osmaniye / Düziçi: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Osmaniye / Bahçe: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Rize (yıllık reel değer eğilimi ~%1.5)
+
+- Rize / Merkez: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Rize / Çamlıhemşin: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Rize / Çayeli: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Rize / Ardeşen: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Rize / Pazar: 21.000 TL/m² · 100 m² tahmini değer 2.100.000 TL · tahmini aylık kira 8.820 TL
+- Rize / Fındıklı: 21.000 TL/m² · 100 m² tahmini değer 2.100.000 TL · tahmini aylık kira 8.820 TL
+
+### Sakarya (yıllık reel değer eğilimi ~%1.5)
+
+- Sakarya / Sapanca: 40.000 TL/m² · 100 m² tahmini değer 4.000.000 TL · tahmini aylık kira 16.800 TL
+- Sakarya / Serdivan: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Sakarya / Karasu: 28.000 TL/m² · 100 m² tahmini değer 2.800.000 TL · tahmini aylık kira 11.760 TL
+- Sakarya / Adapazarı: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Sakarya / Erenler: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Sakarya / Hendek: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Sakarya / Akyazı: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+
+### Samsun (yıllık reel değer eğilimi ~%1.4)
+
+- Samsun / Atakum: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- Samsun / İlkadım: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Samsun / Canik: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Samsun / Bafra: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Samsun / Çarşamba: 15.000 TL/m² · 100 m² tahmini değer 1.500.000 TL · tahmini aylık kira 6.300 TL
+- Samsun / Terme: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+
+### Siirt (yıllık reel değer eğilimi ~%1)
+
+- Siirt / Merkez: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Siirt / Kurtalan: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Siirt / Pervari: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+- Siirt / Baykan: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Sinop (yıllık reel değer eğilimi ~%1.3)
+
+- Sinop / Merkez: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Sinop / Gerze: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Sinop / Ayancık: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Sinop / Türkeli: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Sinop / Boyabat: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Sivas (yıllık reel değer eğilimi ~%1.1)
+
+- Sivas / Merkez: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Sivas / Suşehri: 9.500 TL/m² · 100 m² tahmini değer 950.000 TL · tahmini aylık kira 3.990 TL
+- Sivas / Şarkışla: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Sivas / Zara: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+- Sivas / Gemerek: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+
+### Şanlıurfa (yıllık reel değer eğilimi ~%1.2)
+
+- Şanlıurfa / Karaköprü: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Şanlıurfa / Haliliye: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Şanlıurfa / Eyyübiye: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Şanlıurfa / Siverek: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Şanlıurfa / Birecik: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Şanlıurfa / Viranşehir: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+
+### Şırnak (yıllık reel değer eğilimi ~%1)
+
+- Şırnak / Merkez: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Şırnak / Cizre: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Şırnak / Silopi: 9.500 TL/m² · 100 m² tahmini değer 950.000 TL · tahmini aylık kira 3.990 TL
+- Şırnak / İdil: 8.000 TL/m² · 100 m² tahmini değer 800.000 TL · tahmini aylık kira 3.360 TL
+
+### Tekirdağ (yıllık reel değer eğilimi ~%1.6)
+
+- Tekirdağ / Süleymanpaşa: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Tekirdağ / Şarköy: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Tekirdağ / Çorlu: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Tekirdağ / Marmaraereğlisi: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+- Tekirdağ / Çerkezköy: 24.000 TL/m² · 100 m² tahmini değer 2.400.000 TL · tahmini aylık kira 10.080 TL
+- Tekirdağ / Kapaklı: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Tekirdağ / Malkara: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+
+### Tokat (yıllık reel değer eğilimi ~%1.1)
+
+- Tokat / Merkez: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Tokat / Erbaa: 12.000 TL/m² · 100 m² tahmini değer 1.200.000 TL · tahmini aylık kira 5.040 TL
+- Tokat / Turhal: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Tokat / Niksar: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Tokat / Zile: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+
+### Trabzon (yıllık reel değer eğilimi ~%1.6)
+
+- Trabzon / Ortahisar: 32.000 TL/m² · 100 m² tahmini değer 3.200.000 TL · tahmini aylık kira 13.440 TL
+- Trabzon / Yomra: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Trabzon / Akçaabat: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Trabzon / Araklı: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Trabzon / Of: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Trabzon / Sürmene: 21.000 TL/m² · 100 m² tahmini değer 2.100.000 TL · tahmini aylık kira 8.820 TL
+- Trabzon / Vakfıkebir: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+
+### Tunceli (yıllık reel değer eğilimi ~%1)
+
+- Tunceli / Merkez: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
+- Tunceli / Pertek: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Tunceli / Çemişgezek: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+- Tunceli / Ovacık: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+
+### Uşak (yıllık reel değer eğilimi ~%1.2)
+
+- Uşak / Merkez: 18.000 TL/m² · 100 m² tahmini değer 1.800.000 TL · tahmini aylık kira 7.560 TL
+- Uşak / Banaz: 10.000 TL/m² · 100 m² tahmini değer 1.000.000 TL · tahmini aylık kira 4.200 TL
+- Uşak / Eşme: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Uşak / Sivaslı: 8.500 TL/m² · 100 m² tahmini değer 850.000 TL · tahmini aylık kira 3.570 TL
+
+### Van (yıllık reel değer eğilimi ~%1.2)
+
+- Van / Edremit: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Van / Tuşba: 17.000 TL/m² · 100 m² tahmini değer 1.700.000 TL · tahmini aylık kira 7.140 TL
+- Van / İpekyolu: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Van / Erciş: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Van / Gevaş: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+
+### Yalova (yıllık reel değer eğilimi ~%1.8)
+
+- Yalova / Armutlu: 40.000 TL/m² · 100 m² tahmini değer 4.000.000 TL · tahmini aylık kira 16.800 TL
+- Yalova / Çınarcık: 38.000 TL/m² · 100 m² tahmini değer 3.800.000 TL · tahmini aylık kira 15.960 TL
+- Yalova / Termal: 36.000 TL/m² · 100 m² tahmini değer 3.600.000 TL · tahmini aylık kira 15.120 TL
+- Yalova / Merkez: 34.000 TL/m² · 100 m² tahmini değer 3.400.000 TL · tahmini aylık kira 14.280 TL
+- Yalova / Çiftlikköy: 30.000 TL/m² · 100 m² tahmini değer 3.000.000 TL · tahmini aylık kira 12.600 TL
+- Yalova / Altınova: 26.000 TL/m² · 100 m² tahmini değer 2.600.000 TL · tahmini aylık kira 10.920 TL
+
+### Yozgat (yıllık reel değer eğilimi ~%1)
+
+- Yozgat / Merkez: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Yozgat / Sorgun: 11.000 TL/m² · 100 m² tahmini değer 1.100.000 TL · tahmini aylık kira 4.620 TL
+- Yozgat / Akdağmadeni: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+- Yozgat / Boğazlıyan: 9.000 TL/m² · 100 m² tahmini değer 900.000 TL · tahmini aylık kira 3.780 TL
+
+### Zonguldak (yıllık reel değer eğilimi ~%1.2)
+
+- Zonguldak / Ereğli: 22.000 TL/m² · 100 m² tahmini değer 2.200.000 TL · tahmini aylık kira 9.240 TL
+- Zonguldak / Merkez: 20.000 TL/m² · 100 m² tahmini değer 2.000.000 TL · tahmini aylık kira 8.400 TL
+- Zonguldak / Alaplı: 16.000 TL/m² · 100 m² tahmini değer 1.600.000 TL · tahmini aylık kira 6.720 TL
+- Zonguldak / Çaycuma: 14.000 TL/m² · 100 m² tahmini değer 1.400.000 TL · tahmini aylık kira 5.880 TL
+- Zonguldak / Devrek: 13.000 TL/m² · 100 m² tahmini değer 1.300.000 TL · tahmini aylık kira 5.460 TL
 
 ## Makine okunur veri
 
