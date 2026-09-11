@@ -37,15 +37,17 @@
     },
   ];
 
-  const KINDS = [
-    { kind: "daire", label: "Daire" },
-    { kind: "residence", label: "Rezidans" },
-    { kind: "villa", label: "Villa" },
-    { kind: "mustakil", label: "Müstakil Ev" },
-    { kind: "dukkan", label: "Dükkan" },
-    { kind: "ofis", label: "Ofis" },
-    { kind: "arsa", label: "Arsa" },
-  ];
+  // Türler TEK KAYNAKTAN: config.segments ağacı düzleştirilir.
+  // Her tür kendi segmentini ve grubunu taşır (form/filtre optgroup'ları buradan).
+  const SEGMENTS = C.segments || [];
+  const KINDS = [];
+  SEGMENTS.forEach((sg) => (sg.groups || []).forEach((g) => (g.kinds || []).forEach((k) => {
+    KINDS.push({ kind: k.kind, label: k.label, segment: sg.segment, group: g.label,
+      valuation: k.valuation !== false });
+  })));
+  const SEG_OF = {};
+  KINDS.forEach((k) => { SEG_OF[k.kind] = k.segment; });
+  const SEG_IDS = SEGMENTS.map((s) => s.segment);
 
   const cityNames = Object.keys(C.market.cities);
   const brandNames = Object.keys(C.vehicles.brands);
@@ -62,7 +64,9 @@
   const num = (v) => (Number.isFinite(+v) ? +v : null);
   function normalizeListing(l) {
     if (!l || typeof l !== "object") return null;
-    const seg = l.segment === "vasita" ? "vasita" : "emlak";
+    // Segment üç değerden biridir; bilinmeyen değer türünden çıkarılır,
+    // o da yoksa emlak varsayılır.
+    const seg = SEG_IDS.indexOf(l.segment) >= 0 ? l.segment : (SEG_OF[l.kind] || "emlak");
     const seller = l.seller && typeof l.seller === "object" ? l.seller : {};
     const phone = l.phone && typeof l.phone === "object" &&
       /^\+90\d{10}$/.test(l.phone.intl) && /^90\d{10}$/.test(l.phone.wa)
@@ -282,7 +286,15 @@
     normalize: normalizeListing,
     cities: cityNames,
     districtsOf: (city) => (C.market.cities[city] ? Object.keys(C.market.cities[city].districts) : []),
-    kinds: KINDS.map((k) => ({ kind: k.kind, label: k.label })),
+    kinds: KINDS.map((k) => ({ kind: k.kind, label: k.label, segment: k.segment, group: k.group, valuation: k.valuation })),
+    segments: SEGMENTS.map((s) => ({ segment: s.segment, label: s.label, short: s.short, fields: s.fields })),
+    // Bir segmentin türleri (grup grup) — form ve filtre optgroup'ları için
+    groupsOf: (segment) => (SEGMENTS.find((s) => s.segment === segment) || { groups: [] }).groups
+      .map((g) => ({ label: g.label, kinds: (g.kinds || []).map((k) => ({ kind: k.kind, label: k.label })) })),
+    kindsOf: (segment) => KINDS.filter((k) => k.segment === segment),
+    segmentOf: (kind) => SEG_OF[kind] || "emlak",
+    fieldsOf: (segment) => (SEGMENTS.find((s) => s.segment === segment) || {}).fields || "sade",
+    canValue: (kind) => (KINDS.find((k) => k.kind === kind) || { valuation: true }).valuation !== false,
     brands: brandNames,
     modelsOf: (brand) => (C.vehicles.brands[brand] ? Object.keys(C.vehicles.brands[brand]) : []),
   };

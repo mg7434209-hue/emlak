@@ -1215,6 +1215,7 @@ function parseSeoSlug(slug) {
   });
   Object.keys(CAT_SLUGS).forEach((k) => { if (!f.category && take(k)) f.category = k; });
   if (take("arac") || take("vasita")) f.segment = "vasita";
+  if (take("diger")) f.segment = "diger";
   if (rest !== "-") return null;              // tanınmayan parça kaldıysa SEO sayfası değil
   return Object.keys(f).length ? f : null;
 }
@@ -1225,7 +1226,9 @@ function seoSlugOf(f) {
   const yer = f.district
     ? (districtAmbiguous(f.district) && f.city ? [f.city, f.district] : [f.district])
     : (f.city ? [f.city] : []);
-  return yer.concat([f.category, f.kind ? slugify(f.kindLabel || f.kind) : (f.segment === "vasita" ? "arac" : "")])
+  const segSlug = f.kind ? slugify(f.kindLabel || f.kind)
+    : f.segment === "vasita" ? "arac" : f.segment === "diger" ? "diger" : "";
+  return yer.concat([f.category, segSlug])
     .filter(Boolean).map(slugify).join("-");
 }
 
@@ -1239,7 +1242,7 @@ const seoMatches = (f) => LISTINGS.filter((l) => l.status === "active" &&
 // böylece yapay zekâ motorlarına verilen cevaplar sayfadaki veriyle AYNI olur.
 function seoStats(f, list) {
   const yer = f.district ? `${f.district}, ${f.city}` : (f.city || "Türkiye geneli");
-  const tur = f.kindLabel || (f.segment === "vasita" ? "Araç" : "Taşınmaz");
+  const tur = f.kindLabel || (f.segment === "vasita" ? "Araç" : f.segment === "diger" ? "İlan" : "Taşınmaz");
   const cat = f.category === "kiralik" ? "Kiralık" : f.category === "satilik" ? "Satılık" : "Satılık & Kiralık";
   const prices = list.map((l) => l.price).filter(Boolean).sort((a, b) => a - b);
   const med = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
@@ -1449,7 +1452,7 @@ function popularLinksHtml(current) {
   const rows = seoRouteList().filter(([slug]) => slug !== current).slice(0, 24);
   if (!rows.length) return "";
   const label = (f) => [f.district || f.city, f.category === "kiralik" ? "Kiralık" : f.category === "satilik" ? "Satılık" : "",
-    f.kindLabel || (f.segment === "vasita" ? "Araç" : "")].filter(Boolean).join(" ");
+    f.kindLabel || (f.segment === "vasita" ? "Araç" : f.segment === "diger" ? "Diğer" : "")].filter(Boolean).join(" ");
   return `<div class="container section" style="padding-top:0">
       <div class="detail-card">
         <h2 style="font-size:1.05rem">Popüler kategoriler ve bölgeler</h2>
@@ -1512,17 +1515,23 @@ function renderHomeHtml(html) {
     (!f.category || l.category === f.category) && (!f.kind || l.kind === f.kind) &&
     (!f.segment || (l.segment || "emlak") === f.segment) && (!f.city || l.city === f.city)).length;
 
-  const catCards = [].concat(
-    ...[["satilik", "Satılık"], ["kiralik", "Kiralık"]].map(([cat, label]) =>
-      ["daire", "villa", "mustakil", "dukkan", "arsa"]
-        .filter((k) => !(cat === "kiralik" && k === "arsa"))
-        .map((k) => {
-          const kd = kinds.find((x) => x.kind === k);
-          if (!kd) return "";
-          const n = countOf({ category: cat, kind: k });
-          return `<a class="cat-card" href="/${cat}-${slugify(kd.label)}"><b>${htmlEsc(label + " " + kd.label)}</b>` +
-            `<span>${n ? trNum(n) + " ilan" : "İlan bekleniyor"}</span></a>`;
-        }))).join("");
+  // Kategori kartları: üç segment de temsil edilir (emlak · vasıta · diğer).
+  const CAT_CARDS = [
+    ["satilik", "daire"], ["satilik", "villa"], ["satilik", "mustakil"], ["satilik", "yazlik"],
+    ["satilik", "dukkan"], ["satilik", "ofis"], ["satilik", "arsa"], ["satilik", "tarla"],
+    ["kiralik", "daire"], ["kiralik", "villa"], ["kiralik", "dukkan"], ["kiralik", "ofis"],
+    ["satilik", "otomobil"], ["satilik", "suv"], ["satilik", "motosiklet"], ["satilik", "ticari"],
+    ["satilik", "ikinciel"], ["satilik", "ismakinesi"], ["satilik", "hayvan"], ["satilik", "hizmet"],
+  ];
+  const catCards = CAT_CARDS.map(([cat, k]) => {
+    const kd = kinds.find((x) => x.kind === k);
+    if (!kd) return "";
+    const n = countOf({ category: cat, kind: k });
+    // "Diğer" segmentinde kategori öneki yazılmaz (bkz. app.js pageIndex)
+    const label = kd.segment === "diger" ? "" : (cat === "satilik" ? "Satılık " : "Kiralık ");
+    return `<a class="cat-card" href="/${cat}-${slugify(kd.label)}"><b>${htmlEsc(label + kd.label)}</b>` +
+      `<span>${n ? trNum(n) + " ilan" : "İlan bekleniyor"}</span></a>`;
+  }).join("");
 
   const perM2 = (() => {
     const v = active.filter((l) => l.m2 && l.category === "satilik" && (l.segment || "emlak") === "emlak")
@@ -1567,8 +1576,10 @@ function renderHomeHtml(html) {
   // AI seçkisi / fırsatlar / fiyatı düşenler — istemcideki home.js ile aynı
   // mantık, bot görünümü için sunucuda hesaplanır (AI motoru Node'da yüklü).
   const ai = global.EMLAK.ai;
-  const picks = ai ? ai.rank(active.slice()).slice(0, 4) : byDate.slice(0, 4);
-  const deals = ai ? active.map((l) => ({ l, b: ai.priceBadge(l) }))
+  // AI seçkisi/fırsatlar piyasa verisine dayanır: "Diğer" segmenti girmez
+  const valuable = active.filter((l) => (l.segment || "emlak") !== "diger");
+  const picks = ai ? ai.rank(valuable.slice()).slice(0, 4) : byDate.slice(0, 4);
+  const deals = ai ? valuable.map((l) => ({ l, b: ai.priceBadge(l) }))
     .filter((x) => x.b && x.b.key === "firsat").sort((a, b) => b.b.pct - a.b.pct).slice(0, 4).map((x) => x.l) : [];
   const drops = active.filter((l) => (l.priceHistory || []).some((h) => h.price > l.price))
     .sort((a, b) => new Date(b.updated || b.date) - new Date(a.updated || a.date)).slice(0, 4);

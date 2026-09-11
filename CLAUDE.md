@@ -129,6 +129,25 @@ fiyatları ve amortisman eğrisi (`config.vehicles`), değerleme katsayıları,
 kredi varsayılanları (konut + taşıt) YALNIZCA burada. Sayfalara/JS'e sayı
 gömme; değişiklik = config.
 
+### KATEGORİ AĞACI: 3 segment · 37 tür (`config.segments`)
+Segmentler: **emlak** · **vasita** · **diger**. Her segment gruplara, gruplar
+türlere ayrılır; `data.js` KINDS'ı bu ağaçtan üretir, form/filtre optgroup'ları
+`D.groupsOf(segment)` ile çizilir. Yeni tür = yalnız config'e satır ekle.
+- `fields`: emlak → m²/oda/yaş/özellikler · vasita → marka/model/yıl/km ·
+  **diger → sade** (başlık, açıklama, fiyat, konum, fotoğraf).
+- `valuation: false` olan türde (tüm "diger" türleri) AI DEĞERLEME YAPILMAZ:
+  `estimate()` null döner, fiyat etiketi/AI analizi/kredi kutusu ve AI fiyat
+  önerisi düğmesi gizlenir, `describe()` sade metin üretir. Ana sayfadaki AI
+  vitrinleri (seçki, fırsatlar, günün önerisi) "diger" ilanlarını ALMAZ; son
+  eklenenler ve kategori sayfalarında görünürler.
+- ARSA/ARAZİ (`arsa`, `tarla`, `bagbahce` — ai.js `LAND_KINDS`, app.js `LAND`):
+  oda/yaş/ısıtma sorulmaz; kira getirisi hesaplanmaz. Birim fiyat parsel
+  büyüdükçe düşer (`config.valuation.landSize`: refArea 1000 m², decay 0.35) —
+  yoksa 5 dönüm tarla, daire m² fiyatıyla çarpılıp saçma değer veriyordu.
+- Kategori kartları listesi `app.js pageIndex()` ve `server.js renderHomeHtml`
+  içinde AYNI dizidir — birini değiştirirsen diğerini de değiştir. "diger"
+  türlerinde kart başlığına "Satılık/Kiralık" öneki YAZILMAZ.
+
 ### Piyasa verisi: 81 İL · 474 ilçe (`config.market.cities`)
 Tüm Türkiye kapsanır; değerler bölgesel ORTALAMA tahminidir (dönem
 `config.seo.dataDate`). Bu tek tablo şunları besler: AI değerleme, fiyat

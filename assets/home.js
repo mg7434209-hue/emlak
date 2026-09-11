@@ -35,16 +35,34 @@
   function thumb(l) {
     const photo = safePhoto(l && l.photos && l.photos[0]);
     if (photo) return '<img src="' + photo + '" alt="' + esc(l.title) + '" loading="lazy">';
+    // Türlere göre yer tutucu renk/simge — app.js PALETTES/GLYPHS ile AYNI
     const palettes = {
-      daire: ["#2259db", "#7a91f0"], residence: ["#5b2ac9", "#ad7cff"],
-      villa: ["#087a5b", "#49cda0"], mustakil: ["#a85a12", "#ebb45d"],
-      dukkan: ["#a32465", "#ee78ac"], ofis: ["#0a788c", "#56c9d0"],
-      arsa: ["#4a6f20", "#a1c86d"], otomobil: ["#35415d", "#6d7f9f"],
+      daire: ["#2456d8", "#4d8bf5"], residence: ["#5b2ac9", "#9b6bff"],
+      villa: ["#0c8a54", "#3cc98a"], mustakil: ["#b06b12", "#e8a94b"],
+      yazlik: ["#0f7d8c", "#46c3d4"],
+      dukkan: ["#b3266b", "#ef6aa8"], ofis: ["#0e7d93", "#3fb9cf"],
+      depo: ["#5a5f6b", "#8e95a3"], fabrika: ["#4a4f63", "#7d84a0"],
+      arsa: ["#557a1f", "#93bf4e"], tarla: ["#6a7c22", "#a8c256"], bagbahce: ["#3f7a34", "#79bb62"],
+      bina: ["#3d4a63", "#6f80a3"], devremulk: ["#8a5a2b", "#c79355"], turistik: ["#1a6f8c", "#57b3cd"],
+      otomobil: ["#37415e", "#5f6f9e"], suv: ["#2f4858", "#5c7c8f"], elektrikli: ["#12796b", "#3fc0aa"],
+      klasik: ["#6b4b2a", "#a8804f"], motosiklet: ["#8c2f2f", "#cf6a6a"], atv: ["#7a4a1f", "#c08a4a"],
+      minivan: ["#41506b", "#7383a3"], ticari: ["#3a4a5c", "#6d8095"], kamyon: ["#4c4438", "#8a7c66"],
+      otobus: ["#2f5d72", "#5f96ab"], karavan: ["#57683a", "#93a86c"], deniz: ["#15546f", "#4f9cbc"],
+      hasarli: ["#6b3030", "#a86363"],
+      ikinciel: ["#4b3a75", "#8873bb"], yedekparca: ["#4a4a4a", "#828282"], antika: ["#6b5327", "#ab8c4c"],
+      hizmet: ["#1f6b5e", "#4fae9c"], ozelders: ["#2a5a8c", "#5f93c4"], isilani: ["#3f5a3a", "#7a9a72"],
+      ismakinesi: ["#8a6a12", "#cba33f"], tarim: ["#5a7a22", "#93b955"], hayvan: ["#7a4a6b", "#b481a5"],
     };
     const glyphs = {
-      daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠",
-      dukkan: "🏪", ofis: "🏛️", arsa: "🌳", otomobil: "🚗",
+      daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", yazlik: "🏖️",
+      dukkan: "🏪", ofis: "🏛️", depo: "📦", fabrika: "🏭",
+      arsa: "🌳", tarla: "🌾", bagbahce: "🍇", bina: "🏬", devremulk: "🗓️", turistik: "🏨",
+      otomobil: "🚗", suv: "🚙", elektrikli: "⚡", klasik: "🚘", motosiklet: "🏍️", atv: "🛻",
+      minivan: "🚐", ticari: "🚚", kamyon: "🚛", otobus: "🚌", karavan: "🚙", deniz: "⛵", hasarli: "🔧",
+      ikinciel: "🛒", yedekparca: "🔩", antika: "🏺", hizmet: "🛠️", ozelders: "📚", isilani: "💼",
+      ismakinesi: "🚜", tarim: "🌱", hayvan: "🐾",
     };
+
     const colors = palettes[l.kind] || palettes.daire;
     const glyph = glyphs[l.kind] || "🏠";
     const seed = String(l.id || "home").split("").reduce((total, c) => total + c.charCodeAt(0), 0);
@@ -259,15 +277,19 @@
 
   function renderAll(list) {
     const safeList = (Array.isArray(list) ? list : []).filter((l) => l && l.id);
+    // AI vitrinleri (seçki, fırsat, günün önerisi) piyasa verisine dayanır;
+    // "Diğer" segmentinde değerleme yoktur → bu bloklara girmez. Son eklenenler
+    // ve kategori listelerinde görünmeye devam eder.
+    const valuable = safeList.filter((l) => (l.segment || "emlak") !== "diger");
     renderLatest(safeList);
-    renderGrid($("#aiPicksGrid"), safeList.slice().sort((a, b) => aiScore(b) - aiScore(a) || Number(b.featured) - Number(a.featured)).slice(0, 6), { ai: true }, "AI seçkisi hazırlanıyor", "İlan verisi geldikçe güçlü fiyat ve özellik sinyalleri taşıyan ilanlar burada sıralanacak.");
-    renderGrid($("#dealGrid"), safeList.filter((l) => {
+    renderGrid($("#aiPicksGrid"), valuable.slice().sort((a, b) => aiScore(b) - aiScore(a) || Number(b.featured) - Number(a.featured)).slice(0, 6), { ai: true }, "AI seçkisi hazırlanıyor", "İlan verisi geldikçe güçlü fiyat ve özellik sinyalleri taşıyan ilanlar burada sıralanacak.");
+    renderGrid($("#dealGrid"), valuable.filter((l) => {
       const badge = AI && typeof AI.priceBadge === "function" ? AI.priceBadge(l) : null;
       return badge && badge.key === "firsat";
     }).sort((a, b) => aiScore(b) - aiScore(a)).slice(0, 6), { deal: true }, "Fırsat sinyali bekleniyor", "AI fiyat karşılaştırması piyasanın altında kalan bir ilan tespit ettiğinde burada gösterecek.");
     renderGrid($("#dropGrid"), safeList.filter((l) => priceDrop(l)).sort((a, b) => new Date(b.updated || b.date) - new Date(a.updated || a.date)).slice(0, 6), { drop: true }, "Fiyat değişikliği bekleniyor", "Fiyatı güncellenen ilanlar eski fiyatı ve indirim oranıyla burada görünecek.");
     renderCollections(safeList);
-    renderRecommendation(safeList);
+    renderRecommendation(valuable);
     const status = $("#homeDataStatus");
     if (status) status.textContent = safeList.length ? safeList.length + " gerçek ilan · vitrinler veri geldikçe otomatik güncellenir." : "Henüz yayınlanmış ilan yok · ilk ilanı siz verebilirsiniz.";
   }

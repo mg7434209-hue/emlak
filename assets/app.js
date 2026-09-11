@@ -66,13 +66,30 @@
   const PALETTES = {
     daire: ["#2456d8", "#4d8bf5"], residence: ["#5b2ac9", "#9b6bff"],
     villa: ["#0c8a54", "#3cc98a"], mustakil: ["#b06b12", "#e8a94b"],
-    dukkan: ["#b3266b", "#ef6aa8"], ofis: ["#0e7d93", "#3fb9cf"], arsa: ["#557a1f", "#93bf4e"],
-    otomobil: ["#37415e", "#5f6f9e"],
+    yazlik: ["#0f7d8c", "#46c3d4"],
+    dukkan: ["#b3266b", "#ef6aa8"], ofis: ["#0e7d93", "#3fb9cf"],
+    depo: ["#5a5f6b", "#8e95a3"], fabrika: ["#4a4f63", "#7d84a0"],
+    arsa: ["#557a1f", "#93bf4e"], tarla: ["#6a7c22", "#a8c256"], bagbahce: ["#3f7a34", "#79bb62"],
+    bina: ["#3d4a63", "#6f80a3"], devremulk: ["#8a5a2b", "#c79355"], turistik: ["#1a6f8c", "#57b3cd"],
+    otomobil: ["#37415e", "#5f6f9e"], suv: ["#2f4858", "#5c7c8f"], elektrikli: ["#12796b", "#3fc0aa"],
+    klasik: ["#6b4b2a", "#a8804f"], motosiklet: ["#8c2f2f", "#cf6a6a"], atv: ["#7a4a1f", "#c08a4a"],
+    minivan: ["#41506b", "#7383a3"], ticari: ["#3a4a5c", "#6d8095"], kamyon: ["#4c4438", "#8a7c66"],
+    otobus: ["#2f5d72", "#5f96ab"], karavan: ["#57683a", "#93a86c"], deniz: ["#15546f", "#4f9cbc"],
+    hasarli: ["#6b3030", "#a86363"],
+    ikinciel: ["#4b3a75", "#8873bb"], yedekparca: ["#4a4a4a", "#828282"], antika: ["#6b5327", "#ab8c4c"],
+    hizmet: ["#1f6b5e", "#4fae9c"], ozelders: ["#2a5a8c", "#5f93c4"], isilani: ["#3f5a3a", "#7a9a72"],
+    ismakinesi: ["#8a6a12", "#cba33f"], tarim: ["#5a7a22", "#93b955"], hayvan: ["#7a4a6b", "#b481a5"],
   };
   const GLYPHS = {
-    daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", dukkan: "🏪", ofis: "🏛️", arsa: "🌳",
-    otomobil: "🚗",
+    daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", yazlik: "🏖️",
+    dukkan: "🏪", ofis: "🏛️", depo: "📦", fabrika: "🏭",
+    arsa: "🌳", tarla: "🌾", bagbahce: "🍇", bina: "🏬", devremulk: "🗓️", turistik: "🏨",
+    otomobil: "🚗", suv: "🚙", elektrikli: "⚡", klasik: "🚘", motosiklet: "🏍️", atv: "🛻",
+    minivan: "🚐", ticari: "🚚", kamyon: "🚛", otobus: "🚌", karavan: "🚙", deniz: "⛵", hasarli: "🔧",
+    ikinciel: "🛒", yedekparca: "🔩", antika: "🏺", hizmet: "🛠️", ozelders: "📚", isilani: "💼",
+    ismakinesi: "🚜", tarim: "🌱", hayvan: "🐾",
   };
+
   // Fotoğraf kaynağı beyaz listesi: base64 görsel, repo içi yol ya da
   // sunucunun yazdığı yükleme dosyası (`u/<dosya>`).
   const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+|u\/[\w.-]+)$/;
@@ -120,6 +137,22 @@
       intl: "+90" + d,
       wa: "90" + d,
     };
+  }
+
+  // Segmentin türlerini gruplandırarak (optgroup) bir <select>'e doldurur.
+  // Üç segmentin de türü vardır (emlak · vasıta · diğer) — tek yardımcı.
+  // Arsa/arazi türlerinde oda, yaş ve ısıtma sorulmaz (ai.js ile aynı liste).
+  const LAND = ["arsa", "tarla", "bagbahce"];
+
+  function fillKindSelect(el, segment, opts) {
+    if (!el) return;
+    const o = opts || {};
+    const gruplar = D.groupsOf(segment);
+    const secili = o.value;
+    el.innerHTML = (o.allLabel ? `<option value="">${esc(o.allLabel)}</option>` : "") +
+      gruplar.map((g) => `<optgroup label="${esc(g.label)}">` +
+        g.kinds.map((k) => `<option value="${k.kind}"${k.kind === secili ? " selected" : ""}>${esc(k.label)}</option>`).join("") +
+        "</optgroup>").join("");
   }
 
   // ── Fotoğraf yükleme ────────────────────────────────────────────────────
@@ -422,9 +455,13 @@
     if (l.segment === "vasita") {
       meta.push(l.year, fmt(l.km) + " km", l.fuel, l.gear);
     } else {
-      if (l.rooms) meta.push(l.rooms);
-      meta.push(fmt(l.m2) + " m²");
-      if (l.age != null && l.kind !== "arsa") meta.push(l.age === 0 ? "Sıfır" : l.age + " yaş");
+      if (l.segment === "diger") {
+        meta.push(l.kindLabel || "");                 // "Diğer": m²/oda yok
+      } else {
+        if (l.rooms) meta.push(l.rooms);
+        if (l.m2) meta.push(fmt(l.m2) + " m²");
+        if (l.age != null && LAND.indexOf(l.kind) < 0) meta.push(l.age === 0 ? "Sıfır" : l.age + " yaş");
+      }
     }
     return `<article class="card reveal">
       <div class="thumb">${thumbHTML(l)}
@@ -666,21 +703,25 @@
     // Kategori kartları — bağlantılar SEO kategori sayfalarına gider
     const catEl = $("#catGrid");
     if (catEl) {
+      // Üç segment de temsil edilsin (server renderHomeHtml ile AYNI liste).
       const kartlar = [];
-      [["satilik", "Satılık"], ["kiralik", "Kiralık"]].forEach(([cat, catLabel]) => {
-        ["daire", "villa", "mustakil", "dukkan", "arsa"].forEach((k) => {
-          const kd = D.kinds.find((x) => x.kind === k);
-          if (!kd) return;
-          if (cat === "kiralik" && k === "arsa") return; // kiralık arsa nadir
-          kartlar.push({
-            href: `/${cat}-${slug(kd.label)}`,
-            title: `${catLabel} ${kd.label}`,
-            n: countOf({ category: cat, kind: k }),
-          });
+      [["satilik", "daire"], ["satilik", "villa"], ["satilik", "mustakil"], ["satilik", "yazlik"],
+       ["satilik", "dukkan"], ["satilik", "ofis"], ["satilik", "arsa"], ["satilik", "tarla"],
+       ["kiralik", "daire"], ["kiralik", "villa"], ["kiralik", "dukkan"], ["kiralik", "ofis"],
+       ["satilik", "otomobil"], ["satilik", "suv"], ["satilik", "motosiklet"], ["satilik", "ticari"],
+       ["satilik", "ikinciel"], ["satilik", "ismakinesi"], ["satilik", "hayvan"], ["satilik", "hizmet"],
+      ].forEach(([cat, k]) => {
+        const kd = D.kinds.find((x) => x.kind === k);
+        if (!kd) return;
+        kartlar.push({
+          href: `/${cat}-${slug(kd.label)}`,
+          // "Diğer" segmentinde "Satılık Hayvanlar Alemi" kulağa tuhaf gelir:
+          // bu segmentte yalnız tür adı yazılır.
+          title: kd.segment === "diger" ? kd.label
+            : `${cat === "satilik" ? "Satılık" : "Kiralık"} ${kd.label}`,
+          n: countOf({ category: cat, kind: k }),
         });
       });
-      kartlar.push({ href: "ilanlar.html?segment=vasita&category=satilik", title: "Satılık Araç", n: countOf({ segment: "vasita", category: "satilik" }) });
-      kartlar.push({ href: "ilanlar.html?segment=vasita&category=kiralik", title: "Kiralık Araç", n: countOf({ segment: "vasita", category: "kiralik" }) });
       catEl.innerHTML = kartlar.map((k) =>
         `<a class="cat-card" href="${k.href}"><b>${esc(k.title)}</b>
           <span>${k.n ? fmt(k.n) + " ilan" : "İlan bekleniyor"}</span></a>`).join("");
@@ -767,7 +808,8 @@
     // Filtre alanlarını doldur
     fillCitySelect($("#fCity"), true);
     fillDistrictSelect($("#fDistrict"), f.city || "", true);
-    $("#fKind").innerHTML = '<option value="">Tüm Türler</option>' + D.kinds.map((k) => `<option value="${k.kind}">${esc(k.label)}</option>`).join("");
+    $("#fSeg").innerHTML = D.segments.map((sg) => `<option value="${sg.segment}">${esc(sg.label)}</option>`).join("");
+    fillKindSelect($("#fKind"), "emlak", { allLabel: "Tüm Türler" });
     $("#fBrand").innerHTML = '<option value="">Tüm Markalar</option>' + D.brands.map((b) => `<option>${esc(b)}</option>`).join("");
     $("#fFuel").innerHTML = '<option value="">Tümü</option>' + C.vehicles.fuels.map((x) => `<option>${esc(x)}</option>`).join("");
     $("#fGear").innerHTML = '<option value="">Tümü</option>' + C.vehicles.gears.map((x) => `<option>${esc(x)}</option>`).join("");
@@ -797,6 +839,14 @@
       const seg = $("#fSeg").value;
       $$(".f-emlak").forEach((el) => { el.style.display = seg === "emlak" ? "" : "none"; });
       $$(".f-vasita").forEach((el) => { el.style.display = seg === "vasita" ? "" : "none"; });
+      // Tür listesi seçili segmente göre yenilenir; başka segmentin türü
+      // seçili kalırsa filtre boş sonuç verirdi.
+      const kindEl = $("#fKind");
+      if (kindEl && kindEl.dataset.seg !== seg) {
+        const eski = kindEl.value;
+        fillKindSelect(kindEl, seg, { allLabel: "Tüm Türler", value: D.segmentOf(eski) === seg ? eski : "" });
+        kindEl.dataset.seg = seg;
+      }
       const m2opt = document.querySelector('#fSort option[value="m2"]');
       m2opt.hidden = seg !== "emlak";
       if (m2opt.hidden && $("#fSort").value === "m2") $("#fSort").value = "new";
@@ -1086,7 +1136,12 @@
     const b = AI.priceBadge(l);
     const desc = l.desc || AI.describe(l);
     const catLabel = l.category === "satilik" ? "Satılık" : "Kiralık";
-    const specs = (l.segment === "vasita" ? [
+    const specs = (l.segment === "diger" ? [
+      ["İlan No", l.id], ["Kategori", catLabel],
+      ["Tür", l.kindLabel], ["Konum", l.city + " / " + l.district],
+      l.locality && ["Mahalle / Semt", l.locality],
+      ["İlan Tarihi", new Date(l.date).toLocaleDateString("tr-TR")],
+    ] : l.segment === "vasita" ? [
       ["İlan No", l.id], ["Kategori", catLabel],
       ["Marka", l.brand], ["Model", l.model],
       ["Model Yılı", l.year], ["Kilometre", fmt(l.km) + " km"],
@@ -1099,8 +1154,8 @@
       l.locality && ["Mahalle / Site", l.locality],
       ["Alan (Brüt)", fmt(l.m2) + " m²"],
       l.m2Net && ["Alan (Net)", fmt(l.m2Net) + " m²"],
-      l.rooms && ["Oda Sayısı", l.rooms], l.bath && l.kind !== "arsa" && ["Banyo", l.bath],
-      l.age != null && l.kind !== "arsa" && ["Bina Yaşı", l.age === 0 ? "Sıfır" : l.age],
+      l.rooms && ["Oda Sayısı", l.rooms], l.bath && LAND.indexOf(l.kind) < 0 && ["Banyo", l.bath],
+      l.age != null && LAND.indexOf(l.kind) < 0 && ["Bina Yaşı", l.age === 0 ? "Sıfır" : l.age],
       l.floor != null && ["Kat", l.floor + (l.totalFloors ? " / " + l.totalFloors : "")],
       l.totalFloors && l.floor == null && ["Kat Sayısı", l.totalFloors],
       l.heating && ["Isıtma", l.heating],
@@ -1224,7 +1279,7 @@
             <button class="btn ghost sm" id="printBtn" type="button" style="flex:1">Yazdır / PDF</button>
           </div>
           ${l.user ? `<button class="btn ghost" id="removeBtn" style="color:var(--over);border-color:var(--over)">İlanı Kaldır</button>` : ""}
-          ${l.category === "satilik" ? (() => {
+          ${l.category === "satilik" && l.segment !== "diger" ? (() => {
             const cr = l.segment === "vasita" ? C.credit.vehicle : C.credit;
             return `<div class="est-box">
             <b>${l.segment === "vasita" ? "Taşıt Kredisi" : "Konut Kredisi"} Taksiti</b><br>
@@ -1306,6 +1361,8 @@
     shareBtn.addEventListener("click", async () => {
       const summary = l.segment === "vasita"
         ? `${l.title}\n${fmtPrice(l)} · ${l.year} · ${fmt(l.km)} km · ${l.fuel} · ${l.gear}\n📍 ${l.city} / ${l.district}`
+        : l.segment === "diger"
+        ? `${l.title}\n${fmtPrice(l)} · ${l.kindLabel || ""}\n📍 ${l.city} / ${l.district}`
         : `${l.title}\n${fmtPrice(l)}${l.rooms ? " · " + l.rooms : ""} · ${fmt(l.m2)} m²\n📍 ${l.city} / ${l.district}${l.locality ? " · " + l.locality : ""}`;
       const url = canon.href;
       try {
@@ -1340,7 +1397,8 @@
     fillCitySelect($("#pCity"), false);
     fillDistrictSelect($("#pDistrict"), $("#pCity").value, false);
     $("#pCity").addEventListener("change", () => fillDistrictSelect($("#pDistrict"), $("#pCity").value, false));
-    $("#pKind").innerHTML = D.kinds.map((k) => `<option value="${k.kind}">${esc(k.label)}</option>`).join("");
+    $("#pSeg").innerHTML = D.segments.map((sg) => `<option value="${sg.segment}">${esc(sg.label)}</option>`).join("");
+    fillKindSelect($("#pKind"), "emlak");
     $("#featBoxes").innerHTML = Object.keys(C.valuation.features)
       .map((f) => `<label><input type="checkbox" value="${esc(f)}"> ${esc(f)}</label>`).join("");
     $("#pBrand").innerHTML = D.brands.map((b) => `<option>${esc(b)}</option>`).join("");
@@ -1357,6 +1415,13 @@
       const seg = $("#pSeg").value;
       $$(".p-emlak").forEach((el) => { el.style.display = seg === "emlak" ? "" : "none"; });
       $$(".p-vasita").forEach((el) => { el.style.display = seg === "vasita" ? "" : "none"; });
+      const kindEl = $("#pKind");
+      if (kindEl && kindEl.dataset.seg !== seg) { fillKindSelect(kindEl, seg); kindEl.dataset.seg = seg; }
+      // "Diğer" segmentinde piyasa verisi yok → AI fiyat önerisi anlamsız.
+      const sug = $("#suggestBtn");
+      if (sug) sug.style.display = seg === "diger" ? "none" : "";
+      const sugOut = $("#suggestOut");
+      if (sugOut && seg === "diger") sugOut.textContent = "";
     }
     $("#pSeg").addEventListener("change", syncSegmentUI);
     syncSegmentUI();
@@ -1431,15 +1496,23 @@
       }
       const kind = $("#pKind").value;
       const kindLabel = (D.kinds.find((k) => k.kind === kind) || {}).label || kind;
+      // "Diğer" segmenti: gayrimenkul alanları sorulmaz, boş geçilir.
+      if (seg === "diger") {
+        return Object.assign(base, {
+          kind, kindLabel,
+          m2: null, rooms: null, bath: null, age: null, floorPos: null,
+          floor: null, totalFloors: null, heating: null, features: [],
+        });
+      }
       return Object.assign(base, {
         kind, kindLabel,
         m2: +$("#pM2").value || 0,
-        rooms: kind === "arsa" ? null : $("#pRooms").value || null,
+        rooms: LAND.indexOf(kind) >= 0 ? null : $("#pRooms").value || null,
         // Boş bırakılan bina yaşı null kalır ("Sıfır bina" varsayılmaz,
         // değerlemeye yaş katsayısı uygulanmaz)
-        age: kind === "arsa" || $("#pAge").value === "" ? null : Math.max(0, +$("#pAge").value || 0),
+        age: LAND.indexOf(kind) >= 0 || $("#pAge").value === "" ? null : Math.max(0, +$("#pAge").value || 0),
         bath: 1, floorPos: null, floor: null, totalFloors: null,
-        heating: kind === "arsa" ? null : "Kombi (Doğalgaz)",
+        heating: LAND.indexOf(kind) >= 0 ? null : "Kombi (Doğalgaz)",
         features: $$("#featBoxes input:checked").map((i) => i.value),
       });
     }
@@ -1447,6 +1520,7 @@
     function validate(l) {
       if (!l.district) return "Lütfen ilçe seçin.";
       if ($("#pPhone").value.trim() && !l.phone) return "Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).";
+      if (l.segment === "diger") return null;   // sade form: başlık/fiyat/konum yeterli
       if (l.segment === "vasita") {
         if (!l.brand || !l.model) return "Marka ve model seçin.";
         if (!l.year || l.year < C.vehicles.minYear || l.year > new Date().getFullYear() + 1) return "Geçerli bir model yılı girin.";

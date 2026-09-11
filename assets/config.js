@@ -38,6 +38,92 @@ EMLAK.config = {
 
   // ── Piyasa verisi: il → ilçe → ortalama satılık ₺/m² (konut) ─────────────
   // Kira ₺/m²/ay = satılık m² fiyatı × rentYieldMonthly
+  // ── KATEGORİ AĞACI (TEK KAYNAK) ────────────────────────────────────────
+  // Üç segment: emlak · vasita · diger. data.js KINDS'ı buradan üretir;
+  // form, filtre, SEO slug'ı ve AI hep aynı listeyi görür.
+  // `valuation:false` olan türde AI değerleme YAPILMAZ (piyasa verisi yok);
+  // `fields` formda hangi alanların isteneceğini söyler.
+  segments: [
+    {
+      segment: "emlak", label: "Emlak", short: "Taşınmaz", fields: "emlak",
+      groups: [
+        { label: "Konut", kinds: [
+          { kind: "daire", label: "Daire" },
+          { kind: "residence", label: "Rezidans" },
+          { kind: "villa", label: "Villa" },
+          { kind: "mustakil", label: "Müstakil Ev" },
+          { kind: "yazlik", label: "Yazlık" },
+        ] },
+        { label: "İş Yeri", kinds: [
+          { kind: "dukkan", label: "Dükkan" },
+          { kind: "ofis", label: "Ofis" },
+          { kind: "depo", label: "Depo & Antrepo" },
+          { kind: "fabrika", label: "Fabrika & Atölye" },
+        ] },
+        { label: "Arsa & Arazi", kinds: [
+          { kind: "arsa", label: "Arsa" },
+          { kind: "tarla", label: "Tarla" },
+          { kind: "bagbahce", label: "Bağ & Bahçe" },
+        ] },
+        { label: "Diğer Gayrimenkul", kinds: [
+          { kind: "bina", label: "Komple Bina" },
+          { kind: "devremulk", label: "Devre Mülk" },
+          { kind: "turistik", label: "Turistik Tesis" },
+        ] },
+      ],
+    },
+    {
+      segment: "vasita", label: "Vasıta", short: "Araç", fields: "vasita",
+      groups: [
+        { label: "Otomobil & Arazi", kinds: [
+          { kind: "otomobil", label: "Otomobil" },
+          { kind: "suv", label: "Arazi, SUV & Pickup" },
+          { kind: "elektrikli", label: "Elektrikli Araç" },
+          { kind: "klasik", label: "Klasik Araç" },
+        ] },
+        { label: "Motosiklet", kinds: [
+          { kind: "motosiklet", label: "Motosiklet" },
+          { kind: "atv", label: "ATV & UTV" },
+        ] },
+        { label: "Ticari Araçlar", kinds: [
+          { kind: "minivan", label: "Minivan & Panelvan" },
+          { kind: "ticari", label: "Ticari Araç" },
+          { kind: "kamyon", label: "Kamyon & Kamyonet" },
+          { kind: "otobus", label: "Otobüs & Midibüs" },
+        ] },
+        { label: "Diğer Araçlar", kinds: [
+          { kind: "karavan", label: "Karavan" },
+          { kind: "deniz", label: "Deniz Aracı" },
+          { kind: "hasarli", label: "Hasarlı Araç" },
+        ] },
+      ],
+    },
+    {
+      // Emlak ve vasıta dışındaki her şey: AI değerleme uygulanmaz, form
+      // sade tutulur (başlık, açıklama, fiyat, konum, fotoğraf).
+      segment: "diger", label: "Diğer", short: "Diğer", fields: "sade",
+      groups: [
+        { label: "Alışveriş", kinds: [
+          { kind: "ikinciel", label: "İkinci El & Sıfır Alışveriş", valuation: false },
+          { kind: "yedekparca", label: "Yedek Parça & Aksesuar", valuation: false },
+          { kind: "antika", label: "Antika & Koleksiyon", valuation: false },
+        ] },
+        { label: "Hizmet & İş", kinds: [
+          { kind: "hizmet", label: "Ustalar & Hizmetler", valuation: false },
+          { kind: "ozelders", label: "Özel Ders", valuation: false },
+          { kind: "isilani", label: "İş İlanı", valuation: false },
+        ] },
+        { label: "Sanayi & Tarım", kinds: [
+          { kind: "ismakinesi", label: "İş Makineleri & Sanayi", valuation: false },
+          { kind: "tarim", label: "Tarım & Hayvancılık Ekipmanı", valuation: false },
+        ] },
+        { label: "Hayvanlar", kinds: [
+          { kind: "hayvan", label: "Hayvanlar Alemi", valuation: false },
+        ] },
+      ],
+    },
+  ],
+
   market: {
     rentYieldMonthly: 0.0042,
     // 81 İL · 474 ilçe · tahmini satılık konut ₺/m² (dönem: config.seo.dataDate).
@@ -654,7 +740,15 @@ EMLAK.config = {
   // kontrollüdür. Model ilçe referansını temel alır; mülk tipi, yaş ve
   // özellikler yalnızca sınırlı düzeltme yapar.
   valuation: {
-    kind: { daire: 1.0, residence: 1.08, villa: 1.05, mustakil: 1.08, dukkan: 1.12, ofis: 1.05, arsa: 0.45 },
+    // Tür çarpanları (emlak). Listede OLMAYAN tür için 1.0 kullanılır;
+    // `config.segments` içinde valuation:false olan türlerde değerleme hiç
+    // çalışmaz (ör. "Diğer" segmenti).
+    kind: {
+      daire: 1.0, residence: 1.08, villa: 1.05, mustakil: 1.08, yazlik: 1.06,
+      dukkan: 1.12, ofis: 1.05, depo: 0.7, fabrika: 0.75,
+      arsa: 0.45, tarla: 0.04, bagbahce: 0.09,
+      bina: 0.95, devremulk: 0.6, turistik: 1.0,
+    },
     age: [ // [maksYaş, çarpan]
       [0, 1.10], [5, 1.05], [10, 1.0], [20, 0.95], [30, 0.92], [999, 0.86],
     ],
@@ -665,6 +759,10 @@ EMLAK.config = {
       "Güvenlik": 2, "Balkon": 1, "Eşyalı": 3, "Akıllı Ev": 3,
       "Isı Yalıtımı": 2, "Site İçi": 3, "Doğalgaz": 1, "Jeneratör": 1,
     },
+    // ARSA/ARAZİ ÖLÇEK ETKİSİ: birim fiyat parsel büyüdükçe düşer (5 dönüm
+    // tarla, 500 m² arsanın 10 katı etmez). refArea üzerindeki alanlarda
+    // çarpan = (refArea / alan) ^ decay, minFactor'da taban yapar.
+    landSize: { refArea: 1000, decay: 0.35, minFactor: 0.25 },
     confidence: 0.12,
     fairBand: 0.07,
   },

@@ -13,6 +13,10 @@
   "use strict";
   const C = EMLAK.config;
 
+  // Arsa/arazi türleri: bina yaşı ve kira getirisi hesabı uygulanmaz.
+  const LAND_KINDS = ["arsa", "tarla", "bagbahce"];
+  const isLand = (kind) => LAND_KINDS.indexOf(kind) >= 0;
+
   const TR_LOWER = (s) => (s || "").toLocaleLowerCase("tr-TR");
   const strip = (s) => TR_LOWER(s).normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ö/g, "o").replace(/ç/g, "c");
@@ -41,8 +45,32 @@
     if (/kiralik|kiraya|kira\b/.test(q)) f.category = "kiralik";
     if (/satilik|satin|almak/.test(q)) f.category = "satilik";
 
-    const kinds = { daire: "daire", rezidans: "residence", residence: "residence", villa: "villa", mustakil: "mustakil", dukkan: "dukkan", "is yeri": "dukkan", isyeri: "dukkan", ofis: "ofis", arsa: "arsa", tarla: "arsa" };
-    for (const k in kinds) if (q.includes(k)) { f.kind = kinds[k]; f.segment = "emlak"; break; }
+    // Tür sözlüğü: config'teki TÜM türlerin etiketleri + yaygın eş anlamlılar.
+    // Uzun ad önce denenir ("mustakil ev" > "ev").
+    const kinds = {};
+    (((EMLAK.data && EMLAK.data.kinds) || [])).forEach((k) => {
+      kinds[strip(k.label)] = { kind: k.kind, segment: k.segment };
+    });
+    Object.assign(kinds, {
+      "rezidans": { kind: "residence", segment: "emlak" },
+      "is yeri": { kind: "dukkan", segment: "emlak" },
+      "isyeri": { kind: "dukkan", segment: "emlak" },
+      "magaza": { kind: "dukkan", segment: "emlak" },
+      "yazlik ev": { kind: "yazlik", segment: "emlak" },
+      "bag bahce": { kind: "bagbahce", segment: "emlak" },
+      "jeep": { kind: "suv", segment: "vasita" },
+      "suv": { kind: "suv", segment: "vasita" },
+      "motor": { kind: "motosiklet", segment: "vasita" },
+      "elektrikli araba": { kind: "elektrikli", segment: "vasita" },
+      "tekne": { kind: "deniz", segment: "vasita" },
+      "traktor": { kind: "tarim", segment: "diger" },
+      "is makinesi": { kind: "ismakinesi", segment: "diger" },
+      "ikinci el": { kind: "ikinciel", segment: "diger" },
+    });
+    const kindAdlari = Object.keys(kinds).sort((a, b) => b.length - a.length);
+    for (const k of kindAdlari) {
+      if (k && q.includes(k)) { f.kind = kinds[k].kind; f.segment = kinds[k].segment; break; }
+    }
 
     // Araç segmenti: genel kelimeler + marka/model adları
     if (/\barac\b|araba|otomobil|vasita|oto\b|rent a car/.test(q)) f.segment = "vasita";
@@ -258,6 +286,10 @@
    *  ya da {segment:"vasita", brand, model, year, km, fuel, gear, category} — araç */
   function estimate(p) {
     if (p.segment === "vasita") return estimateVehicle(p);
+    // "Diğer" segmenti ve piyasa verisi olmayan türler (hayvan, hizmet, iş
+    // ilanı…) için AI değerleme YAPILMAZ — uydurma bant üretmektense yok.
+    if (p.segment === "diger") return null;
+    if (EMLAK.data && typeof EMLAK.data.canValue === "function" && p.kind && !EMLAK.data.canValue(p.kind)) return null;
     const V = C.valuation;
     const cityData = C.market.cities[p.city];
     if (!cityData) return null;
@@ -272,7 +304,16 @@
     perM2 *= kf;
     factors.push({ label: "Gayrimenkul türü etkisi", effect: pct(kf) });
 
-    if (p.age != null && p.kind !== "arsa") {
+    // Arsa/arazi: büyük parselde birim fiyat düşer (ölçek etkisi)
+    if (isLand(p.kind) && p.m2 && V.landSize) {
+      const ls = V.landSize;
+      if (p.m2 > ls.refArea) {
+        const f = Math.max(ls.minFactor, Math.pow(ls.refArea / p.m2, ls.decay));
+        perM2 *= f;
+        factors.push({ label: `Parsel büyüklüğü (${fmtNum(p.m2)} m²)`, effect: pct(f) });
+      }
+    }
+    if (p.age != null && !isLand(p.kind)) {
       const af = ageFactor(p.age);
       perM2 *= af;
       factors.push({ label: `Bina yaşı (${p.age} yıl)`, effect: pct(af) });
@@ -363,7 +404,7 @@
       if (valuable.length) pros.push("Değer artırıcı özellikler: " + valuable.join(", "));
       if (city) notes.push(`${l.city} genelinde yıllık reel değer eğilimi ≈ %${city.yieldTrend}`);
       // Yatırım göstergeleri (yalnız satılık konutta anlamlı)
-      if (l.category === "satilik" && l.kind !== "arsa" && est.rentMonthly) {
+      if (l.category === "satilik" && !isLand(l.kind) && est.rentMonthly) {
         notes.push(`Tahmini kira ${fmtNum(est.rentMonthly)} ₺/ay · brüt getiri %${est.yieldPct}` +
           (est.paybackYears ? ` · ${est.paybackYears} yılda amortisman` : ""));
       }
@@ -399,6 +440,15 @@
         : "Ekspertiz ve yerinde görme randevusu için iletişime geçin.");
       return s.join(" ");
     }
+    // "Diğer" segmenti: gayrimenkul cümleleri (m², oda, ısıtma) UYMAZ —
+    // sade ve dürüst bir metin üretilir, uydurma özellik yazılmaz.
+    if (l.segment === "diger") {
+      const tur = (l.kindLabel || "İlan").toLocaleLowerCase("tr-TR");
+      const d = [`${l.city} / ${l.district} konumunda ${catLabel} ${tur} ilanı.`];
+      if (l.price) d.push(`Fiyat ${fmtNum(l.price)} ₺${l.category === "kiralik" ? "/ay" : ""}.`);
+      d.push("Ürün/hizmet hakkındaki ayrıntılar ve görüşme için ilan sahibiyle iletişime geçebilirsiniz.");
+      return d.join(" ");
+    }
     const openers = [
       `${l.city} ${l.district} bölgesinde, konum avantajıyla öne çıkan ${catLabel} ${l.kindLabel.toLocaleLowerCase("tr-TR")}.`,
       `${l.district}'${suffix(l.district)} merkezi konumda, yatırım değeri yüksek ${catLabel} ${l.kindLabel.toLocaleLowerCase("tr-TR")}.`,
@@ -406,7 +456,7 @@
     ];
     s.push(openers[hash(l.id) % openers.length]);
 
-    if (l.kind === "arsa") {
+    if (isLand(l.kind)) {
       s.push(`${fmtNum(l.m2)} m² yüz ölçümüne sahip parsel; projelendirmeye ve yatırıma uygundur.`);
     } else {
       const parts = [`${fmtNum(l.m2)} m² kullanım alanı`];
@@ -430,7 +480,7 @@
       if (b && b.key === "firsat") s.push(`Yapay zekâ analizine göre fiyat, bölge ortalamasının yaklaşık %${b.pct} altındadır — değerlendirilmesi gereken bir fırsattır.`);
       else if (b && b.key === "uygun") s.push("Yapay zekâ analizine göre fiyat, bölge piyasasıyla uyumludur.");
       // Yatırım cümlesi: kira getirisi ve amortisman (yalnız satılık konut)
-      if (l.category === "satilik" && l.kind !== "arsa" && est.rentMonthly) {
+      if (l.category === "satilik" && !isLand(l.kind) && est.rentMonthly) {
         s.push(`Yatırım açısından: bölge verilerine göre tahmini kira ${fmtNum(est.rentMonthly)} ₺/ay, ` +
           `brüt kira getirisi yaklaşık %${est.yieldPct}` +
           (est.paybackYears ? `, kendini amorti etme süresi yaklaşık ${est.paybackYears} yıldır.` : "."));
