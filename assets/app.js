@@ -178,8 +178,12 @@
           (f.options || []).map((o) => `<option${o === v[f.key] ? " selected" : ""}>${esc(o)}</option>`).join("") + "</select>"
         : `<input id="${id}" data-kf="${esc(f.key)}" type="${f.type === "number" ? "number" : "text"}"` +
           (f.type === "number" ? ` min="0" max="${f.max || 1000000}"` : ` maxlength="${f.max || 60}"`) +
+          (f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : "") +
           ` value="${v[f.key] == null ? "" : esc(String(v[f.key]))}">`;
-      return `<div><label for="${id}">${esc(f.label)}</label>${inner}</div>`;
+      // Alan ipucu (ör. "Tapunuzun üzerinde yazar") — kullanıcı nereden
+      // bulacağını bilsin diye alanın altında küçük not olarak çıkar.
+      const ipucu = f.hint ? `<small class="kf-hint">${esc(f.hint)}</small>` : "";
+      return `<div><label for="${id}">${esc(f.label)}</label>${inner}${ipucu}</div>`;
     }).join("");
     return defs;
   }

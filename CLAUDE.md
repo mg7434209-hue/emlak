@@ -189,6 +189,12 @@ alanları sorduğu `config.segments` içindeki grup `fields` dizisi.
   `totalFloors`, `banyoSayisi` → `bath`, `isitma` → `heating`. Yeni bir alan
   değerlemeyi etkileyecekse köprüyü de ekle.
 - Arsa/arazide oda ve bina yaşı alanları GİZLENİR, m² etiketi "Yüz Ölçümü" olur.
+- `hint` ve `placeholder` isteğe bağlıdır: ipucu alanın altında `.kf-hint`
+  olarak çıkar (ör. Taşınmaz (Tapu) Numarası → "Tapunuzun üzerinde ya da
+  e-Devlet › Tapu Bilgilerim ekranında yazar"). Kullanıcının nereden bulacağı
+  belirsiz her alana ipucu yaz.
+- `tasinmazNo` TÜM emlak gruplarında sorulur (konut · iş yeri · arsa/arazi ·
+  diğer gayrimenkul); zorunlu değildir, alıcıya güven sinyalidir.
 - Balkon/Eşyalı/Site İçi "Özellikler" kutucuklarındadır; `fieldDefs`'te TEKRAR
   ETME (bir dönem iki yerde birden vardı).
 - DÜZELTİLEN HATA: `data.js num()` boş değeri 0'a çeviriyordu (`+null === 0`) —

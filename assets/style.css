@@ -255,6 +255,9 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
 .photo-strip img { width: 96px; height: 68px; object-fit: cover; border-radius: 8px; border: 2px solid transparent; cursor: pointer; }
 .photo-strip img.sel { border-color: var(--primary); }
 
+/* Türe özel alan ipucu (ör. "Tapunuzun üzerinde yazar") */
+.kf-hint { display: block; margin-top: 5px; color: var(--muted); font-size: .76rem; line-height: 1.35; font-weight: 500; }
+
 /* ── Adım adım kategori seçici (ilan ver) ───────────────── */
 .wz-crumb { color: var(--muted); font-size: .88rem; margin-bottom: 14px; min-height: 20px; }
 .wz-crumb b { color: var(--text); }

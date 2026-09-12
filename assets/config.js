@@ -45,14 +45,18 @@ EMLAK.config = {
   // type: "select" (options zorunlu) · "text" · "number" · "bool"
   fieldDefs: {
     // — Arsa / arazi —
-    imarDurumu: { label: "İmar Durumu", type: "select", options: [
+    imarDurumu: { label: "İmar Durumu", type: "select",
+      hint: "Belediyeden alınan imar durum belgesine göre.", options: [
       "Konut İmarlı", "Ticari İmarlı", "Turizm İmarlı", "Sanayi İmarlı", "Tarla",
       "Bağ & Bahçe", "Zeytinlik", "Villa İmarlı", "İmarsız", "Belirtilmemiş"] },
-    adaNo: { label: "Ada No", type: "text", max: 20 },
-    parselNo: { label: "Parsel No", type: "text", max: 20 },
-    paftaNo: { label: "Pafta No", type: "text", max: 20 },
-    kaks: { label: "KAKS (Emsal)", type: "text", max: 20 },
-    gabari: { label: "Gabari", type: "text", max: 20 },
+    adaNo: { label: "Ada No", type: "text", max: 20, placeholder: "örn. 1453",
+      hint: "Tapu belgesinde ya da e-Devlet tapu bilgilerinde yazar." },
+    parselNo: { label: "Parsel No", type: "text", max: 20, placeholder: "örn. 27" },
+    paftaNo: { label: "Pafta No", type: "text", max: 20, placeholder: "örn. K24" },
+    kaks: { label: "KAKS (Emsal)", type: "text", max: 20, placeholder: "örn. 0.30",
+      hint: "İmar durum belgesindeki emsal oranı." },
+    gabari: { label: "Gabari", type: "text", max: 20, placeholder: "örn. 6.50 m",
+      hint: "İzin verilen en yüksek bina yüksekliği." },
     // — Konut / iş yeri —
     binaKat: { label: "Binadaki Kat Sayısı", type: "number", max: 100 },
     katNo: { label: "Bulunduğu Kat", type: "select", options: [
@@ -66,7 +70,7 @@ EMLAK.config = {
     esyali: { label: "Eşyalı", type: "bool" },
     siteIcinde: { label: "Site İçerisinde", type: "bool" },
     siteAdi: { label: "Site Adı", type: "text", max: 60 },
-    aidat: { label: "Aidat (₺/ay)", type: "number", max: 100000 },
+    aidat: { label: "Aidat (₺/ay)", type: "number", max: 100000, placeholder: "örn. 1250" },
     kullanimDurumu: { label: "Kullanım Durumu", type: "select", options: [
       "Boş", "Kiracılı", "Mülk Sahibi Oturuyor"] },
     // — İş yeri —
@@ -79,7 +83,11 @@ EMLAK.config = {
       "Arsa Tapulu", "Tarla Tapulu", "Bilinmiyor"] },
     krediyeUygun: { label: "Krediye Uygunluk", type: "select", options: ["Evet", "Hayır", "Bilinmiyor"] },
     takas: { label: "Takaslı", type: "select", options: ["Evet", "Hayır"] },
-    tasinmazNo: { label: "Taşınmaz (Tapu) Numarası", type: "text", max: 30 },
+    // Tapunun üzerindeki "Taşınmaz Kimlik No" — alıcı için güven işareti;
+    // e-Devlet "Tapu Bilgilerim" ekranında da görünür.
+    tasinmazNo: { label: "Taşınmaz (Tapu) Numarası", type: "text", max: 30,
+      placeholder: "örn. 31163394",
+      hint: "Tapunuzun üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar. Alıcıya güven verir, zorunlu değildir." },
     // — Vasıta —
     renk: { label: "Renk", type: "select", options: [
       "Beyaz", "Siyah", "Gri", "Gümüş", "Kırmızı", "Mavi", "Lacivert", "Yeşil",
@@ -119,7 +127,8 @@ EMLAK.config = {
         ] },
         { label: "İş Yeri",
           fields: ["katNo", "binaKat", "bolumSayisi", "banyoSayisi", "isitma",
-                   "aidat", "kullanimDurumu", "tapuDurumu", "krediyeUygun", "takas"],
+                   "aidat", "kullanimDurumu", "tapuDurumu", "krediyeUygun", "takas",
+                   "tasinmazNo"],
           kinds: [
           { kind: "dukkan", label: "Dükkan" },
           { kind: "ofis", label: "Ofis" },
@@ -137,7 +146,7 @@ EMLAK.config = {
         ] },
         { label: "Diğer Gayrimenkul",
           fields: ["binaKat", "daireSayisi", "isitma", "kullanimDurumu",
-                   "tapuDurumu", "krediyeUygun", "takas"],
+                   "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
           kinds: [
           { kind: "bina", label: "Komple Bina" },
           { kind: "devremulk", label: "Devre Mülk" },
