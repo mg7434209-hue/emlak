@@ -64,7 +64,7 @@
   function findPrice(q) {
     const clean = q.replace(/aidat[^\n.;,]{0,25}/g, " ").replace(/depozito[^\n.;,]{0,25}/g, " ")
       .replace(/kira getirisi[^\n.;,]{0,25}/g, " ").replace(/\d+(?:[.,]\d+)?\s*(?:m2|m²|metrekare|km|donum|dekar)\b/g, " ");
-    const AMT = "(\\d+(?:[.,]\\d+)?)\\s*(milyon|myn|bin|m\\b|k\\b)?";
+    const AMT = "(\\d+(?:[.,]\\d+)?)\\s*(milyon|myn|bin|m|k)?(?![a-z0-9])";
     const near = clean.match(new RegExp("(?:fiyat[a-z]*|satis bedeli|kira bedeli|kirasi|bedel)\\s*[:=]?\\s*" + AMT));
     if (near) { const v = money(near[1], near[2]); if (v >= 100) return v; }
     const cands = [];
@@ -161,7 +161,9 @@
   }
 
   function analyzeText(text) {
-    const raw = String(text || "");
+    // Yazıyla/konuşmayla gelen sayılar önce rakama çevrilir:
+    // "4 milyon 750 bin" → 4750000, "üç artı bir" → 3+1
+    const raw = normalizeSpeech(String(text || ""));
     const q = deThousand(strip(raw));
     const f = AI.parseQuery(raw);                       // tür, oda, özellik, araç…
     const loc = findLocation(q);                         // konum: sözcük sınırıyla
@@ -245,7 +247,7 @@
       else if (/\bsoba/.test(q)) r.details.isitma = "Soba";
       else if (/\bklima/.test(q)) r.details.isitma = "Klima";
 
-      const aid = q.match(/aidat\w*\s*[:]?\s*(\d+(?:[.,]\d+)?)\s*(bin)?/);
+      const aid = q.match(/aidat\w*\s*[:]?\s*(\d+(?:[.,]\d+)?)\s*(bin(?![a-z]))?/);
       if (aid) r.details.aidat = money(aid[1], aid[2]);
       if (/aidat (?:yok|bulunmuyor|yoktur)|aidatsiz/.test(q)) r.details.aidat = 0;
 
@@ -681,7 +683,168 @@
     return r;
   }
 
+  // ── 8) SOHBETLE İLAN (yazı ya da mikrofon) ──────────────────────────────
+  // Asistan eksik bilgiyi TEK TEK sorar; her cevap sorunun bağlamıyla
+  // (ör. "140" → "140 m2") birikmiş metne eklenir ve metin baştan analiz
+  // edilir. Böylece yazarak, konuşarak ya da karışık yapıştırarak verilen
+  // bilgi AYNI çözümleyiciden geçer.
+
+  // Konuşma tanıma çıktısı: "dört milyon yedi yüz elli bin" → "4750000",
+  // "4 milyon 750 bin" → "4750000", "3 artı 1" → "3+1".
+  const NUMW = {
+    sifir: 0, bir: 1, iki: 2, uc: 3, dort: 4, bes: 5, alti: 6, yedi: 7, sekiz: 8, dokuz: 9,
+    on: 10, yirmi: 20, otuz: 30, kirk: 40, elli: 50, altmis: 60, yetmis: 70, seksen: 80, doksan: 90,
+  };
+  const MULT = { yuz: 100, bin: 1000, milyon: 1e6, milyar: 1e9 };
+  // Tek başına geçtiğinde sayı SAYILMAYAN sözcükler ("bir daire", "5 milyon altı", "on cephe")
+  const LONE_SKIP = new Set(["bir", "alti", "on", "yuz"]);
+  function normalizeSpeech(text) {
+    const toks = String(text || "").split(/(\s+)/);
+    const out = [];
+    let run = [];
+    const flush = () => {
+      if (!run.length) return;
+      const words = run.filter((t) => !/^\s+$/.test(t));
+      const keys = words.map((w) => strip(w).replace(/[.,]$/, ""));
+      const hasMult = keys.some((k) => MULT[k]);
+      const wordy = keys.filter((k) => NUMW[k] != null || MULT[k]).length;
+      // tek sözcüklü belirsiz ifade ya da yalnız rakamsa olduğu gibi bırak
+      if ((words.length === 1 && (LONE_SKIP.has(keys[0]) || /^\d/.test(keys[0]))) || (!wordy) ||
+          (words.length === 1 && !hasMult && NUMW[keys[0]] == null)) {
+        out.push(run.join("")); run = []; return;
+      }
+      // Ardışık iki sayı ("yüz kırk yüz yirmi" = 140 ve 120) birleşmesin:
+      // basamak düzeni bozulunca yeni sayı başlar.
+      const groups = [];
+      let total = 0, cur = 0, lvl = -1, lastMult = 0;
+      const cut = () => { if (total || cur) groups.push(total + cur); total = cur = 0; lvl = -1; lastMult = 0; };
+      keys.forEach((k) => {
+        if (/^\d/.test(k)) { if (cur) cut(); cur += parseFloat(deThousand(k).replace(",", ".")); lvl = 3; }
+        else if (NUMW[k] != null && NUMW[k] < 10) { if (cur && (lvl === 0 || lvl === 3 || cur % 10)) cut(); cur += NUMW[k]; lvl = 0; }
+        else if (NUMW[k] != null) { if (cur && cur % 100) cut(); cur += NUMW[k]; lvl = 1; }
+        else if (k === "yuz") { if (cur > 0 && cur < 10) cur *= 100; else { if (cur) cut(); cur = 100; } lvl = 2; }
+        else if (MULT[k]) {
+          if (lastMult && MULT[k] >= lastMult) { const c = cur; cur = 0; cut(); cur = c; }
+          total += (cur || 1) * MULT[k]; cur = 0; lvl = -1; lastMult = MULT[k];
+        }
+      });
+      cut();
+      out.push(groups.map((g) => String(Math.round(g))).join(" "));
+      run = [];
+    };
+    toks.forEach((t) => {
+      const k = strip(t).replace(/[.,]$/, "");
+      const prevK = run.length ? strip(run.filter((x) => !/^\s+$/.test(x)).slice(-1)[0] || "") : "";
+      const isNum = (NUMW[k] != null && !(k === "alti" && MULT[prevK])) || MULT[k] || /^\d+(?:[.,]\d+)*$/.test(k);
+      if (isNum) run.push(t);
+      else if (/^\s+$/.test(t) && run.length) run.push(t);
+      else { const tail = []; while (run.length && /^\s+$/.test(run[run.length - 1])) tail.unshift(run.pop()); flush(); out.push(...tail, t); }
+    });
+    const tail = []; while (run.length && /^\s+$/.test(run[run.length - 1])) tail.unshift(run.pop());
+    flush(); out.push(...tail);
+    return out.join("")
+      .replace(/(\d)\s*(?:art[ıi]|\+)\s*(\d|bir|iki)\b/gi, (m, a, b) => `${a}+${/^\d/.test(b) ? b : b.toLowerCase() === "bir" ? 1 : 2}`)
+      .replace(/(\d)\s*oda\s*(\d|bir|iki)\s*salon/gi, (m, a, b) => `${a}+${/^\d/.test(b) ? b : b.toLowerCase() === "bir" ? 1 : 2}`)
+      .replace(/\bmetre ?kare\b/gi, "m2");
+  }
+
+  const SKIP_RE = /^(gec|atla|bilmiyorum|bilmiyom|emin degilim|yok|hayir|sonra|pas)\b/;
+  const DONE_RE = /\b(tamam|bitti|olustur|hazirla|yayinla|bu kadar|hepsi bu)\b/;
+  const KONUT = ["daire", "residence", "villa", "mustakil", "yazlik"];
+  const KATLI = ["daire", "residence", "ofis", "dukkan"];
+  const nums = (s) => (deThousand(s).match(/\d+(?:[.,]\d+)?/g) || []).map((x) => parseFloat(x.replace(",", ".")));
+
+  // Sorular SIRAYLA: önce ilanı tanımlayan zorunlular, sonra ayrıntı, en son fotoğraf.
+  // has(r, ctx) true ise soru sorulmaz; ctx(a) cevabı çözümleyicinin anlayacağı biçime çevirir.
+  const QUESTIONS = [
+    { key: "tur", required: true,
+      ask: () => "Merhaba! Ne satıyor ya da kiralıyorsunuz? Örneğin “satılık 3+1 daire”, “kiralık dükkan” ya da “2019 model Corolla”.",
+      has: (r) => !!r.kind },
+    { key: "kategori", required: true, ask: () => "Satılık mı, kiralık mı?",
+      has: (r) => !!r.category && !r.categoryGuessed },
+    { key: "konum", required: true, ask: () => "Hangi il, ilçe ve mahallede?", has: (r) => !!r.district },
+    { key: "m2", required: true, when: (r) => r.segment === "emlak",
+      ask: (r) => LAND.indexOf(r.kind) >= 0 ? "Yüz ölçümü kaç metrekare ya da kaç dönüm?" : "Kaç metrekare? Brüt ve net biliyorsanız ikisini de söyleyin.",
+      has: (r) => r.m2 > 0,
+      ctx: (a) => { const n = nums(a); if (/m2|metrekare|donum|dekar/.test(strip(a))) return a;
+        return n.length >= 2 ? `brüt ${n[0]} m2 net ${n[1]} m2` : n.length ? `${n[0]} m2` : a; } },
+    { key: "oda", when: (r) => KONUT.indexOf(r.kind) >= 0, ask: () => "Kaç oda, kaç salon? (ör. 3+1)",
+      has: (r) => !!r.rooms,
+      ctx: (a) => { const n = nums(a); return /\+/.test(a) || n.length < 2 ? a : `${n[0]}+${n[1]}`; } },
+    { key: "yas", when: (r) => r.segment === "emlak" && LAND.indexOf(r.kind) < 0 && ["bina"].indexOf(r.kind) < 0,
+      ask: () => "Bina kaç yaşında? (sıfır binaysa “sıfır” deyin)", has: (r) => r.age != null,
+      ctx: (a) => { const n = nums(a); return /sifir|yeni/.test(strip(a)) ? "sıfır bina" : n.length ? `bina yaşı ${n[0]}` : a; } },
+    { key: "kat", when: (r) => KATLI.indexOf(r.kind) >= 0, ask: () => "Kaçıncı katta ve bina kaç katlı?",
+      has: (r) => !!r.details.katNo,
+      ctx: (a) => { const q = strip(a); if (/giris|bahce|zemin|bodrum|cati|yuksek/.test(q) && !/kat/.test(q)) return a + " kat";
+        const n = nums(a); return /kat/.test(q) ? a : n.length >= 2 ? `${n[0]}. kat ${n[1]} katlı` : n.length ? `${n[0]}. kat` : a; } },
+    { key: "isitma", when: (r) => KONUT.indexOf(r.kind) >= 0, ask: () => "Isıtma nasıl? (kombi, merkezi, yerden ısıtma, klima…)",
+      has: (r) => !!r.details.isitma },
+    { key: "marka", required: true, when: (r) => r.segment === "vasita" && ["otomobil", "suv", "elektrikli"].indexOf(r.kind) >= 0,
+      ask: () => "Marka ve modeli nedir?", has: (r) => !!r.brand },
+    { key: "yilkm", required: true, when: (r) => r.segment === "vasita", ask: () => "Model yılı ve kilometresi kaç?",
+      has: (r) => !!r.year && r.km != null,
+      ctx: (a) => { const n = nums(a); if (/km|model/.test(strip(a))) return a;
+        const y = n.find((x) => x >= 1950 && x <= new Date().getFullYear() + 1);
+        const k = n.find((x) => x !== y);
+        return [y ? `${y} model` : "", k != null ? `${k} km` : ""].join(" ").trim() || a; } },
+    { key: "fiyat", required: true, ask: (r) => r.category === "kiralik" ? "Aylık kira bedeli ne kadar?" : "Fiyatı ne kadar?",
+      has: (r) => r.price > 0,
+      ctx: (a) => (/fiyat|tl|lira|₺/.test(strip(a)) ? a : "fiyat " + a + " tl") },
+    { key: "ek", ask: (r) => r.segment === "vasita"
+        ? "Eklemek istediğiniz bir şey var mı? Hasar kaydı, boya-değişen, renk, takas… Yoksa “yok” deyin."
+        : "Eklemek istediğiniz özellik var mı? Site, havuz, otopark, manzara, tapu durumu, aidat, krediye uygunluk… Yoksa “yok” deyin.",
+      has: () => false },
+    { key: "foto", photo: true,
+      ask: () => "Şimdi fotoğraf zamanı: 📷 düğmesine basıp çekin. Dış cephe, salon, mutfak, odalar, banyo ve manzara iyi bir sıradır. Bitince “tamam” deyin.",
+      has: (r, c) => c.photos >= c.minPhotos },
+  ];
+  // Sıradaki soru: cevaplanmamış ve daha önce geçilmemiş ilk uygun soru.
+  function nextQuestion(r, c) {
+    return QUESTIONS.find((q) => (!q.when || q.when(r)) && !c.asked.has(q.key) && !q.has(r, c)) || null;
+  }
+  const missingRequired = (r, c) => QUESTIONS.filter((q) => q.required && (!q.when || q.when(r)) && !q.has(r, c));
+  // Cevabı soruya göre yorumla; "geç/bilmiyorum" ise null döner (soru atlanır).
+  function contextualize(q, answer) {
+    const a = normalizeSpeech(answer).trim();
+    if (!a) return null;
+    if (SKIP_RE.test(strip(a)) && a.split(/\s+/).length <= 3) return null;
+    if (q && q.key === "kategori") {
+      const s = strip(a);
+      if (/kira/.test(s)) return "kiralık";
+      if (/sat/.test(s)) return "satılık";
+    }
+    return q && q.ctx ? q.ctx(a) : a;
+  }
+  // İki analiz arasında yeni öğrenilenleri kısa cümleyle söyle ("Anladım: …")
+  function learned(prev, r) {
+    const p = prev || { details: {}, features: [] };
+    const out = [];
+    const add = (cond, txt) => { if (cond) out.push(txt); };
+    add(r.kind && r.kind !== p.kind, kindLabel(r.kind));
+    add(r.category && r.category !== p.category, r.category === "kiralik" ? "kiralık" : "satılık");
+    add(r.district && r.district !== p.district, [r.district, r.city].join(", "));
+    add(r.locality && r.locality !== p.locality, r.locality);
+    add(r.m2 && r.m2 !== p.m2, `${fmt(r.m2)} m²` + (r.m2Net ? ` (net ${fmt(r.m2Net)})` : ""));
+    add(r.rooms && r.rooms !== p.rooms, r.rooms);
+    add(r.age != null && r.age !== p.age, r.age === 0 ? "sıfır bina" : `${r.age} yaşında`);
+    add(r.year && r.year !== p.year, `${r.year} model`);
+    add(r.brand && r.brand !== p.brand, [r.brand, r.model].filter(Boolean).join(" "));
+    add(r.km != null && r.km !== p.km, `${fmt(r.km)} km`);
+    add(r.price && r.price !== p.price, `${fmt(r.price)} ₺`);
+    Object.keys(r.details).forEach((k) => {
+      if (r.details[k] !== p.details[k] && C.fieldDefs[k]) {
+        out.push(`${C.fieldDefs[k].label}: ${r.details[k] === true ? "var" : r.details[k]}`);
+      }
+    });
+    r.features.filter((f) => p.features.indexOf(f) < 0 && !(f === "Site İçi" && r.details.siteAdi) &&
+      !(f === "Doğalgaz" && /doğalgaz/i.test(r.details.isitma || ""))).forEach((f) => out.push(f));
+    return out;
+  }
+  const chat = { normalizeSpeech, nextQuestion, missingRequired, contextualize, learned, isDone: (a) => DONE_RE.test(strip(a)), QUESTIONS };
+
   EMLAK.studio = {
+    chat,
     analyzeText, analyzePhoto, enhancePhoto, thumbForAi, preview, pickPhotos,
     title, description, readiness, mergeAi, kindLabel, fieldsOfKind, normPhone,
   };

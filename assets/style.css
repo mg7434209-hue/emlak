@@ -613,3 +613,41 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
   .st-score-row { flex-direction: column; }
   .st-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ── AI İlan Stüdyosu: sekmeler + sohbet + kamera ─────────────────────── */
+.st-tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+.st-tabs button { border: none; background: transparent; color: var(--muted); font: inherit; font-weight: 600; padding: 10px 14px; min-height: 44px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.st-tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.st-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.st-chat { height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); overscroll-behavior: contain; }
+.st-msg { max-width: 86%; padding: 9px 13px; border-radius: 14px; line-height: 1.45; white-space: pre-line; font-size: .95rem; }
+.st-msg.bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.st-msg.me { align-self: flex-end; background: var(--primary); color: var(--surface); border-bottom-right-radius: 4px; }
+.st-chatbar { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.st-chatbar input { flex: 1; min-width: 0; min-height: 46px; }
+.st-mic { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.3rem; cursor: pointer; }
+.st-mic.on { background: var(--over); border-color: var(--over); animation: st-pulse 1.2s ease-in-out infinite; }
+@keyframes st-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--over) 45%, transparent); } 50% { box-shadow: 0 0 0 10px transparent; } }
+@media (prefers-reduced-motion: reduce) { .st-mic.on { animation: none; } }
+.st-chat-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.st-chat-tools > * { min-height: 44px; }
+.st-cam-btn { cursor: pointer; }
+.st-cam-inline { margin-top: 10px; width: 100%; justify-content: center; }
+.st-voice-note { color: var(--muted); font-size: .8rem; margin: 8px 0 0; }
+/* Masaüstünde (fare) kamera düğmesi yalnız metin sekmesinde kaba görünür; dokunmatikte öne çıkar */
+@media (hover: hover) and (pointer: fine) { .st-cam-inline { display: none; } }
+@media (max-width: 760px) {
+  .st-chat { height: 46vh; }
+  .st-chat-tools .st-cam-btn { flex: 1 1 100%; justify-content: center; font-size: 1.05rem; min-height: 52px; }
+  .st-chat-tools > label.btn.ghost, .st-chat-tools #stTts, .st-chat-tools #stMake { flex: 1 1 auto; }
+}
+/* Telefonda stüdyo ilk ekrana sığsın: uzun tanıtım metinleri gizlenir,
+   sohbetin üstüne binen AI Asistan düğmesi bu sayfada kaldırılır. */
+@media (max-width: 760px) {
+  body[data-page="ilan-ver"] .page-head p, .studio-head p { display: none; }
+  body[data-page="ilan-ver"] .page-head h1 { font-size: 1.5rem; margin-bottom: 0; }
+  body[data-page="ilan-ver"] .fab { display: none; }
+  .studio-card { padding: 16px; }
+  .studio-head h2 { font-size: 1.02rem; margin: 8px 0 10px; }
+  .st-tabs button { flex: 1; white-space: nowrap; padding: 10px 4px; font-size: .92rem; }
+}

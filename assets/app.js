@@ -1558,6 +1558,7 @@
     // bulamadıysa sihirbazı açar ve seçim bitince stüdyo verisi forma dolar.
     let wizardApi = null;
     let pendingStudio = null;
+    let autoPublish = false;     // stüdyodaki "Onayla ve İlanı Gönder"
     (function katalogSihirbazi() {
       const wiz = $("#catWizard");
       const form = $("#ilanVerForm");
@@ -1939,13 +1940,229 @@
           inStatus(msgs);
         }
         inStatus(msgs);
+        chatPhotosAdded();
       }
       $("#stPhotos").addEventListener("change", (e) => { const f = Array.from(e.target.files || []); e.target.value = ""; stAdd(f); });
+      // Kamera: telefonda arka kamerayı doğrudan açar (capture="environment");
+      // masaüstünde dosya seçici olarak davranır. Her çekim bir fotoğraf ekler.
+      $("#stCam").addEventListener("change", (e) => { const f = Array.from(e.target.files || []); e.target.value = ""; stAdd(f); });
       const drop = $("#stDrop");
       ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("on"); }));
       ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("on"); }));
       drop.addEventListener("drop", (e) => stAdd(e.dataTransfer && e.dataTransfer.files));
       $("#stSkip").addEventListener("click", () => { if (wizardApi) wizardApi.open(); });
+
+      // ── SOHBETLE İLAN: asistan sorar, kullanıcı yazar ya da konuşur ──────
+      // Her cevap sorunun bağlamıyla birikmiş metne eklenir (ST.chat.contextualize)
+      // ve metin baştan çözümlenir; bilgiler tamamlanınca ilan KENDİLİĞİNDEN
+      // hazırlanır (stRun). Gönderim yine kullanıcının onayıyla olur.
+      const CH = ST.chat;
+      const MINP = SC.minPhotos || 4;
+      const convo = { text: "", asked: new Set(), tries: {}, cur: null, prev: null, started: false, done: false };
+      const chatBox = $("#stChat");
+      const cctx = () => ({ asked: convo.asked, photos: stIn.length, minPhotos: MINP });
+      function bubble(who, text) {
+        const el = document.createElement("div");
+        el.className = "st-msg " + who;
+        el.textContent = text;
+        chatBox.appendChild(el);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return el;
+      }
+      // Sesli soru (speechSynthesis): Türkçe ses varsa o kullanılır
+      let ttsOn = false, voiceMode = false;
+      const canTts = "speechSynthesis" in window && typeof SpeechSynthesisUtterance === "function";
+      function speak(text, then) {
+        if (!ttsOn || !canTts) { if (then) then(); return; }
+        // Bazı cihazlar onend'i hiç göndermez (ses yok / arka plan): döngü
+        // takılmasın diye metin uzunluğuna göre bir güvenlik zamanlayıcısı var.
+        let fired = false;
+        const done = () => { if (fired) return; fired = true; clearTimeout(guard); if (then) then(); };
+        const guard = setTimeout(done, Math.min(20000, 1500 + text.length * 75));
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").replace(/“|”/g, ""));
+          u.lang = "tr-TR";
+          const v = window.speechSynthesis.getVoices().find((x) => /^tr/i.test(x.lang));
+          if (v) u.voice = v;
+          u.onend = done;
+          u.onerror = done;
+          window.speechSynthesis.speak(u);
+        } catch (e) { done(); }
+      }
+      function botSay(text) {
+        bubble("bot", text);
+        speak(text, () => { if (voiceMode && !convo.done) listen(); });
+      }
+      const setTts = (on) => {
+        ttsOn = on && canTts;
+        const b = $("#stTts");
+        b.setAttribute("aria-pressed", String(ttsOn));
+        b.textContent = ttsOn ? "🔊 Sesli soru: açık" : "🔇 Sesli soru: kapalı";
+      };
+      if (!canTts) $("#stTts").hidden = true;
+      $("#stTts").addEventListener("click", () => { setTts(!ttsOn); if (!ttsOn && canTts) window.speechSynthesis.cancel(); });
+
+      function askNext() {
+        const r = ST.analyzeText(convo.text);
+        const q = CH.nextQuestion(r, cctx());
+        convo.cur = q;
+        if (q) { botSay(q.ask(r)); return; }
+        finishChat();
+      }
+      function startChat() {
+        if (convo.started) return;
+        convo.started = true;
+        bubble("bot", "Ben ilan asistanınız. Birkaç soru soracağım; yazarak ya da 🎤 düğmesiyle konuşarak cevaplayabilirsiniz. İsterseniz her şeyi tek seferde de anlatabilirsiniz.");
+        askNext();
+      }
+      function finishChat() {
+        const r = ST.analyzeText(convo.text);
+        const miss = CH.missingRequired(r, cctx());
+        if (miss.length) {
+          // zorunlu bilgi eksikse bir kez daha sorulur
+          const q = miss[0];
+          convo.asked.delete(q.key);
+          convo.cur = q;
+          botSay("Bir bilgi eksik kaldı. " + q.ask(r));
+          return;
+        }
+        convo.done = true;
+        convo.cur = null;
+        stopListening();
+        botSay(stIn.length
+          ? "Harika, her şey hazır! Fotoğrafları analiz edip ilanınızı oluşturuyorum…"
+          : "Bilgiler tamam. Fotoğraf eklemediniz; ilanı şimdilik fotoğrafsız oluşturuyorum, sonra ekleyebilirsiniz…");
+        setTimeout(stRun, 300);
+      }
+      function handleAnswer(raw) {
+        const answer = String(raw || "").trim();
+        if (!answer) return;
+        if (!convo.started) startChat();
+        bubble("me", answer);
+        if (convo.done) {
+          // ilan hazırlandıktan sonra gelen ek bilgi: metne eklenir, ilan yeniden yazılır
+          convo.text += "\n" + CH.normalizeSpeech(answer);
+          $("#stText").value = convo.text.trim();
+          bubble("bot", "Ekledim; ilanı güncelliyorum…");
+          setTimeout(stRun, 200);
+          return;
+        }
+        const q = convo.cur;
+        if (CH.isDone(answer) && (!q || q.photo || answer.split(/\s+/).length <= 2)) {
+          if (q) convo.asked.add(q.key);
+          askNext();
+          return;
+        }
+        const x = CH.contextualize(q, answer);
+        if (x) {
+          convo.text += "\n" + x;
+          $("#stText").value = convo.text.trim();
+        }
+        const r = ST.analyzeText(convo.text);
+        const got = CH.learned(convo.prev, r);
+        convo.prev = r;
+        if (q) {
+          const still = !q.photo && !q.has(r, cctx());
+          // anlaşılmayan zorunlu cevap bir kez yeniden sorulur, sonra geçilir
+          convo.tries[q.key] = (convo.tries[q.key] || 0) + 1;
+          if (!(x && still && q.required && convo.tries[q.key] < 2)) convo.asked.add(q.key);
+        }
+        if (got.length) bubble("bot", "Anladım: " + got.join(" · ") + ".");
+        else if (!x) bubble("bot", "Peki, bunu geçiyorum.");
+        else if (q && !q.photo && !q.has(r, cctx()) && !convo.asked.has(q.key)) bubble("bot", "Tam anlayamadım, bir kez daha söyler misiniz?");
+        else bubble("bot", "Not aldım.");
+        if (convo.cur === q) askNext();
+      }
+      // Fotoğraf eklendiğinde sohbette bildir (aynı anda seçilenler tek mesaj)
+      let photoNoteT = null;
+      function chatPhotosAdded() {
+        if (!convo.started || convo.done) return;
+        clearTimeout(photoNoteT);
+        photoNoteT = setTimeout(() => {
+          const n = stIn.length;
+          bubble("bot", `📷 ${n} fotoğraf hazır.` + (n >= MINP
+            ? " Daha fazla çekebilir ya da “tamam” diyebilirsiniz."
+            : ` En az ${MINP} fotoğraf öneririm; çekmeye devam edin.`));
+        }, 400);
+      }
+
+      // Mikrofon: Web Speech API (Chrome/Android, Safari/iOS 14.5+). Yoksa
+      // klavyedeki dikte tuşu önerilir.
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      let rec = null, listening = false;
+      function stopListening() { voiceMode = false; if (rec && listening) { try { rec.stop(); } catch (e) { /* zaten durdu */ } } }
+      function listen() {
+        if (!SR || listening) return;
+        try {
+          rec = new SR();
+          rec.lang = "tr-TR";
+          rec.interimResults = true;
+          rec.continuous = false;
+          rec.maxAlternatives = 1;
+          let finalText = "";
+          rec.onresult = (e) => {
+            let interim = "";
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+              else interim += e.results[i][0].transcript;
+            }
+            $("#stSay").value = (finalText + " " + interim).trim();
+          };
+          rec.onerror = (e) => {
+            if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+              voiceMode = false;
+              bubble("bot", "Mikrofon izni verilmedi. Tarayıcının adres çubuğundaki kilit simgesinden mikrofona izin verin ya da yazarak devam edin.");
+            }
+          };
+          rec.onend = () => {
+            listening = false;
+            $("#stMic").classList.remove("on");
+            const t = finalText.trim();
+            $("#stSay").value = "";
+            if (t) handleAnswer(t);
+          };
+          rec.start();
+          listening = true;
+          $("#stMic").classList.add("on");
+        } catch (e) { listening = false; }
+      }
+      if (!SR) {
+        $("#stMic").hidden = true;
+        $("#stVoiceNote").textContent = "Bu tarayıcı sesle cevaplamayı desteklemiyor; telefon klavyenizdeki 🎤 dikte tuşuyla konuşarak da yazabilirsiniz.";
+      }
+      $("#stMic").addEventListener("click", () => {
+        if (listening) { stopListening(); return; }
+        if (!convo.started) startChat();
+        voiceMode = true;
+        if (canTts && !ttsOn) setTts(true);     // sesli sohbet: sorular da okunur
+        listen();
+      });
+      const send = () => { const v = $("#stSay").value; $("#stSay").value = ""; handleAnswer(v); };
+      $("#stSend").addEventListener("click", send);
+      $("#stSay").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); send(); } });
+      $("#stMake").addEventListener("click", () => { convo.done = true; stopListening(); stRun(); });
+
+      // Sekmeler: telefonda (dokunmatik/dar ekran) sohbet, masaüstünde metin
+      function setTab(mode) {
+        const chatOn = mode === "chat";
+        $("#stChatPanel").hidden = !chatOn;
+        $("#stPastePanel").hidden = chatOn;
+        $("#stRun").hidden = chatOn;
+        $("#stTabChat").setAttribute("aria-selected", String(chatOn));
+        $("#stTabPaste").setAttribute("aria-selected", String(!chatOn));
+        if (chatOn) {
+          // yapıştırılmış metin varsa sohbet onun üstüne kurulur
+          if (!convo.started && $("#stText").value.trim()) convo.text = $("#stText").value;
+          startChat();
+        } else stopListening();
+      }
+      $("#stTabChat").addEventListener("click", () => setTab("chat"));
+      $("#stTabPaste").addEventListener("click", () => setTab("paste"));
+      $("#stText").addEventListener("input", () => { if (!convo.started) convo.text = $("#stText").value; });
+      const mobile = window.matchMedia && (matchMedia("(pointer: coarse)").matches || matchMedia("(max-width: 760px)").matches);
+      setTab(mobile ? "chat" : "paste");
+
 
       const prog = (pct, text) => {
         $("#stProgress").hidden = false;
@@ -2021,6 +2238,11 @@
           }
           stCompose(true);
           prog(100, "Hazır ✓ — aşağıdan kontrol edin.");
+          if (!$("#stChatPanel").hidden) {
+            convo.done = true;
+            const rd = ST.readiness(Object.assign(stDraft(), { desc: $("#stDesc").value }), stSelected());
+            bubble("bot", `İlanınız hazır ✓ Yayına hazırlık puanı ${rd.score}/100. Aşağıda başlığı, açıklamayı ve fotoğraf sırasını görebilirsiniz; uygunsa “Onayla ve İlanı Gönder”e dokunun. Bir şey eklemek isterseniz buraya yazın ya da söyleyin.`);
+          }
           $("#stResult").hidden = false;
           $("#stResult").scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (e) {
@@ -2145,6 +2367,7 @@
         $("#stTitle").addEventListener(ev, () => { if (stBase) stRender(); });
         $("#stDesc").addEventListener(ev, () => { if (stBase) stRender(); });
       });
+      $("#stPublish").addEventListener("click", () => { autoPublish = true; $("#stApply").click(); });
       $("#stApply").addEventListener("click", () => {
         if (!stBase) return;
         const l = stDraft();
@@ -2205,6 +2428,12 @@
       const errors = await addPhotoFiles(l.files || [], photos, renderPhotoPreview);
       renderPhotoPreview();
       photoStatus(errors);
+      if (autoPublish) {
+        autoPublish = false;
+        // Eksik zorunlu alan varsa yayın düğmesi hatayı formda gösterir
+        $("#publishBtn").click();
+        return;
+      }
       out.innerHTML = `<b style="color:var(--deal)">✦ Stüdyodan aktarıldı.</b> Bilgileri ve fotoğraf sırasını son kez kontrol edin; ` +
         `eksik alanları tamamlayıp <b>İlanı Yayınla</b>'ya basın.` + (l.price ? "" : " Fiyat girilmedi — “AI Fiyat Önerisi Al” ile bant görebilirsiniz.");
     }

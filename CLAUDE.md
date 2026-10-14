@@ -446,6 +446,27 @@ sırasız bırakır (en çok `config.studio.maxInputPhotos`):
   biliyorsa `wizardApi.goForm()` ile formu açar, bilmiyorsa sihirbazı açar ve
   seçim bitince `applyStudio()` formu doldurur. YAYIN yine formdan, kullanıcının
   son kontrolüyle olur — stüdyo hiçbir şeyi kendiliğinden yayınlamaz.
+- SOHBETLE İLAN (mobilde varsayılan sekme, `#stChatPanel`): asistan eksik
+  bilgiyi TEK TEK sorar (`studio.js` `chat.QUESTIONS` sırası: tür → satılık/
+  kiralık → konum → m² → oda → yaş → kat → ısıtma → (araç: marka, yıl/km) →
+  fiyat → ek özellik → fotoğraf). Cevap sorunun bağlamıyla metne eklenir
+  (`contextualize`: "140" → "140 m2", "3 5" → "3. kat 5 katlı") ve metin
+  BAŞTAN çözümlenir — yazı, ses ve yapıştırma aynı çözümleyiciden geçer.
+  Zorunlu bilgi anlaşılmazsa bir kez daha sorulur; "geç/bilmiyorum" atlar;
+  "tamam" fotoğraf adımını bitirir. Sorular bitince ilan KENDİLİĞİNDEN
+  hazırlanır (`stRun`); "✓ Onayla ve İlanı Gönder" forma aktarıp yayın
+  düğmesine basar (eksik alan varsa form hatayı gösterir).
+- SES: mikrofon Web Speech API (`SpeechRecognition`, tr-TR; Chrome/Android,
+  Safari/iOS 14.5+). Desteklenmezse 🎤 gizlenir, klavye diktesi önerilir.
+  Mikrofona basınca "sesli mod" açılır: sorular `speechSynthesis` ile okunur,
+  okuma bitince yeniden dinlenir. TUZAK: bazı cihazlar `onend` göndermez —
+  `speak()` metin uzunluğuna göre güvenlik zamanlayıcısıyla devam eder.
+  Konuşma sayıları `normalizeSpeech()` ile rakama döner ("dört milyon yedi
+  yüz elli bin" → 4750000, "yüz kırk yüz yirmi" → 140 120, "üç artı bir" →
+  3+1, "5 milyon altı" sayı DEĞİLDİR); `analyzeText` de bunu kullanır.
+- KAMERA: `#stCam` = `accept="image/*" capture="environment"` → telefonda
+  arka kamera doğrudan açılır, her çekim bir fotoğraf ekler. Galeri `#stPhotos`.
+  ≤760 px'te tanıtım metinleri ve AI Asistan FAB'ı gizlenir (sohbet ilk ekrana sığsın).
 - Form fotoğraf önizlemesi `.photo-order`: ilk kare kapaktır, ◀ ▶ ★ ile sıralanır.
 - Açıklamalar `.desc-text` (`white-space: pre-line`) ile basılır; madde ve
   satır sonları detay sayfasında korunur.
