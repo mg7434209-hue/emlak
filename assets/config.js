@@ -913,7 +913,7 @@ EMLAK.config = {
   //     sert sınır uygular; sınır aşılırsa fotoğraf yazılmaz ve kullanıcıya
   //     nedeni söylenir.
   upload: {
-    maxPhotos: 6,
+    maxPhotos: 12,          // profesyonel ilan: dış cephe + her oda + manzara
     maxFileMB: 15,          // seçilebilecek ham dosya sınırı
     maxWidth: 1400,         // küçültme sonrası en fazla genişlik (px)
     quality: 0.82,          // başlangıç sıkıştırma kalitesi
@@ -924,11 +924,31 @@ EMLAK.config = {
     accept: ["image/jpeg", "image/png", "image/webp"],
     acceptLabel: "JPG · PNG · WEBP",
     quota: {
-      perListingMB: 5,      // tek ilanın tüm fotoğrafları
+      perListingMB: 6,      // tek ilanın tüm fotoğrafları (12 × ~320 KB + pay)
       perUserMB: 40,        // bir üyenin tüm ilanları toplamı
       totalGB: 2,           // sitenin tamamı (disk/Volume koruması)
       warnPct: 80,          // panelde uyarı eşiği (%)
     },
+  },
+
+  // ── AI İlan Stüdyosu (ilan-ver.html · assets/studio.js · ai-studio.js) ──
+  // Karışık metin + sıralanmamış fotoğraf → yayına hazır ilan. Tarayıcı
+  // analizi her zaman çalışır; sunucuda ANTHROPIC_API_KEY varsa fotoğraflar
+  // ayrıca Claude ile "görülerek" etiketlenir (oda, kalite, kapak, açıklama).
+  studio: {
+    maxInputPhotos: 30,     // stüdyoya bırakılabilecek ham fotoğraf
+    minPhotos: 4,           // hazırlık puanında "yeterli fotoğraf" eşiği
+    dupDistance: 6,         // dHash farkı ≤ bu ise "benzer kare" sayılır
+    vibrance: 0.18,         // iyileştirme: canlılık (doğal kalsın, abartma)
+    sharpen: 0.35,          // iyileştirme: keskinleştirme miktarı
+    saleMinPrice: 250000,   // kategori yazılmadıysa: bu tutar üstü "satılık" tahmini
+    maxNotes: 8,            // açıklamaya taşınacak satıcı notu sayısı
+    maxTextChars: 6000,
+    aiImageMax: 896,        // Claude'a gönderilen kopyanın uzun kenarı (px)
+    aiMaxImages: 12,
+    aiPerHour: 12,          // üye başına saatlik AI analizi
+    aiBodyMB: 8,
+    aiEffort: "medium",
   },
 
   // ── AI asistan ayarları ─────────────────────────────────────────────────

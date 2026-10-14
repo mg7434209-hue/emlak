@@ -24,6 +24,8 @@
  *   POST /api/admin/import       (token) {listings} → yedekten geri yükle
  *   GET  /api/admin/users        (token) → üyeler
  *   POST /api/admin/user         (token) {id, action: ban|unban|remove|admin|unadmin|password}
+ *   GET  /api/ai/status          → {vision} (Claude görsel analizi açık mı)
+ *   POST /api/ai/studio          (X-User-Token) {text, images, hints} → AI İlan Stüdyosu
  *
  * SEO/AEO: /ilan.html?id= ve /ilanlar.html sunucuda ÖN İŞLENİR (bot'lar JS
  * çalıştırmaz) — başlık, açıklama, canonical/OG, JSON-LD ve okunabilir içerik
@@ -55,6 +57,8 @@ new Function(fs.readFileSync(path.join(ROOT, "assets/data.js"), "utf8"))();
 try { new Function(fs.readFileSync(path.join(ROOT, "assets/ai.js"), "utf8"))(); }
 catch (e) { console.error("ai.js sunucuda yüklenemedi:", e.message); }
 const CONF = global.EMLAK.config;
+// AI İlan Stüdyosu: ANTHROPIC_API_KEY yoksa kapalıdır, site tarayıcı analiziyle çalışır.
+const STUDIO = require("./ai-studio.js");
 const NORMALIZE = global.EMLAK.data.normalize;
 const SEED = global.EMLAK.data.all(); // Node ortamında yalnız REAL[]
 
@@ -462,6 +466,26 @@ function readBody(req, limit) {
 }
 
 async function handleApi(req, res, urlPath) {
+  // ── AI İlan Stüdyosu (ai-studio.js) ───────────────────────────────────
+  // GET /api/ai/status — Claude görsel analizi açık mı (ANTHROPIC_API_KEY)
+  if (urlPath === "/api/ai/status" && req.method === "GET") {
+    return sendJson(res, 200, { vision: STUDIO.available() });
+  }
+  // POST /api/ai/studio {text, images:[dataURL], hints} — üyelik ister
+  // (maliyetli uç: üye başına hız sınırı); fotoğraflar diske yazılmaz.
+  if (urlPath === "/api/ai/studio" && req.method === "POST") {
+    const user = currentUser(req);
+    const admin = isAdminReq(req);
+    if (!user && !admin) return sendJson(res, 401, { error: "AI analizi için giriş yapın." });
+    const SC = CONF.studio || {};
+    if (!admin && !rateLimit(req, "studio", SC.aiPerHour || 12, 60 * 60 * 1000)) {
+      return sendJson(res, 429, { error: "Saatlik AI analiz sınırına ulaştınız; tarayıcı analizi kullanılıyor." });
+    }
+    const b = await readBody(req, (SC.aiBodyMB || 8) * 1024 * 1024);
+    const r = await STUDIO.analyze(b);
+    return sendJson(res, r.ok ? 200 : (r.code || 500), r.ok ? r : { error: r.error });
+  }
+
   // ── Üyelik uçları ─────────────────────────────────────────────────────
   // POST /api/auth/register — yeni hesap
   if (urlPath === "/api/auth/register" && req.method === "POST") {
@@ -1049,7 +1073,7 @@ function renderListingHtml(html, l) {
           <p class="price" style="font-size:1.4rem;font-weight:800">${trNum(l.price)} ₺${priceSuffix(l)}</p>
           ${(l.photos || []).filter((p) => !String(p).startsWith("data:")).slice(0, 4).map((p, i) =>
             `<img src="${htmlEsc(p)}" alt="${htmlEsc(l.title)} — fotoğraf ${i + 1}" width="480" height="300" style="max-width:100%;border-radius:12px;margin-bottom:8px">`).join("")}
-          <div class="detail-card"><h2>Açıklama</h2><p>${htmlEsc(l.desc || listingSummary(l))}</p></div>
+          <div class="detail-card"><h2>Açıklama</h2><p class="desc-text">${htmlEsc(l.desc || listingSummary(l))}</p></div>
           <div class="detail-card"><h2>İlan Bilgileri</h2>
             <table class="spec-table">${specs.map(([k, v]) => `<tr><td>${htmlEsc(k)}</td><td><b>${htmlEsc(v)}</b></td></tr>`).join("")}</table>
             ${(l.features || []).length ? `<p>Öne çıkan özellikler: ${htmlEsc(l.features.join(", "))}.</p>` : ""}
@@ -1682,6 +1706,21 @@ const MIME = {
   ".woff2": "font/woff2",
 };
 
+// YAYIN İZİN LİSTESİ: kök dizinde yalnız sayfa ve SEO dosyaları (.html .txt
+// .xml .ico .webmanifest) ile assets/ klasörü servis edilir. Eskiden her dosya
+// açıktı: data/session.key (oturum imza anahtarı — sahte yönetici jetonu
+// üretilebiliyordu), .git/, server.js, package.json, node_modules/ indirilebiliyordu.
+// Nokta ile başlayan HER yol parçası (.git, .env) reddedilir.
+const ROOT_EXT_OK = new Set([".html", ".txt", ".xml", ".ico", ".webmanifest"]);
+function isPublicPath(urlPath) {
+  const parts = urlPath.split("/").filter(Boolean);
+  if (parts.some((x) => x.startsWith(".") || x === "node_modules")) return false;
+  if (parts[0] === "assets") return parts.length > 1;
+  if (parts.length !== 1) return parts.length === 0;      // "/" → index.html
+  const ext = path.extname(parts[0]).toLowerCase();
+  return !ext || ROOT_EXT_OK.has(ext);
+}
+
 function safeJoin(base, target) {
   // path traversal koruması: çözülen yol, kökün KENDİSİ ya da kök + ayraç ile
   // başlamalı ("/emlak" ile başlayan kardeş dizinler, ör. "/emlak-x", ELENİR)
@@ -1807,7 +1846,13 @@ const server = http.createServer((req, res) => {
 
     if (urlPath.endsWith("/")) urlPath += "index.html";
 
-    let filePath = safeJoin(ROOT, urlPath);
+    let filePath = isPublicPath(urlPath) ? safeJoin(ROOT, urlPath) : null;
+    if (!filePath && !isPublicPath(urlPath)) {
+      const nf = path.join(ROOT, "404.html");
+      res.writeHead(404, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      if (fs.existsSync(nf)) return fs.createReadStream(nf).pipe(res);
+      return res.end("404 — Sayfa bulunamadı");
+    }
     if (!filePath) {
       res.writeHead(400);
       return res.end("Bad request");

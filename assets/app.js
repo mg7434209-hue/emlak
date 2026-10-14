@@ -1295,7 +1295,7 @@
           ${(l.photos || []).length > 1 ? `<div class="photo-strip">${l.photos.map((p, i) => `<img src="${safePhoto(p)}" data-photo="${i}" alt="Fotoğraf ${i + 1}" class="${i === 0 ? "sel" : ""}">`).join("")}</div>` : ""}
           <div class="detail-card">
             <h2>Açıklama</h2>
-            <p>${esc(desc)}</p>
+            <p class="desc-text">${esc(desc)}</p>
           </div>
           <div class="detail-card">
             <h2>İlan Bilgileri</h2>
@@ -1487,6 +1487,8 @@
       $("#ilanVerForm").style.display = "none";
       const wizEl = $("#catWizard");
       if (wizEl) wizEl.style.display = "none";   // kategori seçici de kapanır
+      const stEl = $("#studio");
+      if (stEl) stEl.style.display = "none";     // AI stüdyosu da kapanır
       const ph = $(".page-head p");
       if (ph) ph.textContent = "İlan vermek için ücretsiz hesabınızla giriş yapın.";
       return;
@@ -1536,7 +1538,7 @@
       wrap.style.display = defs.length ? "" : "none";
       // Arsa/arazide oda ve bina yaşı sorulmaz (ai.js ile aynı kural)
       const arazi = LAND.indexOf(kind) >= 0;
-      [["#pRooms", arazi], ["#pAge", arazi]].forEach(([sel, gizle]) => {
+      [["#pRooms", arazi], ["#pAge", arazi], ["#pM2Net", arazi]].forEach(([sel, gizle]) => {
         const el = $(sel);
         if (el && el.parentElement) el.parentElement.style.display = gizle ? "none" : "";
       });
@@ -1552,6 +1554,10 @@
     // kategori sorulur (İlan Türü → Kategori → Tür → Durum), sonra YALNIZCA
     // o türe ait alanlarla form açılır. Seçimler gizlenen #pSeg/#pKind/#pCat
     // alanlarına yazılır — formun geri kalanı değişmeden çalışmaya devam eder.
+    // Stüdyo kategoriyi kendisi bulduysa formu doğrudan açar (wizardApi.goForm);
+    // bulamadıysa sihirbazı açar ve seçim bitince stüdyo verisi forma dolar.
+    let wizardApi = null;
+    let pendingStudio = null;
     (function katalogSihirbazi() {
       const wiz = $("#catWizard");
       const form = $("#ilanVerForm");
@@ -1610,7 +1616,10 @@
         wiz.style.display = "none";
         form.style.display = "";
         basMetni(false);
+        const st = $("#studio");
+        if (st) st.style.display = "none";
         window.scrollTo({ top: form.offsetTop - 70, behavior: "smooth" });
+        if (pendingStudio) { const p = pendingStudio; pendingStudio = null; applyStudio(p); }
       }
       // Sayfa açıklaması adıma göre değişir
       const basMetni = (adim1) => {
@@ -1622,7 +1631,9 @@
             ? "Yönetici oturumu açık: yayınladığınız ilanlar onay beklemeden herkese açılır."
             : "Bilgileri girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. İlanınız yönetici onayından sonra tüm ziyaretçilere yayınlanır.");
       };
-      basMetni(true);
+      // Açılışta stüdyo görünür; sihirbaz "Formu kendim dolduracağım" ile açılır
+      const ph0 = $(".page-head p");
+      if (ph0) ph0.textContent = "Bilgilerinizi karışık halde AI İlan Stüdyosu'na verin ya da formu adım adım kendiniz doldurun. İlanınız yönetici onayından sonra yayınlanır.";
       $("#wzGo").addEventListener("click", formaGec);
       $("#crumbChange").addEventListener("click", () => {
         form.style.display = "none";
@@ -1631,6 +1642,25 @@
         window.scrollTo({ top: wiz.offsetTop - 70, behavior: "smooth" });
       });
       ciz();
+      wizardApi = {
+        // Kategori biliniyorsa sihirbaz atlanır, form açılır
+        goForm(seg, kind, cat) {
+          const g = D.groupsOf(seg).find((x) => x.kinds.some((k) => k.kind === kind));
+          Object.assign(secim, { segment: seg, group: g ? g.label : "", kind, category: cat });
+          ciz();
+          formaGec();
+        },
+        // Eksik kategori: sihirbaz bilinen kısımla açılır
+        open(seg, kind) {
+          const g = seg && kind ? D.groupsOf(seg).find((x) => x.kinds.some((k) => k.kind === kind)) : null;
+          Object.assign(secim, { segment: seg || "", group: g ? g.label : "", kind: g ? kind : "", category: "" });
+          ciz();
+          form.style.display = "none";
+          wiz.style.display = "";
+          basMetni(true);
+          window.scrollTo({ top: wiz.offsetTop - 70, behavior: "smooth" });
+        },
+      };
     })();
 
     // Hesap bilgileri ön-doldurulur (kullanıcı değiştirebilir)
@@ -1663,14 +1693,31 @@
       photoStatus(errors);
     });
     photoStatus();
+    // Önizleme: ilk fotoğraf KAPAKTIR; oklarla sıra değişir, ★ kapak yapar.
     function renderPhotoPreview() {
       $("#photoPreview").innerHTML = photos.map((p, i) =>
-        `<span style="position:relative;display:inline-block"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}" style="width:90px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
-         <button type="button" data-rm="${i}" aria-label="Fotoğraf ${i + 1}'i kaldır" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:20px;height:20px;font-size:11px;line-height:1">✕</button></span>`).join("");
+        `<figure class="po-item${i === 0 ? " is-cover" : ""}"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}">
+         ${i === 0 ? '<span class="po-cover">Kapak</span>' : ""}
+         <button type="button" class="po-rm" data-rm="${i}" aria-label="Fotoğraf ${i + 1}'i kaldır">✕</button>
+         <div class="po-bar">
+           <button type="button" data-mv="${i}" data-d="-1" aria-label="Sola taşı"${i === 0 ? " disabled" : ""}>◀</button>
+           ${i ? `<button type="button" data-cv="${i}" aria-label="Kapak yap">★</button>` : ""}
+           <button type="button" data-mv="${i}" data-d="1" aria-label="Sağa taşı"${i === photos.length - 1 ? " disabled" : ""}>▶</button>
+         </div></figure>`).join("");
       $$("#photoPreview [data-rm]").forEach((b) => b.addEventListener("click", () => {
         photos.splice(+b.dataset.rm, 1);
         renderPhotoPreview();
         photoStatus();
+      }));
+      $$("#photoPreview [data-mv]").forEach((b) => b.addEventListener("click", () => {
+        const i = +b.dataset.mv, j = i + +b.dataset.d;
+        if (j < 0 || j >= photos.length) return;
+        [photos[i], photos[j]] = [photos[j], photos[i]];
+        renderPhotoPreview();
+      }));
+      $$("#photoPreview [data-cv]").forEach((b) => b.addEventListener("click", () => {
+        photos.unshift(photos.splice(+b.dataset.cv, 1)[0]);
+        renderPhotoPreview();
       }));
     }
 
@@ -1691,10 +1738,14 @@
         featured: $("#pFeatured").checked,
         seller: { name: sellerName, type: sellerType },
         phone: normPhone($("#pPhone").value),
+        locality: ($("#pLocality").value || "").trim().slice(0, 120) || undefined,
       };
       if (seg === "vasita") {
+        // Seçilen araç türü korunur (eskiden her araç "Otomobil" kaydediliyordu:
+        // motosiklet, SUV, karavan ilanları yanlış kategoriye düşüyordu)
+        const vKind = $("#pKind").value || "otomobil";
         return Object.assign(base, {
-          kind: "otomobil", kindLabel: "Otomobil",
+          kind: vKind, kindLabel: (D.kinds.find((k) => k.kind === vKind) || {}).label || "Otomobil",
           brand: $("#pBrand").value, model: $("#pModel").value,
           year: +$("#pYear").value || 0, km: +$("#pKm").value || 0,
           fuel: $("#pFuel").value, gear: $("#pGear").value,
@@ -1716,6 +1767,7 @@
       return Object.assign(base, {
         kind, kindLabel,
         m2: +$("#pM2").value || 0,
+        m2Net: LAND.indexOf(kind) >= 0 ? undefined : (+$("#pM2Net").value || undefined),
         rooms: LAND.indexOf(kind) >= 0 ? null : $("#pRooms").value || null,
         // Boş bırakılan bina yaşı null kalır ("Sıfır bina" varsayılmaz,
         // değerlemeye yaş katsayısı uygulanmaz)
@@ -1742,6 +1794,7 @@
         return null;
       }
       if (!l.m2 || l.m2 < 10) return "Geçerli bir m² girin.";
+      if (l.m2Net && l.m2Net > l.m2) return "Net alan brüt alandan büyük olamaz.";
       return null;
     }
 
@@ -1814,6 +1867,347 @@
       }
       location.href = "ilan.html?id=" + encodeURIComponent(saved.id);
     });
+
+    // ── AI İLAN STÜDYOSU ─────────────────────────────────────────────────
+    // Karışık metin + sırasız fotoğraf → analiz (assets/studio.js; sunucuda
+    // ANTHROPIC_API_KEY varsa ayrıca Claude görsel analizi) → sonuç ekranı →
+    // forma aktarma. Yayınlama yine formdan, kullanıcının son kontrolüyle olur.
+    const ST = EMLAK.studio;
+    const SC = C.studio || {};
+    const stIn = [];        // {id, file, prev}
+    let stItems = [];       // analiz edilmiş fotoğraflar
+    let stBase = null;      // metin (+AI) analizi
+    let stWarn = [];
+    let stVision = false;
+    let stSeq = 0;
+    function stDraft() {
+      const b = stBase || {};
+      const det = Object.assign({}, b.details || {});
+      return {
+        id: "TMP" + Date.now(), segment: b.segment || "", kind: b.kind || "",
+        kindLabel: ST.kindLabel(b.kind) || "İlan", category: b.category || "",
+        city: b.city || "", district: b.district || "", locality: b.locality || "",
+        price: b.price || 0, m2: b.m2 || 0, m2Net: b.m2Net || 0, rooms: b.rooms || null,
+        age: b.age == null ? null : b.age, brand: b.brand || "", model: b.model || "",
+        year: b.year || 0, km: b.km == null ? null : b.km, fuel: b.fuel || "", gear: b.gear || "",
+        details: det, features: (b.features || []).slice(), phone: b.phone || "",
+        bath: det.banyoSayisi || null, heating: det.isitma || null,
+        floorPos: floorPosOf(det.katNo), totalFloors: det.binaKat || null,
+        notes: b.notes || [],
+      };
+    }
+    function stSelected() { return stItems.filter((it) => it.selected).sort((a, b) => a.pos - b.pos); }
+    if (ST && $("#studio")) {
+      const MAXIN = SC.maxInputPhotos || 30;
+      $("#stPhotoRule").textContent = `— en fazla ${MAXIN} adet · ${UP_LABEL}`;
+      const setMode = () => {
+        $("#stMode").textContent = stVision
+          ? "✦ Görsel AI açık: fotoğraflar ayrıca yapay zekâyla incelenir"
+          : "Analiz tarayıcınızda yapılır; fotoğraflarınız siz yayınlayana dek hiçbir yere gönderilmez.";
+      };
+      setMode();
+      if (D.hasServer()) {
+        fetch("/api/ai/status").then((r) => r.json()).then((j) => { stVision = !!(j && j.vision); setMode(); }).catch(() => {});
+      }
+      const inStatus = (msgs) => {
+        const el = $("#stInThumbs");
+        el.innerHTML = stIn.map((f, i) =>
+          `<span class="st-in"><img src="${f.prev || ""}" alt="Seçilen fotoğraf ${i + 1}"><button type="button" data-sr="${f.id}" aria-label="Kaldır">✕</button></span>`).join("") +
+          (msgs && msgs.length ? `<ul class="st-errs">${msgs.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : "");
+        $$("[data-sr]", el).forEach((b) => b.addEventListener("click", () => {
+          const i = stIn.findIndex((x) => String(x.id) === b.dataset.sr);
+          if (i >= 0) stIn.splice(i, 1);
+          inStatus();
+        }));
+      };
+      async function stAdd(files) {
+        const msgs = [];
+        for (const file of Array.from(files || [])) {
+          const name = file.name || "dosya";
+          if (stIn.length >= MAXIN) { msgs.push(`En fazla ${MAXIN} fotoğraf; “${name}” ve sonrası alınmadı.`); break; }
+          if (/\.(heic|heif)$/i.test(name) || /heic|heif/i.test(file.type || "")) {
+            msgs.push(`“${name}” iPhone HEIC biçiminde; tarayıcı açamıyor. Ayarlar › Kamera › Biçimler › “En Uyumlu” seçip yeniden çekin.`);
+            continue;
+          }
+          if (UP_TYPES.indexOf((file.type || "").toLowerCase()) < 0 && !/\.(jpe?g|png|webp)$/i.test(name)) {
+            msgs.push(`“${name}” desteklenmeyen biçim (${UP_LABEL}).`); continue;
+          }
+          if (file.size > UP_MAX_MB * 1024 * 1024) { msgs.push(`“${name}” ${UP_MAX_MB} MB sınırını aşıyor.`); continue; }
+          const prev = await ST.preview(file);
+          if (!prev) { msgs.push(`“${name}” açılamadı — dosya bozuk olabilir.`); continue; }
+          stIn.push({ id: ++stSeq, file, prev });
+          inStatus(msgs);
+        }
+        inStatus(msgs);
+      }
+      $("#stPhotos").addEventListener("change", (e) => { const f = Array.from(e.target.files || []); e.target.value = ""; stAdd(f); });
+      const drop = $("#stDrop");
+      ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("on"); }));
+      ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("on"); }));
+      drop.addEventListener("drop", (e) => stAdd(e.dataTransfer && e.dataTransfer.files));
+      $("#stSkip").addEventListener("click", () => { if (wizardApi) wizardApi.open(); });
+
+      const prog = (pct, text) => {
+        $("#stProgress").hidden = false;
+        $("#stBar").style.width = Math.round(pct) + "%";
+        $("#stStep").textContent = text;
+      };
+
+      async function stRun() {
+        const text = $("#stText").value || "";
+        if (!text.trim() && !stIn.length) {
+          prog(0, "Analiz için ilan bilgisi yazın ya da fotoğraf ekleyin.");
+          return;
+        }
+        const btn = $("#stRun");
+        btn.disabled = true;
+        stWarn = [];
+        try {
+          prog(4, "Metin çözümleniyor…");
+          stBase = ST.analyzeText(text);
+          stItems = [];
+          const skipped = [];
+          for (let i = 0; i < stIn.length; i++) {
+            prog(6 + (i / Math.max(1, stIn.length)) * 44, `Fotoğraf ${i + 1}/${stIn.length}: ışık, netlik ve çözünürlük ölçülüyor…`);
+            const a = await ST.analyzePhoto(stIn[i].file, stBase.segment);
+            if (!a) { skipped.push(stIn[i].file.name || "fotoğraf"); continue; }
+            stItems.push({ id: stIn[i].id, file: stIn[i].file, prev: stIn[i].prev, analysis: a });
+          }
+          if (skipped.length) stWarn.push(`Açılamayan fotoğraflar atlandı: ${skipped.join(", ")}`);
+
+          // Görsel AI (isteğe bağlı): en iyi puanlı kareler küçültülüp gönderilir
+          if (stVision && (A.token() || adminToken())) {
+            prog(55, "Görsel AI fotoğrafları ve metni inceliyor… (30–60 sn sürebilir)");
+            const pool = stItems.slice().sort((x, y) => y.analysis.score - x.analysis.score).slice(0, SC.aiMaxImages || 12);
+            const images = [];
+            for (const it of pool) images.push(await ST.thumbForAi(it.file));
+            try {
+              const headers = { "Content-Type": "application/json" };
+              if (A.token()) headers["X-User-Token"] = A.token();
+              if (adminToken()) headers["X-Admin-Token"] = adminToken();
+              const hints = Object.assign({}, stBase);
+              delete hints.notes; delete hints.phone;
+              const r = await fetch("/api/ai/studio", { method: "POST", headers, body: JSON.stringify({ text, images, hints }) });
+              const j = await r.json().catch(() => ({}));
+              if (r.ok && j.result) {
+                const ai = j.result;
+                stBase = ST.mergeAi(stBase, ai);
+                (ai.photos || []).forEach((p) => {
+                  const it = pool[p.index];
+                  if (it) it.ai = { label: p.label, caption: p.caption, quality: p.quality, include: p.include, issues: p.issues };
+                });
+                if (Number.isInteger(ai.coverIndex) && pool[ai.coverIndex]) pool[ai.coverIndex].aiCover = true;
+                stWarn = stWarn.concat(ai.warnings || []);
+              } else {
+                stWarn.push((j && j.error) || "Görsel AI şu an yanıt vermedi; tarayıcı analizi kullanıldı.");
+              }
+            } catch (e) {
+              stWarn.push("Görsel AI'ye ulaşılamadı; tarayıcı analizi kullanıldı.");
+            }
+          }
+
+          prog(75, "Kopya kareler ayıklanıyor, kapak seçiliyor…");
+          const chosen = ST.pickPhotos(stItems, stBase.segment, UP_MAX);
+          const aiCover = chosen.find((it) => it.aiCover);
+          if (aiCover && aiCover !== chosen[0]) { chosen.splice(chosen.indexOf(aiCover), 1); chosen.unshift(aiCover); }
+          chosen.forEach((it, i) => { it.pos = i; it.cover = i === 0; });
+          stItems.filter((it) => !it.selected).forEach((it, i) => { it.pos = 1000 + i; });
+
+          let n = 0;
+          const fixList = chosen.filter((it) => it.analysis.needsFix);
+          for (const it of fixList) {
+            prog(80 + (n++ / Math.max(1, fixList.length)) * 18, `Işık ve renk düzeltiliyor (${n}/${fixList.length})…`);
+            await stFix(it);
+          }
+          stCompose(true);
+          prog(100, "Hazır ✓ — aşağıdan kontrol edin.");
+          $("#stResult").hidden = false;
+          $("#stResult").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) {
+          prog(0, "Analiz sırasında bir sorun oluştu; lütfen tekrar deneyin.");
+        }
+        btn.disabled = false;
+      }
+      async function stFix(it) {
+        const f = await ST.enhancePhoto(it.file, D.hasServer() ? (UPC.maxWidth || 1400) : 900);
+        if (!f) return;
+        it.fixed = f;
+        it.fixedPrev = await ST.preview(f);
+        it.useFixed = true;
+      }
+
+      // Başlık/açıklama üretimi (rewrite=true: kullanıcının düzenlemesini ezer)
+      function stCompose(rewrite) {
+        const l = stDraft();
+        if (rewrite || !$("#stTitle").value.trim()) $("#stTitle").value = stBase.aiTitle || ST.title(l);
+        if (rewrite || !$("#stDesc").value.trim()) $("#stDesc").value = stBase.aiDescription || ST.description(l, l.notes);
+        stRender();
+      }
+
+      const FACTS = [
+        ["Tür", (l) => l.kindLabel !== "İlan" ? l.kindLabel : ""],
+        ["Durum", (l) => l.category === "satilik" ? "Satılık" : l.category === "kiralik" ? "Kiralık" : ""],
+        ["Konum", (l) => [l.city, l.district].filter(Boolean).join(" / ")],
+        ["Mahalle", (l) => l.locality],
+        ["Fiyat", (l) => l.price ? fmt(l.price) + " ₺" : ""],
+        ["Alan", (l) => l.segment === "emlak" && l.m2 ? fmt(l.m2) + " m²" + (l.m2Net ? ` (net ${fmt(l.m2Net)})` : "") : null],
+        ["Oda", (l) => l.segment === "emlak" && LAND.indexOf(l.kind) < 0 ? l.rooms : null],
+        ["Bina yaşı", (l) => l.segment === "emlak" && LAND.indexOf(l.kind) < 0 ? (l.age == null ? "" : l.age === 0 ? "Sıfır" : String(l.age)) : null],
+        ["Araç", (l) => l.segment === "vasita" ? [l.year, l.brand, l.model].filter(Boolean).join(" ") : null],
+        ["Kilometre", (l) => l.segment === "vasita" ? (l.km != null ? fmt(l.km) + " km" : "") : null],
+        ["Yakıt / vites", (l) => l.segment === "vasita" ? [l.fuel, l.gear].filter(Boolean).join(" · ") : null],
+        ["Telefon", (l) => l.phone],
+      ];
+      function stRender() {
+        const l = stDraft();
+        l.title = $("#stTitle").value; l.desc = $("#stDesc").value;
+        const sel = stSelected();
+        // Hazırlık puanı
+        const rd = ST.readiness(l, sel);
+        const sc = $("#stScore");
+        sc.querySelector("b").textContent = rd.score;
+        sc.className = "st-score " + (rd.score >= 80 ? "good" : rd.score >= 55 ? "mid" : "low");
+        sc.style.setProperty("--p", rd.score);
+        $("#stChecks").innerHTML = rd.items.map((x) =>
+          `<li class="${x.ok ? "ok" : "no"}">${x.ok ? "✓" : "!"} ${esc(x.text)}${!x.ok && x.fix ? ` <small>— ${esc(x.fix)}</small>` : ""}</li>`).join("");
+        const warns = stWarn.concat(stBase.categoryGuessed ? ["İlanın satılık/kiralık olduğu metinde yazmıyor; fiyata bakılarak tahmin edildi — kontrol edin."] : []);
+        $("#stWarnings").hidden = !warns.length;
+        $("#stWarnings").innerHTML = warns.length ? "<b>Kontrol etmeniz gerekenler</b><ul>" + warns.map((w) => `<li>${esc(w)}</li>`).join("") + "</ul>" : "";
+        // Çıkarılan bilgiler
+        const facts = FACTS.map(([k, fn]) => [k, fn(l)]).filter(([, v]) => v !== null);
+        const det = Object.keys(l.details).map((k) => [C.fieldDefs[k] ? C.fieldDefs[k].label : k,
+          l.details[k] === true ? "Var" : String(l.details[k])]);
+        $("#stFacts").innerHTML = facts.concat(det).map(([k, v]) =>
+          `<span class="st-fact${v ? "" : " miss"}"><small>${esc(k)}</small>${v ? esc(v) : "eksik"}</span>`).join("") +
+          (l.features.length ? `<span class="st-fact"><small>Özellikler</small>${esc(l.features.join(", "))}</span>` : "");
+        // Fotoğraflar
+        $("#stPhotoSum").textContent = stItems.length
+          ? `— ${stItems.length} fotoğraftan ${sel.length} tanesi seçildi`
+          : "— fotoğraf eklenmedi";
+        const ordered = sel.concat(stItems.filter((it) => !it.selected));
+        $("#stPhotos2").innerHTML = ordered.map((it) => {
+          const a = it.analysis;
+          const label = (it.ai && it.ai.label) || a.scene + (a.sceneGuess && !it.ai ? " (tahmin)" : "");
+          const issues = ((it.ai && it.ai.issues) || []).concat(a.issues).slice(0, 4);
+          const q = it.ai ? Math.round(a.score * 0.5 + it.ai.quality * 5) : a.score;
+          const src = it.useFixed && it.fixedPrev ? it.fixedPrev : it.prev;
+          const i = sel.indexOf(it);
+          return `<figure class="st-ph${it.selected ? "" : " off"}${it.cover ? " cover" : ""}">
+            <div class="st-ph-img"><img src="${src}" alt="${esc(label)}">
+              ${it.cover ? '<span class="st-tag cover">Kapak</span>' : ""}
+              ${it.useFixed ? '<span class="st-tag fix">✨ Düzeltildi</span>' : ""}
+              <span class="st-q ${q >= 75 ? "good" : q >= 50 ? "mid" : "low"}">${q}</span></div>
+            <figcaption><b>${esc(label)}</b>
+              ${it.ai && it.ai.caption ? `<span>${esc(it.ai.caption)}</span>` : ""}
+              ${it.reason ? `<em>${esc(it.reason)}</em>` : issues.length ? `<em>${esc(issues.join(" · "))}</em>` : "<em class=\"ok\">Net ve aydınlık</em>"}
+            </figcaption>
+            <div class="st-ph-bar">
+              ${it.selected ? `<button type="button" data-a="mv" data-d="-1" data-id="${it.id}"${i <= 0 ? " disabled" : ""} aria-label="Öne al">◀</button>
+              ${it.cover ? "" : `<button type="button" data-a="cv" data-id="${it.id}">★ Kapak</button>`}
+              <button type="button" data-a="mv" data-d="1" data-id="${it.id}"${i === sel.length - 1 ? " disabled" : ""} aria-label="Geri al">▶</button>` : ""}
+              ${it.fixed ? `<button type="button" data-a="ba" data-id="${it.id}">${it.useFixed ? "Önce" : "Sonra"}</button>`
+                : it.selected ? `<button type="button" data-a="fx" data-id="${it.id}">✨ Düzelt</button>` : ""}
+              <button type="button" data-a="tg" data-id="${it.id}">${it.selected ? "Çıkar" : "Dahil et"}</button>
+            </div></figure>`;
+        }).join("");
+      }
+      $("#stPhotos2").addEventListener("click", async (e) => {
+        const b = e.target.closest("button[data-a]");
+        if (!b) return;
+        const it = stItems.find((x) => String(x.id) === b.dataset.id);
+        if (!it) return;
+        const sel = stSelected();
+        const reorder = (list) => list.forEach((x, i) => { x.pos = i; x.cover = i === 0; });
+        if (b.dataset.a === "mv") {
+          const i = sel.indexOf(it), j = i + +b.dataset.d;
+          if (j < 0 || j >= sel.length) return;
+          [sel[i], sel[j]] = [sel[j], sel[i]];
+          reorder(sel);
+        } else if (b.dataset.a === "cv") {
+          sel.splice(sel.indexOf(it), 1); sel.unshift(it); reorder(sel);
+        } else if (b.dataset.a === "tg") {
+          if (it.selected) { it.selected = false; it.cover = false; it.pos = 1000; it.reason = it.reason || "Sizin tarafınızdan çıkarıldı"; reorder(sel.filter((x) => x !== it)); }
+          else {
+            if (sel.length >= UP_MAX) { alert(`En fazla ${UP_MAX} fotoğraf seçilebilir; önce birini çıkarın.`); return; }
+            it.selected = true; it.reason = ""; sel.push(it); reorder(sel);
+          }
+        } else if (b.dataset.a === "ba") {
+          it.useFixed = !it.useFixed;
+        } else if (b.dataset.a === "fx") {
+          b.disabled = true; b.textContent = "…";
+          await stFix(it);
+        }
+        stRender();
+      });
+      $("#stRun").addEventListener("click", stRun);
+      $("#stRerun").addEventListener("click", () => { if (stBase) { delete stBase.aiTitle; delete stBase.aiDescription; stCompose(true); } });
+      ["input", "change"].forEach((ev) => {
+        $("#stTitle").addEventListener(ev, () => { if (stBase) stRender(); });
+        $("#stDesc").addEventListener(ev, () => { if (stBase) stRender(); });
+      });
+      $("#stApply").addEventListener("click", () => {
+        if (!stBase) return;
+        const l = stDraft();
+        l.title = $("#stTitle").value.trim();
+        l.desc = $("#stDesc").value.trim();
+        l.files = stSelected().map((it) => (it.useFixed && it.fixed ? it.fixed : it.file));
+        if (l.segment && l.kind && l.category && wizardApi) {
+          pendingStudio = l;
+          wizardApi.goForm(l.segment, l.kind, l.category);
+        } else if (wizardApi) {
+          pendingStudio = l;          // kategori seçilince forma dolar
+          wizardApi.open(l.segment, l.kind);
+          $("#wzCrumb").innerHTML = "Stüdyo ilan türünü metinden çıkaramadı — lütfen kategoriyi seçin; diğer bilgiler korunuyor.";
+        }
+      });
+    }
+
+    // Stüdyo sonucunu forma yazar (kategori formaGec ile zaten ayarlanmıştır).
+    async function applyStudio(l) {
+      const setVal = (sel, v) => { const el = $(sel); if (el && v != null && v !== "" && v !== 0) el.value = v; };
+      if (l.city && C.market.cities[l.city]) {
+        $("#pCity").value = l.city;
+        fillDistrictSelect($("#pDistrict"), l.city, false);
+        if (l.district) $("#pDistrict").value = l.district;
+      }
+      setVal("#pLocality", l.locality);
+      setVal("#pPrice", l.price);
+      const seg = $("#pSeg").value;
+      if (seg === "emlak") {
+        setVal("#pM2", l.m2);
+        setVal("#pM2Net", l.m2Net);
+        if (l.rooms) {
+          const r = $("#pRooms");
+          if (![...r.options].some((o) => o.value === l.rooms)) r.insertAdjacentHTML("beforeend", `<option>${esc(l.rooms)}</option>`);
+          r.value = l.rooms;
+        }
+        if (l.age != null) $("#pAge").value = l.age;
+        $$("#featBoxes input").forEach((i) => { if (l.features.indexOf(i.value) >= 0) i.checked = true; });
+      } else if (seg === "vasita") {
+        if (l.brand && D.brands.indexOf(l.brand) >= 0) {
+          $("#pBrand").value = l.brand;
+          $("#pBrand").dispatchEvent(new Event("change"));
+          if (l.model) $("#pModel").value = l.model;
+        }
+        setVal("#pYear", l.year);
+        if (l.km != null) $("#pKm").value = l.km;
+        setVal("#pFuel", l.fuel);
+        setVal("#pGear", l.gear);
+      }
+      // Türe özel alanlar: yalnız bu türün tanımlı alanları dolar
+      renderKindFields($("#kindFields"), $("#pKind").value, l.details);
+      if (l.phone && !$("#pPhone").value.trim()) $("#pPhone").value = l.phone;
+      $("#pTitle").value = l.title || "";
+      $("#pDesc").value = l.desc || "";
+      const out = $("#suggestOut");
+      out.innerHTML = "Fotoğraflar hazırlanıyor…";
+      photos.length = 0;
+      const errors = await addPhotoFiles(l.files || [], photos, renderPhotoPreview);
+      renderPhotoPreview();
+      photoStatus(errors);
+      out.innerHTML = `<b style="color:var(--deal)">✦ Stüdyodan aktarıldı.</b> Bilgileri ve fotoğraf sırasını son kez kontrol edin; ` +
+        `eksik alanları tamamlayıp <b>İlanı Yayınla</b>'ya basın.` + (l.price ? "" : " Fiyat girilmedi — “AI Fiyat Önerisi Al” ile bant görebilirsiniz.");
+    }
   }
 
   // ── Giriş / Üye ol ──────────────────────────────────────────────────────

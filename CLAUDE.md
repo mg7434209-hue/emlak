@@ -5,8 +5,9 @@
 ## Proje
 EmlakAI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
 (`segment: "emlak"`) + araç (`segment: "vasita"`), her ikisi satılık/kiralık.
-Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, bağımlılıksız Node statik
-sunucu (`server.js`, Railway uyumlu). AI özellikleri istemcide çalışır; sunucu
+Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, Node statik sunucu
+(`server.js`, Railway uyumlu; tek bağımlılık `@anthropic-ai/sdk` — yalnız AI
+İlan Stüdyosu'nun görsel analizi için, anahtar yoksa hiç yüklenmez). AI özellikleri istemcide çalışır; sunucu
 üyelik/ilan API'si ve SEO ön işlemesi yapar.
 TASARIM: ana sayfa **premium keşif + portal** kurgusudur — güçlü hero ve doğal
 dil araması, ardından ilan vitrinleri (son eklenenler, AI seçkisi, fırsatlar,
@@ -412,6 +413,49 @@ Hero'daki kategori etiketleri gerçek bağlantıdır (`/satilik-daire` vb.).
 TUZAK: `<link rel="icon" href="data:image/svg+xml,<svg …>">` satırındaki
 kapanış tırnağı BOZULURSA tarayıcı `<body data-page="index">` özniteliğini
 yutar; sayfa kimliği kaybolur, JSON-LD gövdede düz metin olarak görünür.
+
+## AI İLAN STÜDYOSU — karma bilgi → yayına hazır ilan (`ilan-ver.html`)
+İlan verme sayfası STÜDYOYLA açılır (kategori sihirbazı "Formu kendim
+dolduracağım" ile açılır). Kullanıcı metni karışık yapıştırır, fotoğrafları
+sırasız bırakır (en çok `config.studio.maxInputPhotos`):
+- `assets/studio.js` (`EMLAK.studio`, tarayıcıda): `analyzeText` serbest
+  metinden tür/konum/mahalle/fiyat/m² (brüt-net, dönüm)/oda/yaş/kat/ısıtma/
+  aidat/tapu/ada-parsel/imar/araç alanlarını çıkarır ve satıcı notlarını
+  temizler (telefon, bağlantı, emoji, BÜYÜK HARF, "kaçırmayın" atılır; alanlara
+  zaten giren cümle notlara GİRMEZ). `analyzePhoto` ışık/kontrast/netlik
+  (Laplace)/çözünürlük/renk kayması ölçer, belge-ekran görüntüsü yakalar,
+  dHash üretir. `pickPhotos` belgeyi ve benzer kareyi (`dupDistance`) ayıklar,
+  en iyi `upload.maxPhotos` kareyi seçer, kapak + sahne sırası verir.
+  `enhancePhoto` seviye + yarım beyaz dengesi + gama + canlılık + hafif
+  keskinleştirme yapar (DOĞAL kalsın; abartılı HDR güveni düşürür).
+  `title`/`description` bölümlü metin üretir (ÖNE ÇIKANLAR · SATICININ NOTLARI),
+  `readiness` 0-100 hazırlık puanı + eksik listesi verir.
+- KONUM TUZAĞI: il/ilçe SÖZCÜK SINIRIYLA aranır — "pazarlık" Pazar (Rize)
+  sanılıyordu. `ai.js parseQuery` de aynı düzeltmeyi aldı.
+- `ai-studio.js` (sunucu): `ANTHROPIC_API_KEY` varsa `POST /api/ai/studio`
+  fotoğrafları Claude'a (`STUDIO_MODEL`, varsayılan claude-opus-5-5,
+  yapılandırılmış JSON çıktı) GÖRDÜRÜR: oda etiketi, alt yazı, kalite, uygunluk,
+  kapak, açıklama. Anahtar yoksa `/api/ai/status` → `vision:false`, site
+  tarayıcı analiziyle çalışır. Uç üyelik ister + saatlik sınır (`aiPerHour`).
+  GÜVEN SINIRI: modelin her değeri config'e göre doğrulanır (`validate()`):
+  tanımsız tür/ilçe/özellik/fieldDefs seçeneği ATILIR, açıklamadan telefon ve
+  bağlantı silinir. Fotoğraflar diske yazılmaz. Model tapu/kimlik görürse
+  `include:false` + uyarı döner.
+- Sonuç ekranında kullanıcı fotoğrafları dahil eder/çıkarır, sıralar, kapak
+  seçer, "Önce/Sonra" ile düzeltmeyi karşılaştırır; "Forma Aktar" kategoriyi
+  biliyorsa `wizardApi.goForm()` ile formu açar, bilmiyorsa sihirbazı açar ve
+  seçim bitince `applyStudio()` formu doldurur. YAYIN yine formdan, kullanıcının
+  son kontrolüyle olur — stüdyo hiçbir şeyi kendiliğinden yayınlamaz.
+- Form fotoğraf önizlemesi `.photo-order`: ilk kare kapaktır, ◀ ▶ ★ ile sıralanır.
+- Açıklamalar `.desc-text` (`white-space: pre-line`) ile basılır; madde ve
+  satır sonları detay sayfasında korunur.
+
+## YAYIN İZİN LİSTESİ (server.js `isPublicPath`) — tekrar düşme
+Statik sunucu eskiden kökteki HER dosyayı veriyordu: `data/session.key`
+(oturum imza anahtarı → sahte yönetici jetonu), `.git/`, `server.js`,
+`node_modules/`. Artık yalnız kökteki `.html .txt .xml .ico .webmanifest`
+dosyaları ve `assets/` servis edilir; nokta ile başlayan yol parçası reddedilir.
+Yeni yayın klasörü/uzantısı eklersen izin listesine yaz.
 
 ## Ağ Kısıtı (ÖNEMLİ)
 Buluttaki Claude Code dış sitelere erişemez (egress izin listesi). Dış veri
