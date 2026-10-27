@@ -741,9 +741,16 @@
   // ── Ana sayfa (Google sadeliği: logo + tek arama kutusu) ───────────────
   function pageIndex() {
     let seg = "emlak";
-    const PH = {
-      emlak: 'Örn. "Manavgat\'ta 5 milyon altı satılık villa" ya da "İzmir\'de kiralık 1+1"',
-      vasita: 'Örn. "2020 üstü dizel otomatik Corolla" ya da "kiralık araç Antalya"',
+    // Dar ekranda kısa örnek: uzun yer tutucu kutuda kesiliyordu
+    const narrow = window.matchMedia && matchMedia("(max-width: 560px)").matches;
+    const PH = narrow ? {
+      emlak: "Örn. Manavgat 3+1 daire",
+      vasita: "Örn. 2020 otomatik Corolla",
+      diger: "Örn. traktör, özel ders",
+    } : {
+      emlak: "Örn. Manavgat'ta 5 milyon altı 3+1 daire",
+      vasita: "Örn. 2020 üstü dizel otomatik Corolla",
+      diger: "Örn. traktör, iş makinesi, özel ders",
     };
     const input = $("#aiQuery");
     input.placeholder = PH.emlak;
@@ -754,7 +761,7 @@
         b.classList.add("active");
         b.setAttribute("aria-selected", "true");
         seg = b.dataset.seg;
-        input.placeholder = PH[seg];
+        input.placeholder = PH[seg] || PH.emlak;
         input.focus();
       });
     });
@@ -764,9 +771,48 @@
       if (!f.segment) f.segment = seg;
       location.href = "ilanlar.html?" + AI.filtersToQS(f) + (text ? "&q=" + encodeURIComponent(text) : "");
     };
-    $("#aiSearchBtn").addEventListener("click", doSearch);
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
-    input.focus();
+    // Form gönderimi JS'siz de çalışır (ilanlar.html?q= doğal dil sorgusunu ayrıştırır)
+    const form = $("#gSearch");
+    if (form) form.addEventListener("submit", (e) => { e.preventDefault(); doSearch(); });
+    else {
+      $("#aiSearchBtn").addEventListener("click", doSearch);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
+    }
+    // Sesle arama: Web Speech API (Chrome/Android, Safari/iOS 14.5+); yoksa 🎤 gizlenir
+    const mic = $("#aiMic");
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (mic && !SR) mic.hidden = true;
+    if (mic && SR) {
+      let rec = null;
+      mic.addEventListener("click", () => {
+        if (rec) { try { rec.stop(); } catch (e) { /* zaten durdu */ } return; }
+        try {
+          rec = new SR();
+          rec.lang = "tr-TR"; rec.interimResults = true; rec.maxAlternatives = 1;
+          let finalText = "";
+          mic.classList.add("on"); mic.setAttribute("aria-label", "Dinleniyor… durdurmak için dokunun");
+          input.placeholder = "Dinliyorum…";
+          rec.onresult = (e) => {
+            let interim = "";
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              if (e.results[i].isFinal) finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+            }
+            input.value = (finalText + " " + interim).trim();
+          };
+          rec.onerror = (e) => {
+            if (e.error === "not-allowed" || e.error === "service-not-allowed") input.placeholder = "Mikrofon izni verilmedi — yazarak arayabilirsiniz";
+          };
+          rec.onend = () => {
+            rec = null;
+            mic.classList.remove("on"); mic.setAttribute("aria-label", "Sesle ara");
+            if (finalText.trim()) { input.value = finalText.trim(); doSearch(); }
+            else if (input.placeholder === "Dinliyorum…") input.placeholder = PH[seg] || PH.emlak;
+          };
+          rec.start();
+        } catch (e) { rec = null; mic.classList.remove("on"); }
+      });
+    }
+    if (!window.matchMedia || !matchMedia("(pointer: coarse)").matches) input.focus(); // telefonda klavye fırlamasın
 
     // ── Portal blokları (ana sayfadaki keşif vitrinlerini home.js doldurur;
     // burada kategori/bölge/istatistik/popüler arama blokları doldurulur).

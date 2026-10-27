@@ -1560,18 +1560,6 @@ function renderHomeHtml(html) {
       `<span>${n ? trNum(n) + " ilan" : "İlan bekleniyor"}</span></a>`;
   }).join("");
 
-  const perM2 = (() => {
-    const v = active.filter((l) => l.m2 && l.category === "satilik" && (l.segment || "emlak") === "emlak")
-      .map((l) => l.price / l.m2);
-    return v.length ? Math.round(v.reduce((a, c) => a + c, 0) / v.length) : 0;
-  })();
-  const stats = [
-    ["Yayındaki ilan", trNum(active.length)],
-    ["Bölge", trNum(new Set(active.map((l) => l.city + "/" + l.district)).size || Object.keys(CONF.market.cities).length)],
-    ["Ortalama ₺/m²", perM2 ? trNum(perM2) : "—"],
-    ["AI analizi", "Her ilanda"],
-  ].map(([k, v]) => `<div class="stat-box"><b>${htmlEsc(v)}</b><span>${htmlEsc(k)}</span></div>`).join("");
-
   const regions = [];
   Object.keys(CONF.market.cities).forEach((city) => {
     Object.keys(CONF.market.cities[city].districts).forEach((d) => {
@@ -1600,33 +1588,32 @@ function renderHomeHtml(html) {
       "@type": "ListItem", position: i + 1, url: listingUrl(l), name: l.title,
     })),
   }) : "";
-  // AI seçkisi / fırsatlar / fiyatı düşenler — istemcideki home.js ile aynı
-  // mantık, bot görünümü için sunucuda hesaplanır (AI motoru Node'da yüklü).
+  // TEK AKIŞ — istemcideki home.js feedOf() ile AYNI sıra: günün önerisi →
+  // AI fırsat fiyatı → fiyatı düşenler → en yeni; tekrar yok, en çok 8 kart.
+  // Bot görünümü için sunucuda hesaplanır (AI motoru Node'da yüklü).
   const ai = global.EMLAK.ai;
-  // AI seçkisi/fırsatlar piyasa verisine dayanır: "Diğer" segmenti girmez
   const valuable = active.filter((l) => (l.segment || "emlak") !== "diger");
-  const picks = ai ? ai.rank(valuable.slice()).slice(0, 4) : byDate.slice(0, 4);
-  const deals = ai ? valuable.map((l) => ({ l, b: ai.priceBadge(l) }))
-    .filter((x) => x.b && x.b.key === "firsat").sort((a, b) => b.b.pct - a.b.pct).slice(0, 4).map((x) => x.l) : [];
-  const drops = active.filter((l) => (l.priceHistory || []).some((h) => h.price > l.price))
-    .sort((a, b) => new Date(b.updated || b.date) - new Date(a.updated || a.date)).slice(0, 4);
+  const feed = [];
+  const seen = new Set();
+  const push = (l) => { if (feed.length < 8 && !seen.has(l.id)) { seen.add(l.id); feed.push(l); } };
+  if (ai && valuable.length) {
+    const ranked = ai.rank(valuable.slice());
+    push(ranked[Math.floor(Date.now() / 86400000) % ranked.length]);
+    valuable.map((l) => ({ l, b: ai.priceBadge(l) })).filter((x) => x.b && x.b.key === "firsat")
+      .sort((a, b) => b.b.pct - a.b.pct).forEach((x) => push(x.l));
+  }
+  active.filter((l) => (l.priceHistory || []).some((h) => h.price > l.price))
+    .sort((a, b) => new Date(b.updated || b.date) - new Date(a.updated || a.date)).forEach(push);
+  byDate.forEach(push);
   // DİKKAT: kapsayıcının içinde yalnızca iskelet kutuları vardır; kapanış
   // etiketini şaşırmamak için TAM olarak onlar eşleştirilir (tembel [\s\S]*?
   // ilk </div>'i yakalayıp markup'ı bozuyordu).
-  const fillGrid = (h, id, items) => h.replace(
-    new RegExp('(<div class="home-grid" id="' + id + '">)(?:\\s*<div class="home-skeleton"></div>)*(\\s*</div>)'),
-    (m, a2, b2) => a2 + (items.length ? items.map(card).join("") : "") + b2);
-
-  html = fillGrid(html, "aiPicksGrid", picks);
-  html = fillGrid(html, "dealGrid", deals);
-  html = fillGrid(html, "dropGrid", drops);
+  html = html.replace(
+    /(<div class="home-grid" id="homeFeed">)(?:\s*<div class="home-skeleton"><\/div>)*(\s*<\/div>)/,
+    (m, a2, b2) => a2 + feed.map(card).join("") + b2);
 
   return html
     .replace("</head>", ld + "\n</head>")
-    // İskelet kutuları yerine gerçek ilanlar (home.js yüklenince üzerine yazar)
-    .replace(/(<div class="home-rail-track" id="latestTrack">)(?:\s*<div class="home-skeleton"><\/div>)*(\s*<\/div>)/,
-      (m, a, b) => a + byDate.slice(0, 8).map(card).join("") + b)
-    .replace('<div class="stat-strip" id="statStrip"></div>', `<div class="stat-strip" id="statStrip">${stats}</div>`)
     .replace('<div class="cat-grid" id="catGrid"></div>', `<div class="cat-grid" id="catGrid">${catCards}</div>`)
     .replace('<div class="region-grid" id="regionGrid"></div>', `<div class="region-grid" id="regionGrid">${regionCards}</div>`);
 }

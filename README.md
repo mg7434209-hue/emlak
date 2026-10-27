@@ -56,7 +56,7 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 
 ## Sayfalar
 
-- `index.html` — premium hero + doğal dil AI araması, otomatik ilan vitrinleri
+- `index.html` — Google sadeliğinde tek arama kutusu (yazı/ses) + tek ilan akışı
   (son eklenenler, AI seçkisi, fırsatlar, fiyat düşüşleri, koleksiyonlar) ve
   portal blokları: canlı istatistikler, sayaçlı kategori ağacı, bölge kartları,
   popüler aramalar

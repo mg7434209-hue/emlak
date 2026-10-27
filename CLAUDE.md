@@ -9,17 +9,19 @@ EmlakAI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
 (`server.js`, Railway uyumlu; tek bağımlılık `@anthropic-ai/sdk` — yalnız AI
 İlan Stüdyosu'nun görsel analizi için, anahtar yoksa hiç yüklenmez). AI özellikleri istemcide çalışır; sunucu
 üyelik/ilan API'si ve SEO ön işlemesi yapar.
-TASARIM: ana sayfa **premium keşif + portal** kurgusudur — güçlü hero ve doğal
-dil araması, ardından ilan vitrinleri (son eklenenler, AI seçkisi, fırsatlar,
-fiyat düşüşleri, koleksiyonlar) ve portal blokları (kategori ağacı, bölge
-kartları, popüler aramalar). Eski "Google sadeliği" ilkesi bırakılmıştır.
+TASARIM: ana sayfa **GOOGLE SADELİĞİNDEDİR** (27 Eki 2026, kullanıcı kararı;
+"premium keşif + portal" kurgusu bırakıldı). İlk ekran: büyük logo + tek
+arama kutusu (yazı ya da 🎤 sesle) + segment sekmeleri + birkaç örnek +
+"Ücretsiz ilan ver" / "Evim ne eder?". Altında YALNIZ iki bölüm: tek ilan
+akışı (`#homeFeed`) ve kategori/bölge bağlantıları. Yeni vitrin bölümü
+EKLEME — yeni sinyal (fırsat, fiyat düşüşü…) akışa rozetle girer.
 
 Sayfalar (kök dizinde):
-`index.html` (premium hero + doğal dil arama + keşif vitrinleri `home.js` ile;
-ARDINDAN portal blokları: `#statStrip` istatistik şeridi, `#catTree` sayaçlı
-kategori ağacı (SEO rotalarına bağlanır), `#regionGrid` bölge kartları,
-`#popularTags` popüler aramalar — bunları `app.js pageIndex()` doldurur ve
-sunucu `renderHomeHtml()` ile bot görünümüne basar) · `ilanlar.html`
+`index.html` (Google sadeliği: `.g-hero` arama — form `ilanlar.html?q=` ile
+JS'siz de çalışır, `app.js pageIndex()` doğal dili filtreye çevirir; tek akış
+`#homeFeed` = `home.js feedOf()`: günün önerisi → AI fırsat fiyatı → fiyatı
+düşenler → en yeni, tekrarsız en çok 8 kart; sunucu `renderHomeHtml()` AYNI
+sırayı botlar için basar; `#catGrid` + `#regionGrid` bağlantıları) · `ilanlar.html`
 (segment seçicili filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır;
 araçta marka/model/yıl/km/yakıt/vites filtreleri; sayfa başına 24 ilan +
 `.pager` sayfalama — filtre/sıralama değişince 1. sayfaya döner) · `ilan.html?id=`
@@ -398,16 +400,12 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
 - İstemci: `data.js` `init()` API'yi yoklar; yoksa (GitHub Pages) REAL +
   localStorage'a düşer, `admin.html` "statik yayın" uyarısı gösterir.
 
-## Ana sayfa (index.html) — canlı tasarım + portal blokları
-Ana sayfa iki katmandır; İKİSİNİ DE koru:
-1. **Keşif katmanı** (`assets/home.js` + `assets/home.css`): kompakt hero,
-   arama paneli, Son Eklenen İlanlar rayı, AI'nin Seçtikleri, Fırsat İlanları,
-   Son Fiyatı Düşenler, Koleksiyonlar, AI Günün Önerisi, yayınla CTA'sı.
-2. **Portal katmanı** (`app.js pageIndex()` + `style.css`): `#statStrip`
-   istatistikler, `#catGrid` kategori kartları (SEO rotalarına), `#regionGrid`
-   bölge kartları, `#popularTags` popüler doğal dil aramaları. Her blok
-   VARSA çizilir (`if (el)`) — düzen değişse de sayfa kırılmaz.
-Hero'daki kategori etiketleri gerçek bağlantıdır (`/satilik-daire` vb.).
+## Ana sayfa (index.html) — Google sadeliği
+Üç parça, başka bölüm YOK: (1) `.g-hero` arama (style.css `.g-*`; sesli arama
+`#aiMic` Web Speech API, yoksa gizlenir), (2) tek ilan akışı `#homeFeed`
+(`home.js`), (3) `#catGrid` + `#regionGrid` (`app.js pageIndex()` + sunucu).
+`home.css` yalnız akış kartlarını ve bağlantı ızgarasını taşır; ana sayfada
+başlık çubuğunun logosu gizlidir (büyük logo aramanın üstündedir).
 `npm start` artık `visitor-server.js` üzerinden çalışır (ziyaretçi sayacı
 `/api/site-stats`'ı ekler, sonra `server.js`'i yükler).
 TUZAK: `<link rel="icon" href="data:image/svg+xml,<svg …>">` satırındaki
