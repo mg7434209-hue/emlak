@@ -25,6 +25,11 @@
  *   GET  /api/admin/users        (token) → üyeler
  *   POST /api/admin/user         (token) {id, action: ban|unban|remove|admin|unadmin|password}
  *   GET  /api/ai/status          → {vision} (Claude görsel analizi açık mı)
+ *   POST /api/my/reply           (X-User-Token) {mid, text} → konuşmaya yanıt (satıcı/alıcı)
+ *   POST /api/my/msgread         (X-User-Token) {mid} → okundu
+ *   POST /api/report             {id, reason, note} → ilan şikayeti (eşikte otomatik incelemeye)
+ *   GET  /api/admin/reports      (token) → şikayetler
+ *   POST /api/admin/report       (token) {rid, action: dismiss|reject}
  *   POST /api/ai/studio          (X-User-Token) {text, images, hints} → AI İlan Stüdyosu
  *
  * SEO/AEO: /ilan.html?id= ve /ilanlar.html sunucuda ÖN İŞLENİR (bot'lar JS
@@ -291,6 +296,31 @@ function saveMessages(list) {
 }
 let MESSAGES = loadMessages();
 
+// ── İlan şikayetleri (güven & güvenlik) ─────────────────────────────────
+// Ziyaretçi ilanı şikayet eder; farklı kişilerden config.moderation.
+// reportThreshold kadar AÇIK şikayet gelince ilan kendiliğinden yönetici
+// incelemesine düşer. Ham IP SAKLANMAZ — tuzlu özet tutulur (KVKK).
+const REPORT_STORE = path.join(DATA_DIR, "reports.json");
+function loadReports() {
+  try { return JSON.parse(fs.readFileSync(REPORT_STORE, "utf8")); } catch (e) { return []; }
+}
+function saveReports(list) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const tmp = REPORT_STORE + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(list, null, 1));
+  fs.renameSync(tmp, REPORT_STORE);
+}
+let REPORTS = loadReports();
+
+// Mesaj okunmamış sayısı: satıcı tarafında kendi ilanlarına gelen ve
+// okumadığı konuşmalar + alıcı tarafında yanıt gelmiş konuşmalar.
+function unreadFor(uid) {
+  if (!uid) return 0;
+  const own = new Set(LISTINGS.filter((l) => l.ownerId === uid).map((l) => l.id));
+  return MESSAGES.filter((m) => (own.has(m.listingId) && m.sellerRead !== true) ||
+    (m.buyerId === uid && m.buyerRead === false)).length;
+}
+
 // ── Üyelik: kullanıcı hesapları (kayıt + giriş) ───────────────────────────
 // Şifreler scrypt ile tuzlanarak saklanır; oturum jetonu HMAC ile imzalanır
 // (sunucu yeniden başlayınca kullanıcılar düşmez, gizli anahtar DATA_DIR'de).
@@ -533,7 +563,7 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/auth/me" && req.method === "GET") {
     const u = currentUser(req);
     if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
-    return sendJson(res, 200, { user: publicUser(u) });
+    return sendJson(res, 200, { user: publicUser(u), unread: unreadFor(u.uid) });
   }
 
   // POST /api/auth/update — profil ve şifre güncelleme
@@ -596,6 +626,11 @@ async function handleApi(req, res, urlPath) {
     const l = NORMALIZE(b);
     if (!l) return sendJson(res, 400, { error: "Geçersiz ilan verisi." });
     if (!l.title || !l.price || !l.district) return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
+    // Taşınmaz Ticareti Hakkında Yönetmelik: emlak işletmesi ilanında yetki belgesi no
+    if (!isAdmin && (l.segment || "emlak") === "emlak" && l.seller && l.seller.type === "ofis" &&
+        !/^\d{5,12}$/.test(l.seller.license || "")) {
+      return sendJson(res, 400, { error: "Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur." });
+    }
     if (LISTINGS.length >= 2000) return sendJson(res, 429, { error: "İlan kapasitesi dolu." });
     // İstemcinin GÖNDEREMEYECEĞİ alanlar: sahiplik, sayaçlar, fiyat geçmişi.
     // (normalize bunları taşıyabilir; burada kesin olarak sunucu belirler.)
@@ -613,6 +648,7 @@ async function handleApi(req, res, urlPath) {
       const rawName = str(rawSeller.name, 80);
       l.ownerId = user.uid;
       l.seller = { name: rawName || user.name, type: rawSeller.type === "ofis" ? "ofis" : "sahibinden" };
+      if (l.seller.type === "ofis" && rawSeller.license) l.seller.license = String(rawSeller.license).replace(/\D/g, "").slice(0, 12);
       if (!l.phone && user.phone) l.phone = user.phone;
     }
     const ph = persistPhotos(l.id, b.photos, { ownerId: l.ownerId }); // base64 → DATA_DIR/uploads dosyaları
@@ -687,17 +723,23 @@ async function handleApi(req, res, urlPath) {
     const b = await readBody(req, 16 * 1024);
     const l = LISTINGS.find((x) => x.id === b.id && x.status === "active");
     if (!l) return sendJson(res, 404, { error: "İlan bulunamadı." });
-    const name = str(b.name, 80), phone = str(b.phone, 25), text = str(b.message, 1200);
-    if (!name || !phone || !text) return sendJson(res, 400, { error: "Ad, telefon ve mesaj zorunludur." });
+    // Üye ise konuşma hesabına bağlanır: satıcının yanıtı site içinde gelir.
+    const u = currentUser(req);
+    if (u && l.ownerId === u.uid) return sendJson(res, 400, { error: "Kendi ilanınıza mesaj gönderemezsiniz." });
+    const name = str(b.name, 80) || (u && u.name) || "";
+    const phone = str(b.phone, 25) || (u && u.phone && u.phone.display) || "";
+    const text = str(b.message, 1200);
+    if (!name || !text || (!phone && !u)) return sendJson(res, 400, { error: "Ad, telefon ve mesaj zorunludur." });
     if (b.hp) return sendJson(res, 200, { ok: true }); // bal küpü: bot doldurur, sessizce yut
-    if (MESSAGES.length >= 1000) MESSAGES.length = 999;
+    if (MESSAGES.length >= 2000) MESSAGES.length = 1999;
     MESSAGES.unshift({
       mid: "M" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase(),
-      listingId: l.id, listingTitle: l.title, name, phone, email: str(b.email, 120),
+      listingId: l.id, listingTitle: l.title, name, phone, email: str(b.email, 120) || (u && u.email) || "",
       message: text, date: new Date().toISOString(), read: false,
+      buyerId: u ? u.uid : undefined, thread: [], sellerRead: false, buyerRead: true,
     });
     saveMessages(MESSAGES);
-    return sendJson(res, 200, { ok: true });
+    return sendJson(res, 200, { ok: true, threaded: !!u });
   }
 
   // ── Üyenin kendi ilanları ve mesajları ────────────────────────────────
@@ -715,7 +757,88 @@ async function handleApi(req, res, urlPath) {
     const u = currentUser(req);
     if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
     const own = new Set(LISTINGS.filter((l) => l.ownerId === u.uid).map((l) => l.id));
-    return sendJson(res, 200, { messages: MESSAGES.filter((m) => own.has(m.listingId)) });
+    // messages = gelen kutusu (satıcı), sent = gönderdiklerim (alıcı).
+    // Alıcı tarafında satıcıya ait iletişim bilgisi DÖNMEZ; yalnız konuşma.
+    const sent = MESSAGES.filter((m) => m.buyerId === u.uid).map((m) => ({
+      mid: m.mid, listingId: m.listingId, listingTitle: m.listingTitle, message: m.message,
+      date: m.date, thread: m.thread || [], buyerRead: m.buyerRead !== false,
+    }));
+    return sendJson(res, 200, { messages: MESSAGES.filter((m) => own.has(m.listingId)), sent, unread: unreadFor(u.uid) });
+  }
+
+  // POST /api/my/reply {mid, text} — konuşmaya yanıt (satıcı ya da alıcı)
+  if (urlPath === "/api/my/reply" && req.method === "POST") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    if (!rateLimit(req, "reply", 60, 60 * 60 * 1000)) {
+      return sendJson(res, 429, { error: "Çok fazla mesaj gönderdiniz. Biraz sonra tekrar deneyin." });
+    }
+    const b = await readBody(req, 8 * 1024);
+    const m = MESSAGES.find((x) => x.mid === b.mid);
+    if (!m) return sendJson(res, 404, { error: "Konuşma bulunamadı." });
+    const l = LISTINGS.find((x) => x.id === m.listingId);
+    const role = l && l.ownerId === u.uid ? "seller" : m.buyerId === u.uid ? "buyer" : "";
+    if (!role) return sendJson(res, 403, { error: "Bu konuşmaya yazamazsınız." });
+    if (role === "seller" && !m.buyerId) {
+      return sendJson(res, 400, { error: "Bu kişi üye olmadan yazmış; telefon ya da WhatsApp ile dönün." });
+    }
+    const text = str(b.text, 1200);
+    if (!text) return sendJson(res, 400, { error: "Mesaj boş olamaz." });
+    m.thread = (m.thread || []).concat({ from: role, text, date: new Date().toISOString() }).slice(-200);
+    if (role === "seller") { m.buyerRead = false; m.sellerRead = true; }
+    else { m.sellerRead = false; m.buyerRead = true; }
+    saveMessages(MESSAGES);
+    return sendJson(res, 200, { ok: true, thread: m.thread });
+  }
+
+  // POST /api/my/msgread {mid} — konuşmayı kendi tarafında okundu işaretle
+  if (urlPath === "/api/my/msgread" && req.method === "POST") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    const b = await readBody(req, 2048);
+    const m = MESSAGES.find((x) => x.mid === b.mid);
+    if (!m) return sendJson(res, 404, { error: "Konuşma bulunamadı." });
+    const l = LISTINGS.find((x) => x.id === m.listingId);
+    if (l && l.ownerId === u.uid) m.sellerRead = true;
+    else if (m.buyerId === u.uid) m.buyerRead = true;
+    else return sendJson(res, 403, { error: "Yetkisiz." });
+    saveMessages(MESSAGES);
+    return sendJson(res, 200, { ok: true, unread: unreadFor(u.uid) });
+  }
+
+  // POST /api/report {id, reason, note} — ilan şikayeti (herkese açık, hız sınırlı)
+  if (urlPath === "/api/report" && req.method === "POST") {
+    if (!rateLimit(req, "report", 5, 60 * 60 * 1000)) {
+      return sendJson(res, 429, { error: "Çok fazla şikayet gönderdiniz. Daha sonra tekrar deneyin." });
+    }
+    const b = await readBody(req, 4096);
+    if (b.hp) return sendJson(res, 200, { ok: true }); // bal küpü
+    const l = LISTINGS.find((x) => x.id === b.id && x.status === "active");
+    if (!l) return sendJson(res, 404, { error: "İlan bulunamadı." });
+    const reasons = (MOD.reportReasons || []);
+    const reason = reasons.indexOf(b.reason) >= 0 ? b.reason : "";
+    if (!reason) return sendJson(res, 400, { error: "Bir şikayet nedeni seçin." });
+    const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || (req.socket && req.socket.remoteAddress) || "?";
+    const who = crypto.createHmac("sha256", SESSION_SECRET).update("report|" + ip).digest("hex").slice(0, 20);
+    const u = currentUser(req);
+    if (REPORTS.some((r) => r.listingId === l.id && r.who === who && r.status === "open")) {
+      return sendJson(res, 200, { ok: true, duplicate: true });
+    }
+    if (REPORTS.length >= 3000) REPORTS.length = 2999;
+    REPORTS.unshift({
+      rid: "R" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase(),
+      listingId: l.id, listingTitle: l.title, reason, note: str(b.note, 600),
+      who, uid: u ? u.uid : undefined, date: new Date().toISOString(), status: "open",
+    });
+    // Eşik: farklı kişilerden gelen açık şikayetler
+    const open = new Set(REPORTS.filter((r) => r.listingId === l.id && r.status === "open").map((r) => r.who));
+    let hidden = false;
+    if (open.size >= (MOD.reportThreshold || 3)) {
+      l.status = "pending"; l.reported = true; hidden = true;
+      saveListings(LISTINGS);
+    }
+    saveReports(REPORTS);
+    return sendJson(res, 200, { ok: true, hidden });
   }
 
   // GET /api/my/searches — kayıtlı aramalar + her biri için YENİ ilan sayısı
@@ -782,6 +905,10 @@ async function handleApi(req, res, urlPath) {
     const merged = NORMALIZE(Object.assign({}, l, patch));
     if (!merged || !merged.title || !merged.price || !merged.district) {
       return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
+    }
+    if ((merged.segment || "emlak") === "emlak" && merged.seller && merged.seller.type === "ofis" &&
+        !/^\d{5,12}$/.test(merged.seller.license || "")) {
+      return sendJson(res, 400, { error: "Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur." });
     }
     const ph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos, { ownerId: l.ownerId }) : null;
     const keptPhotos = ph ? ph.photos : l.photos;
@@ -879,6 +1006,35 @@ async function handleApi(req, res, urlPath) {
     else if (b.action === "unread") MESSAGES[i].read = false;
     else return sendJson(res, 400, { error: "Bilinmeyen eylem." });
     saveMessages(MESSAGES);
+    return sendJson(res, 200, { ok: true });
+  }
+
+  // GET /api/admin/reports — şikayetler (ilan durumu ile)
+  if (urlPath === "/api/admin/reports" && req.method === "GET") {
+    if (!isAdminReq(req)) return sendJson(res, 401, { error: "Yetkisiz." });
+    return sendJson(res, 200, { reports: REPORTS.map((r) => {
+      const l = LISTINGS.find((x) => x.id === r.listingId);
+      return Object.assign({}, r, { who: undefined, listingStatus: l ? l.status : "silinmiş" });
+    }) });
+  }
+  // POST /api/admin/report {rid, action: dismiss|reject}
+  //  dismiss: şikayeti kapat; ilan şikayetle gizlendiyse ve başka açık şikayet yoksa geri yayına al
+  //  reject : ilanı yayından kaldır, ilana ait tüm şikayetleri kapat
+  if (urlPath === "/api/admin/report" && req.method === "POST") {
+    if (!isAdminReq(req)) return sendJson(res, 401, { error: "Yetkisiz." });
+    const b = await readBody(req, 2048);
+    const r = REPORTS.find((x) => x.rid === b.rid);
+    if (!r) return sendJson(res, 404, { error: "Şikayet bulunamadı." });
+    const l = LISTINGS.find((x) => x.id === r.listingId);
+    if (b.action === "dismiss") {
+      r.status = "closed";
+      const stillOpen = REPORTS.some((x) => x.listingId === r.listingId && x.status === "open");
+      if (l && l.reported && !stillOpen && l.status === "pending") { l.status = "active"; delete l.reported; saveListings(LISTINGS); }
+    } else if (b.action === "reject") {
+      REPORTS.forEach((x) => { if (x.listingId === r.listingId) x.status = "closed"; });
+      if (l) { l.status = "rejected"; delete l.reported; saveListings(LISTINGS); }
+    } else return sendJson(res, 400, { error: "Bilinmeyen eylem." });
+    saveReports(REPORTS);
     return sendJson(res, 200, { ok: true });
   }
 
@@ -1060,6 +1216,8 @@ function renderListingHtml(html, l) {
     ["Isıtma", l.heating], ["Mutfak", l.kitchen], ["Aidat", l.dues ? trNum(l.dues) + " ₺/ay" : ""],
     ["Tapu Durumu", l.deed], ["Krediye Uygun", l.creditOk == null ? "" : (l.creditOk ? "Evet" : "Hayır")],
     ["Takas", l.swap == null ? "" : (l.swap ? "Evet" : "Hayır")],
+    ["İlan Veren", l.seller ? (l.seller.type === "ofis" ? "Emlak Ofisi" : "Sahibinden") : ""],
+    ["Yetki Belge No", l.seller && l.seller.type === "ofis" ? l.seller.license : ""],
   ]).concat(Object.keys(l.details || {}).map((k) => [
     (CONF.fieldDefs[k] || {}).label || k,
     l.details[k] === true ? "Var" : String(l.details[k]),

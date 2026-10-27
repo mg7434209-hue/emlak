@@ -902,6 +902,35 @@ EMLAK.config = {
   moderation: {
     seedStatus: "pending",
     adminAutoPublish: true,
+    // İLAN ŞİKAYETİ: farklı kişilerden bu kadar açık şikayet gelince ilan
+    // kendiliğinden yayından çekilip yönetici incelemesine ("pending") düşer.
+    reportThreshold: 3,
+    reportReasons: [
+      "Dolandırıcılık şüphesi / kapora istiyor",
+      "İlan gerçek değil / satılmış",
+      "Yanlış fiyat ya da yanıltıcı bilgi",
+      "Fotoğraflar başka ilandan / alakasız",
+      "Yanlış kategori",
+      "Uygunsuz içerik",
+      "Diğer",
+    ],
+  },
+  // İlan detayındaki güvenli alışveriş uyarıları (segment başına)
+  safety: {
+    emlak: [
+      "Görmediğiniz taşınmaz için kapora ya da ön ödeme GÖNDERMEYİN.",
+      "Tapu bilgisini e-Devlet › Tapu Bilgilerim ya da tapu müdürlüğünden doğrulayın.",
+      "Ödemeyi tapu devri sırasında, resmî kanallardan yapın.",
+    ],
+    vasita: [
+      "Görmediğiniz araç için kapora ya da ön ödeme GÖNDERMEYİN.",
+      "Satın almadan önce bağımsız ekspertiz yaptırın ve hasar kaydını sorgulayın.",
+      "Satışı noterde yapın; ödemeyi noter işlemi sırasında gerçekleştirin.",
+    ],
+    diger: [
+      "Görmediğiniz ürün için ön ödeme GÖNDERMEYİN; elden teslimde kontrol edin.",
+      "Kargo ile alımda güvenli ödeme yöntemlerini tercih edin.",
+    ],
   },
 
   // ── Fotoğraf yükleme kuralları (ilan-ver + yönetim düzenleyicisi) ───────

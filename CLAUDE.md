@@ -356,7 +356,7 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
 `server.js` statik sunucuya ek olarak ilan API'si taşır (bağımlılıksız):
 - Açık uçlar: `GET/POST /api/listings`, `GET /api/listing?id=` (ilan takibi),
   `POST /api/view` (görüntülenme), `POST /api/messages` (ilana talep/mesaj),
-  `POST /api/login`.
+  `POST /api/report` (ilan şikayeti), `POST /api/login`.
 - Admin uçları (`X-Admin-Token`): `GET /api/admin/listings`,
   `POST /api/admin/action` (`approve|reject|remove|feature|unfeature|price|edit`),
   `GET /api/admin/messages`, `POST /api/admin/message`, `POST /api/admin/import`.
@@ -468,6 +468,34 @@ sırasız bırakır (en çok `config.studio.maxInputPhotos`):
 - Form fotoğraf önizlemesi `.photo-order`: ilk kare kapaktır, ◀ ▶ ★ ile sıralanır.
 - Açıklamalar `.desc-text` (`white-space: pre-line`) ile basılır; madde ve
   satır sonları detay sayfasında korunur.
+
+## GÜVEN & İLETİŞİM — sahibinden karşılığı (27 Eki 2026)
+- MESAJLAŞMA (iki yönlü): üye alıcının mesajı `buyerId` ile konuşma olur
+  (`thread[]`, `sellerRead`/`buyerRead`). Satıcı ve alıcı `Hesabım ›
+  Mesajlarım` (`#convo`, `hesap.html#mesajlar`) ekranında yazışır:
+  `POST /api/my/reply`, `/api/my/msgread`. Üye olmadan yazan ziyaretçiye
+  site içinden yanıt verilemez (telefon/WhatsApp). Alıcı tarafına satıcının
+  iletişim bilgisi DÖNMEZ. Okunmamış sayısı `unreadFor()` → `/api/auth/me`
+  `unread` → menüde `.nav-badge`. Kendi ilanına mesaj 400.
+- ŞİKAYET: ilan detayında "🚩 Bu ilanı şikayet et" (`POST /api/report`,
+  nedenler `config.moderation.reportReasons`, IP başına 5/saat). Ham IP
+  SAKLANMAZ — HMAC özeti (`who`), panele de gitmez. Farklı kişilerden
+  `reportThreshold` (3) açık şikayet → ilan kendiliğinden `pending` +
+  `reported`. Panel "🚩 Şikayetler": Asılsız (kapatır; başka açık şikayet
+  yoksa ilan geri yayına) · Yayından Kaldır (rejected + tüm şikayetler kapanır).
+  Depo `DATA_DIR/reports.json`.
+- EMLAKÇI YETKİ BELGESİ: Taşınmaz Ticareti Hakkında Yönetmelik gereği emlak
+  segmentinde "Emlak Ofisi" ilanı `seller.license` (5-12 rakam) OLMADAN
+  kabul edilmez — istemci `validate()`, sunucu ilan ekleme + üye düzenleme
+  (yönetici hariç). Beyandır; ilan sayfasında "🪪 Yetki Belge No", künyede ve
+  bot görünümünde yazılır. Son girilen no `emlakai.license`'ta hatırlanır.
+- TELEFONU GÖSTER: ilan detayında numara ilk dokunuşta açılır (`#callBtn`
+  `data-tel`), ikinci dokunuş arar.
+- GÜVENLİ ALIŞVERİŞ kutusu: segment başına uyarılar `config.safety`.
+- İLAN NO İLE ARAMA: ana sayfa araması ve `ilanlar.html?q=` "EA…" biçimini
+  görünce doğrudan ilana gider.
+- FAVORİ FİYAT ALARMI: `favPriceAlert()` (initChrome) favorilerin fiyat
+  anlık görüntüsünü `emlakai.favPrices`'ta tutar; düşüş varsa bir kez `.toast`.
 
 ## YAYIN İZİN LİSTESİ (server.js `isPublicPath`) — tekrar düşme
 Statik sunucu eskiden kökteki HER dosyayı veriyordu: `data/session.key`

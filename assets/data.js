@@ -125,7 +125,11 @@
       fuel: str(l.fuel, 20) || undefined, gear: str(l.gear, 20) || undefined,
       features: (Array.isArray(l.features) ? l.features : []).map((f) => str(f, 40)).filter(Boolean).slice(0, 20),
       photos: (Array.isArray(l.photos) ? l.photos : []).filter((p) => typeof p === "string" && SAFE_PHOTO.test(p)).slice(0, 8),
-      seller: { name: str(seller.name, 80) || "Sahibinden", type: seller.type === "ofis" ? "ofis" : "sahibinden" },
+      seller: {
+        name: str(seller.name, 80) || "Sahibinden", type: seller.type === "ofis" ? "ofis" : "sahibinden",
+        // Emlakçı Yetki Belgesi No (Taşınmaz Ticareti Hakkında Yönetmelik): yalnız rakam, beyan
+        license: seller.type === "ofis" ? (String(seller.license || "").replace(/\D/g, "").slice(0, 12) || undefined) : undefined,
+      },
       phone,
       // İsteğe bağlı detay alanları (detay sayfası varsa gösterir)
       locality: str(l.locality, 120) || undefined,
@@ -227,11 +231,18 @@
     } catch (e) { return null; }
   }
   // İlana mesaj/talep bırakma (yönetim panelinde görünür)
+  // Üye oturumu varsa jeton gönderilir: mesaj konuşma olarak hesaba bağlanır
   async function sendMessage(payload) {
-    const r = await fetch("api/messages", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const headers = { "Content-Type": "application/json" };
+    if (auth.token()) headers["X-User-Token"] = auth.token();
+    const r = await fetch("api/messages", { method: "POST", headers, body: JSON.stringify(payload) });
+    return r.json();
+  }
+  // İlan şikayeti
+  async function report(payload) {
+    const headers = { "Content-Type": "application/json" };
+    if (auth.token()) headers["X-User-Token"] = auth.token();
+    const r = await fetch("api/report", { method: "POST", headers, body: JSON.stringify(payload) });
     return r.json();
   }
   async function submit(l, adminToken) {
@@ -285,7 +296,7 @@
     async refresh() {
       if (!auth.token()) return null;
       const j = await authApi("api/auth/me", { method: "GET" });
-      if (j && j.user) { writeSession({ token: auth.token(), user: j.user }); return j.user; }
+      if (j && j.user) { writeSession({ token: auth.token(), user: j.user }); auth.unread = j.unread || 0; return j.user; }
       return null;
     },
     async update(payload) {
@@ -295,6 +306,9 @@
     },
     myListings: () => authApi("api/my/listings", { method: "GET" }),
     myMessages: () => authApi("api/my/messages", { method: "GET" }),
+    myReply: (mid, text) => authApi("api/my/reply", { method: "POST", body: JSON.stringify({ mid, text }) }),
+    myMsgRead: (mid) => authApi("api/my/msgread", { method: "POST", body: JSON.stringify({ mid }) }),
+    unread: 0,
     myAction: (id, action, value) => authApi("api/my/action", { method: "POST", body: JSON.stringify({ id, action, value }) }),
     // Kayıtlı aramalar (yeni ilan sayacıyla)
     mySearches: () => authApi("api/my/searches", { method: "GET" }),
@@ -310,6 +324,7 @@
     previewListing,
     countView,
     sendMessage,
+    report,
     hasServer: () => remote !== null,
     all: () => {
       const base = remote || REAL;

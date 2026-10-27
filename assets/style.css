@@ -672,3 +672,38 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
   .studio-head h2 { font-size: 1.02rem; margin: 8px 0 10px; }
   .st-tabs button { flex: 1; white-space: nowrap; padding: 10px 4px; font-size: .92rem; }
 }
+
+/* ── Güven & iletişim: sahibinden karşılığı özellikler ─────────────────── */
+.nav-badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--over); color: #fff; font-size: .7rem; font-weight: 700; margin-left: 2px; }
+.license-line { color: var(--deal); }
+.safety-box { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); font-size: .86rem; }
+.safety-box ul { margin: 6px 0 4px 18px; color: var(--muted); display: grid; gap: 3px; }
+.link-btn { background: none; border: none; color: var(--over); font-weight: 600; padding: 6px 0 0; font-size: .86rem; min-height: 32px; }
+.report-box { border: 1px solid color-mix(in srgb, var(--over) 40%, var(--border)); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.report-box[hidden] { display: none; }
+.toast { position: fixed; z-index: 90; left: 50%; bottom: 20px; transform: translateX(-50%); width: min(560px, calc(100% - 32px));
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-lg);
+  padding: 12px 40px 12px 14px; font-size: .9rem; }
+.toast button { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: none; background: transparent; color: var(--muted); }
+/* Hesabım › Mesajlarım: konuşmalar */
+.convo { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 12px; margin-top: 12px; min-height: 420px; }
+.convo-list { display: flex; flex-direction: column; gap: 6px; max-height: 560px; overflow-y: auto; }
+.convo-item { text-align: left; display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); }
+.convo-item.on { border-color: var(--primary); }
+.convo-item.unread { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.convo-item .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--over); }
+.convo-who { font-size: .8rem; color: var(--muted); }
+.convo-title { font-weight: 700; font-size: .92rem; }
+.convo-last { font-size: .85rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.convo-item small { color: var(--muted); font-size: .74rem; }
+.convo-thread { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; min-height: 420px; }
+.convo-head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: grid; gap: 2px; }
+.convo-msgs { flex: 1; overflow-y: auto; max-height: 460px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); }
+.cmsg { max-width: 80%; padding: 8px 12px; border-radius: 14px; white-space: pre-line; display: grid; gap: 2px; }
+.cmsg small { font-size: .7rem; opacity: .7; }
+.cmsg.me { align-self: flex-end; background: var(--primary); color: var(--surface); border-bottom-right-radius: 4px; }
+.cmsg.them { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.convo-reply { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); align-items: flex-end; }
+.convo-empty { color: var(--muted); padding: 18px; }
+.convo-thread .notice { margin: 12px; }
+@media (max-width: 760px) { .convo { grid-template-columns: 1fr; } .convo-list { max-height: 260px; } }

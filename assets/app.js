@@ -412,6 +412,7 @@
           <div><label for="eSellerType">Satıcı Tipi</label><select id="eSellerType">
             <option value="sahibinden"${(l.seller || {}).type !== "ofis" ? " selected" : ""}>Sahibinden</option>
             <option value="ofis"${(l.seller || {}).type === "ofis" ? " selected" : ""}>Ofis / Galeri</option></select></div>
+          <div><label for="eLicense">Yetki Belgesi No <small>(emlak ofisi)</small></label><input id="eLicense" type="text" inputmode="numeric" maxlength="12" value="${esc((l.seller || {}).license || "")}"></div>
           <div class="full"><label for="ePhone">İlan Telefonu</label><input id="ePhone" type="tel" maxlength="25" value="${esc((l.phone || {}).display || "")}" placeholder="Boş = site telefonu"></div>
           <div class="full"><label for="eDesc">Açıklama</label><textarea id="eDesc" rows="7" maxlength="4000">${esc(l.desc || "")}</textarea></div>
           <div class="full"><label for="ePhotoFile">Fotoğraflar</label>
@@ -492,7 +493,8 @@
         title: val("eTitle"), category: $("#eCat").value,
         price: +val("ePrice") || 0, city: $("#eCity").value, district: $("#eDistrict").value,
         desc: val("eDesc"), photos: photos.slice(),
-        seller: { name: val("eSellerName") || "Sahibinden", type: $("#eSellerType").value },
+        seller: { name: val("eSellerName") || "Sahibinden", type: $("#eSellerType").value,
+          license: $("#eSellerType").value === "ofis" ? val("eLicense").replace(/\D/g, "") || undefined : undefined },
         phone: val("ePhone") ? normPhone(val("ePhone")) : null,
       };
       if (val("ePhone") && !patch.phone) { $("#eOut").innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz.</span>'; return; }
@@ -618,6 +620,7 @@
     }
     updateFavCount();
     injectAuthLink();
+    favPriceAlert();
     // İletişim enjeksiyonu
     $$("[data-c-tel]").forEach((a) => { a.href = "tel:" + C.company.phone.intl; a.textContent = C.company.phone.display; });
     $$("[data-c-mail]").forEach((a) => { a.href = "mailto:" + C.company.email; a.textContent = C.company.email; });
@@ -646,6 +649,34 @@
   }
   // Üyelik bağlantısı: giriş yapılmışsa "Hesabım", değilse "Giriş Yap".
   // Tüm sayfalara tek yerden enjekte edilir (sayfalara elle eklenmez).
+  // FAVORİ FİYAT ALARMI: favorideki ilanın fiyatı son ziyaretten beri düştüyse
+  // bir kez bildirilir. Fiyat anlık görüntüsü localStorage'da (emlakai.favPrices).
+  function favPriceAlert() {
+    let snap = {};
+    try { snap = JSON.parse(localStorage.getItem("emlakai.favPrices") || "{}") || {}; } catch (e) { snap = {}; }
+    const ids = favs();
+    const drops = [];
+    const next = {};
+    ids.forEach((id) => {
+      const l = D.byId(id);
+      if (!l || !l.price) { if (snap[id]) next[id] = snap[id]; return; }
+      if (snap[id] && l.price < snap[id]) drops.push({ l, old: snap[id] });
+      next[id] = l.price;
+    });
+    try { localStorage.setItem("emlakai.favPrices", JSON.stringify(next)); } catch (e) { return; }
+    if (!drops.length || document.body.dataset.page === "admin") return;
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.setAttribute("role", "status");
+    const d = drops[0];
+    t.innerHTML = `🔔 <b>Favorinizin fiyatı düştü:</b> <a href="ilan.html?id=${encodeURIComponent(d.l.id)}">${esc(d.l.title)}</a> — ` +
+      `<s>${fmt(d.old)} ₺</s> → <b>${fmt(d.l.price)} ₺</b>` + (drops.length > 1 ? ` <a href="favoriler.html">(+${drops.length - 1} ilan)</a>` : "") +
+      ` <button type="button" aria-label="Kapat">✕</button>`;
+    document.body.appendChild(t);
+    $("button", t).addEventListener("click", () => t.remove());
+    setTimeout(() => t.remove(), 12000);
+  }
+
   function injectAuthLink() {
     const nav = $("#mainNav");
     if (!nav || $("#authLink")) return;
@@ -654,6 +685,11 @@
     a.id = "authLink";
     a.href = u ? "hesap.html" : "giris.html";
     a.textContent = u ? "👤 " + (u.name || "Hesabım").split(" ")[0] : "Giriş Yap";
+    // Okunmamış mesaj rozeti (sahibinden "Mesajlarım" sayacı karşılığı)
+    if (u && A.unread > 0) {
+      a.href = "hesap.html#mesajlar";
+      a.insertAdjacentHTML("beforeend", ` <span class="nav-badge" aria-label="${A.unread} okunmamış mesaj">${A.unread}</span>`);
+    }
     if (document.body.dataset.page === (u ? "hesap" : "giris")) a.classList.add("active");
     const cta = nav.querySelector("a.cta");
     nav.insertBefore(a, cta || null);
@@ -767,6 +803,9 @@
     });
     const doSearch = () => {
       const text = input.value.trim();
+      // İlan numarası yazıldıysa doğrudan ilana git ("EA1001", "#EAMV8…")
+      const no = text.replace(/^#|\s+/g, "").toUpperCase();
+      if (/^EA[0-9A-Z]{3,}$/.test(no)) { location.href = "ilan.html?id=" + encodeURIComponent(no); return; }
       const f = text ? AI.parseQuery(text) : {};
       if (!f.segment) f.segment = seg;
       location.href = "ilanlar.html?" + AI.filtersToQS(f) + (text ? "&q=" + encodeURIComponent(text) : "");
@@ -931,6 +970,9 @@
     if (qs.get("minYear")) f.minYear = +qs.get("minYear");
     if (qs.get("maxKm")) f.maxKm = +qs.get("maxKm");
     const rawQ = qs.get("q");
+    // ?q=EA1001 → ilan numarası araması: doğrudan ilana git
+    const qNo = String(rawQ || "").replace(/^#|\s+/g, "").toUpperCase();
+    if (/^EA[0-9A-Z]{3,}$/.test(qNo)) { location.replace("ilan.html?id=" + encodeURIComponent(qNo)); return; }
     // Yalnızca ?q= ile gelinirse (arama motoru SearchAction / dış bağlantı)
     // doğal dil sorgusunu ayrıştırıp filtrelere dönüştür; açık paramlar önceliklidir.
     if (rawQ) {
@@ -1416,9 +1458,10 @@
           <div class="seller">
             <div class="avatar">${esc(l.seller.name[0])}</div>
             <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small>
+              ${l.seller.type === "ofis" && l.seller.license ? `<br><small class="license-line">🪪 Yetki Belge No: <b>${esc(l.seller.license)}</b></small>` : ""}
               ${l.ownerId ? `<br><a href="magaza.html?u=${encodeURIComponent(l.ownerId)}" style="font-size:0.85rem">Mağazasındaki tüm ilanlar →</a>` : ""}</div>
           </div>
-          <a class="btn" id="callBtn" href="tel:${esc(contact.intl)}">📞 ${esc(contact.display)}</a>
+          <a class="btn" id="callBtn" href="#" data-tel="${esc(contact.intl)}" data-tel-label="${esc(contact.display)}">📞 Telefonu Göster</a>
           <a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
           <button class="btn ghost" data-fav="${esc(l.id)}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
           <div style="display:flex;gap:8px">
@@ -1426,6 +1469,21 @@
             <button class="btn ghost sm" id="printBtn" type="button" style="flex:1">Yazdır / PDF</button>
           </div>
           ${l.user ? `<button class="btn ghost" id="removeBtn" style="color:var(--over);border-color:var(--over)">İlanı Kaldır</button>` : ""}
+          <div class="safety-box">
+            <b>🛡 Güvenli alışveriş</b>
+            <ul>${((C.safety || {})[l.segment || "emlak"] || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+            ${D.hasServer() && !preview ? `<button class="link-btn" id="reportOpen" type="button">🚩 Bu ilanı şikayet et</button>` : ""}
+          </div>
+          <div class="report-box" id="reportBox" hidden>
+            <b>İlanı şikayet et</b>
+            <label for="rReason">Neden?</label>
+            <select id="rReason"><option value="">Seçin</option>${((C.moderation || {}).reportReasons || []).map((r) => `<option>${esc(r)}</option>`).join("")}</select>
+            <label for="rNote">Açıklama (isteğe bağlı)</label>
+            <textarea id="rNote" rows="3" maxlength="600"></textarea>
+            <input id="rHp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+            <button class="btn sm" id="reportSend" type="button">Şikayeti Gönder</button>
+            <div class="notice" id="reportOut"></div>
+          </div>
           ${l.category === "satilik" && l.segment !== "diger" ? (() => {
             const cr = l.segment === "vasita" ? C.credit.vehicle : C.credit;
             return `<div class="est-box">
@@ -1443,6 +1501,15 @@
       });
       const msgCard = $("#msgCard", root);
       msgCard.style.display = "";
+      const meU = A.user();
+      if (meU && l.ownerId && meU.uid === l.ownerId) msgCard.style.display = "none";   // kendi ilanı
+      else if (meU) {
+        // Üye: ad/telefon hesaptan gelir; satıcının yanıtı Hesabım › Mesajlarım'a düşer
+        ["#mName", "#mPhone", "#mMail"].forEach((sel) => { const el = $(sel, root); if (el) el.parentElement.style.display = "none"; });
+        $(".notice", msgCard).textContent = `${meU.name || "Hesabınız"} adına gönderilir. Satıcının yanıtını Hesabım › Mesajlarım'da görür, oradan yazışmaya devam edersiniz.`;
+      } else {
+        $(".notice", msgCard).innerHTML = `Bilgileriniz yalnızca ilan sahibine iletilir. <a href="giris.html?next=${encodeURIComponent("ilan.html?id=" + l.id)}">Giriş yaparsanız</a> yanıtı site içinde alırsınız.`;
+      }
       $("#msgSend", root).addEventListener("click", async () => {
         const out = $("#msgOut", root), btn = $("#msgSend", root);
         const payload = {
@@ -1450,7 +1517,7 @@
           phone: $("#mPhone", root).value.trim(), email: $("#mMail", root).value.trim(),
           message: $("#mText", root).value.trim(), hp: $("#mHp", root).value,
         };
-        if (!payload.name || !payload.phone || !payload.message) {
+        if (!payload.message || (!A.user() && (!payload.name || !payload.phone))) {
           out.innerHTML = '<span style="color:var(--over)">Ad, telefon ve mesaj alanlarını doldurun.</span>';
           return;
         }
@@ -1458,7 +1525,9 @@
         try {
           const r = await D.sendMessage(payload);
           if (r && r.ok) {
-            out.innerHTML = '<b style="color:var(--deal)">Mesajınız iletildi ✓</b> İlan sahibi en kısa sürede size dönecek.';
+            out.innerHTML = r.threaded
+              ? '<b style="color:var(--deal)">Mesajınız iletildi ✓</b> Yanıtı <a href="hesap.html#mesajlar">Hesabım › Mesajlarım</a>\'da göreceksiniz.'
+              : '<b style="color:var(--deal)">Mesajınız iletildi ✓</b> İlan sahibi en kısa sürede size dönecek.';
             btn.textContent = "Gönderildi ✓";
             return;
           }
@@ -1520,6 +1589,34 @@
       } catch (e) { /* kullanıcı paylaşımı iptal etti */ }
     });
     $("#printBtn", root).addEventListener("click", () => window.print());
+    // Telefonu göster: numara ilk dokunuşta açılır (toplu numara kazımaya karşı)
+    const callBtn = $("#callBtn", root);
+    callBtn.addEventListener("click", (e) => {
+      if (callBtn.dataset.shown) return;            // ikinci dokunuş: arar
+      e.preventDefault();
+      callBtn.dataset.shown = "1";
+      callBtn.href = "tel:" + callBtn.dataset.tel;
+      callBtn.textContent = "📞 " + callBtn.dataset.telLabel;
+    });
+    // Şikayet
+    const rOpen = $("#reportOpen", root);
+    if (rOpen) {
+      rOpen.addEventListener("click", () => { const bx = $("#reportBox", root); bx.hidden = !bx.hidden; });
+      $("#reportSend", root).addEventListener("click", async () => {
+        const out = $("#reportOut", root);
+        const reason = $("#rReason", root).value;
+        if (!reason) { out.innerHTML = '<span style="color:var(--over)">Bir neden seçin.</span>'; return; }
+        try {
+          const r = await D.report({ id: l.id, reason, note: $("#rNote", root).value.trim(), hp: $("#rHp", root).value });
+          if (r && r.ok) {
+            out.innerHTML = '<b style="color:var(--deal)">Teşekkürler, şikayetiniz alındı ✓</b> Ekibimiz ilanı inceleyecek.';
+            $("#reportSend", root).disabled = true;
+            return;
+          }
+          out.innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "Gönderilemedi.")}</span>`;
+        } catch (e) { out.innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı.</span>'; }
+      });
+    }
     observeReveals(root);
   }
 
@@ -1593,6 +1690,16 @@
     }
     $("#pKind").addEventListener("change", syncKindFields);
     $("#pSeg").addEventListener("change", syncSegmentUI);
+    // Yetki belgesi: yalnız emlak + emlak ofisi ilanında sorulur; son girilen hatırlanır
+    function syncLicense() {
+      const on = $("#pSeg").value === "emlak" && $("#pSellerType").value === "ofis";
+      $("#pLicenseWrap").hidden = !on;
+      if (on && !$("#pLicense").value) { try { $("#pLicense").value = localStorage.getItem("emlakai.license") || ""; } catch (e) { /* depolama kapalı */ } }
+    }
+    $("#pSellerType").addEventListener("change", syncLicense);
+    $("#pSeg").addEventListener("change", syncLicense);
+    $("#pLicense").addEventListener("change", () => { try { localStorage.setItem("emlakai.license", $("#pLicense").value.replace(/\D/g, "")); } catch (e) { /* depolama kapalı */ } });
+    syncLicense();
     syncSegmentUI();
 
     // ── ADIM ADIM KATEGORİ SEÇİCİ ────────────────────────────────────────
@@ -1783,7 +1890,8 @@
         desc: $("#pDesc").value.trim(),
         photos: photos.slice(),
         featured: $("#pFeatured").checked,
-        seller: { name: sellerName, type: sellerType },
+        seller: { name: sellerName, type: sellerType,
+          license: sellerType === "ofis" ? ($("#pLicense").value || "").replace(/\D/g, "") || undefined : undefined },
         phone: normPhone($("#pPhone").value),
         locality: ($("#pLocality").value || "").trim().slice(0, 120) || undefined,
       };
@@ -1832,6 +1940,10 @@
 
     function validate(l) {
       if (!l.district) return "Lütfen ilçe seçin.";
+      // Taşınmaz Ticareti Hakkında Yönetmelik: emlak işletmesi ilanında yetki belgesi no zorunlu
+      if (l.segment === "emlak" && l.seller.type === "ofis" && !/^\d{5,12}$/.test(l.seller.license || "")) {
+        return "Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur (yalnız rakam).";
+      }
       if ($("#pPhone").value.trim() && !l.phone) return "Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).";
       if (l.segment === "diger") return null;   // sade form: başlık/fiyat/konum yeterli
       if (l.segment === "vasita") {
@@ -2576,13 +2688,14 @@
       }
       listings = a.listings || [];
       messages = (b && b.messages) || [];
+      sent = (b && b.sent) || [];
       const u = A.user() || {};
       $("#hesapWelcome").textContent = (u.name || "") + " · " + (u.email || "");
       $("#myStats").innerHTML = [
         ["Yayında", listings.filter((l) => l.status === "active").length],
         ["Onay Bekleyen", listings.filter((l) => l.status === "pending").length],
         ["Toplam Görüntülenme", listings.reduce((t, l) => t + (l.views || 0), 0)],
-        ["Mesaj", messages.length],
+        ["Mesaj", messages.length + sent.length],
         ["Kayıtlı Arama", searches.length],
       ].map(([k, v]) => `<div class="stat-box"><b>${fmt(v)}</b><span>${esc(k)}</span></div>`).join("")
         // Fotoğraf alanı: üye kotasını dolmadan görsün.
@@ -2592,7 +2705,7 @@
           return `<div class="stat-box"><b>${mb(a.storage.usedBytes)} / ${mb(a.storage.quotaBytes)} MB</b>` +
             `<span>Fotoğraf Alanı (%${pct})</span></div>`;
         })() : "");
-      $("#myMsgBadge").textContent = messages.length ? "(" + messages.length + ")" : "";
+      updateMsgBadge();
       const yeni = searches.reduce((t, x) => t + (x.newCount || 0), 0);
       $("#mySearchBadge").textContent = yeni ? "(" + yeni + " yeni)" : (searches.length ? "(" + searches.length + ")" : "");
       renderListings();
@@ -2642,16 +2755,68 @@
       }));
     }
 
+    // ── Mesajlarım: gelen (satıcı) + gönderdiklerim (alıcı) tek konuşma listesinde
+    let sent = [], openMid = null;
+    const convos = () => messages.map((m) => ({ m, role: "seller", unread: m.sellerRead !== true }))
+      .concat(sent.map((m) => ({ m, role: "buyer", unread: m.buyerRead === false })))
+      .sort((x, y) => new Date(lastAt(y.m)) - new Date(lastAt(x.m)));
+    const lastAt = (m) => ((m.thread || []).slice(-1)[0] || m).date;
+    const lastText = (m) => ((m.thread || []).slice(-1)[0] || { text: m.message }).text;
     function renderMessages() {
-      $("#myMsgTable").innerHTML = '<tr><th>Gönderen</th><th>Mesaj</th><th style="text-align:right">İşlem</th></tr>' +
-        (messages.length ? messages.map((m) => `<tr>
-          <td><b>${esc(m.name)}</b><br><a href="tel:${esc(String(m.phone).replace(/[^\d+]/g, ""))}">${esc(m.phone)}</a>
-            ${m.email ? `<br><a href="mailto:${esc(m.email)}">${esc(m.email)}</a>` : ""}
-            <br><small style="color:var(--muted)">${new Date(m.date).toLocaleString("tr-TR")}</small></td>
-          <td>${esc(m.message)}<br><small style="color:var(--muted)">İlan: ${esc(m.listingTitle || m.listingId)}</small></td>
-          <td style="text-align:right"><a class="btn sm" style="background:#25d366" target="_blank" rel="noopener"
-            href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}">WhatsApp</a></td></tr>`).join("")
-          : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">Henüz mesajınız yok.</td></tr>');
+      const list = convos();
+      $("#convoList").innerHTML = list.length ? list.map(({ m, role, unread }) => `
+        <button type="button" class="convo-item${unread ? " unread" : ""}${m.mid === openMid ? " on" : ""}" data-mid="${esc(m.mid)}">
+          <span class="convo-who">${role === "seller" ? "📥 " + esc(m.name || "Ziyaretçi") : "📤 Satıcıya"}${unread ? ' <i class="dot"></i>' : ""}</span>
+          <span class="convo-title">${esc(m.listingTitle || m.listingId)}</span>
+          <span class="convo-last">${esc(String(lastText(m)).slice(0, 80))}</span>
+          <small>${new Date(lastAt(m)).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}</small>
+        </button>`).join("") : '<p class="convo-empty">Henüz mesajınız yok. İlan sayfalarındaki “Satıcıya Mesaj Gönder” ile yazışma başlatabilirsiniz.</p>';
+      $$("#convoList .convo-item").forEach((bt) => bt.addEventListener("click", () => openConvo(bt.dataset.mid)));
+      if (openMid) drawThread();
+    }
+    function drawThread() {
+      const c = convos().find((x) => x.m.mid === openMid);
+      const box = $("#convoThread");
+      if (!c) { box.innerHTML = '<p class="convo-empty">Bir konuşma seçin.</p>'; return; }
+      const { m, role } = c;
+      // İlk mesaj alıcıdandır; thread girdileri sırayla
+      const items = [{ from: "buyer", text: m.message, date: m.date }].concat(m.thread || []);
+      const canReply = role === "buyer" || !!m.buyerId;
+      box.innerHTML = `
+        <div class="convo-head"><a href="ilan.html?id=${encodeURIComponent(m.listingId)}"><b>${esc(m.listingTitle || m.listingId)}</b></a>
+          ${role === "seller" ? `<small>${esc(m.name || "")}${m.phone ? ` · <a href="tel:${esc(String(m.phone).replace(/[^\d+]/g, ""))}">${esc(m.phone)}</a>` : ""}</small>` : ""}</div>
+        <div class="convo-msgs" id="convoMsgs">${items.map((it) => `
+          <div class="cmsg ${it.from === role ? "me" : "them"}">${esc(it.text)}<small>${new Date(it.date).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}</small></div>`).join("")}</div>
+        ${canReply ? `<div class="convo-reply"><textarea id="convoText" rows="2" maxlength="1200" placeholder="Yanıtınızı yazın…"></textarea>
+          <button class="btn sm" id="convoSend" type="button">Gönder</button></div>`
+          : `<p class="notice">Bu kişi üye olmadan yazdı; telefon ya da WhatsApp ile dönebilirsiniz.
+             ${m.phone ? `<a class="btn sm" style="background:#25d366;margin-top:8px" target="_blank" rel="noopener" href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}">WhatsApp</a>` : ""}</p>`}`;
+      const msgsEl = $("#convoMsgs");
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      const send = $("#convoSend");
+      if (send) send.addEventListener("click", async () => {
+        const t = $("#convoText").value.trim();
+        if (!t) return;
+        send.disabled = true;
+        const r = await A.myReply(m.mid, t);
+        send.disabled = false;
+        if (r && r.ok) { m.thread = r.thread; renderMessages(); }
+        else alert((r && r.error) || "Gönderilemedi.");
+      });
+    }
+    async function openConvo(mid) {
+      openMid = mid;
+      const c = convos().find((x) => x.m.mid === mid);
+      if (c && c.unread) {
+        if (c.role === "seller") c.m.sellerRead = true; else c.m.buyerRead = true;
+        A.myMsgRead(mid);
+        updateMsgBadge();
+      }
+      renderMessages();
+    }
+    function updateMsgBadge() {
+      const n = convos().filter((x) => x.unread).length;
+      $("#myMsgBadge").textContent = n ? "(" + n + " yeni)" : (convos().length ? "(" + convos().length + ")" : "");
     }
 
     $$("#myTabs .tab-btn").forEach((b) => b.addEventListener("click", () => {
@@ -2662,6 +2827,8 @@
       $("#mySearchesTab").style.display = b.dataset.tab === "searches" ? "" : "none";
       $("#myProfileTab").style.display = b.dataset.tab === "profile" ? "" : "none";
     }));
+    if (location.hash === "#mesajlar") { const t = $('#myTabs [data-tab="messages"]'); if (t) t.click(); }
+
 
     // Kayıtlı aramalar tablosu
     function renderSearches() {
@@ -2925,6 +3092,7 @@
 
   // ── Yönetim paneli (admin.html) ─────────────────────────────────────────
   function pageAdmin() {
+    let reports = [];          // şikayetler (refresh doldurur)
     if (!D.hasServer()) {
       $("#staticWrap").style.display = "block";
       $("#loginWrap").style.display = "none";
@@ -3004,6 +3172,11 @@
         const uu = await api("api/admin/users", { method: "GET" });
         users = uu.users || [];
       } catch (e) { users = []; }
+      try {
+        const rr = await api("api/admin/reports", { method: "GET" });
+        reports = rr.reports || [];
+      } catch (e) { reports = []; }
+      renderReports();
       const unread = msgs.filter((m) => !m.read).length;
       const stats = [
         ["Yayında", rows.filter((l) => l.status === "active").length],
@@ -3144,7 +3317,30 @@
       $("#tabListings").style.display = b.dataset.tab === "listings" ? "" : "none";
       $("#tabMessages").style.display = b.dataset.tab === "messages" ? "" : "none";
       $("#tabUsers").style.display = b.dataset.tab === "users" ? "" : "none";
+      $("#tabReports").style.display = b.dataset.tab === "reports" ? "" : "none";
     }));
+    // ── Şikayetler
+    function renderReports() {
+      const open = reports.filter((r) => r.status === "open");
+      $("#repBadge").textContent = open.length ? "(" + open.length + ")" : "";
+      const ST = { active: "Yayında", pending: "İncelemede", rejected: "Kaldırıldı" };
+      $("#repTable").innerHTML = '<tr><th>İlan</th><th>Neden</th><th>Durum</th><th style="text-align:right">İşlem</th></tr>' +
+        (reports.length ? reports.map((r) => `<tr${r.status === "open" ? "" : ' style="opacity:.55"'}>
+          <td><a href="ilan.html?id=${encodeURIComponent(r.listingId)}" target="_blank" rel="noopener"><b>${esc(r.listingTitle || r.listingId)}</b></a>
+            <br><small style="color:var(--muted)">${esc(r.listingId)} · ${new Date(r.date).toLocaleString("tr-TR")}${r.uid ? " · üye" : ""}</small></td>
+          <td>${esc(r.reason)}${r.note ? `<br><small>${esc(r.note)}</small>` : ""}</td>
+          <td>${r.status === "open" ? '<b style="color:var(--over)">Açık</b>' : "Kapandı"}<br><small>İlan: ${esc(ST[r.listingStatus] || r.listingStatus)}</small></td>
+          <td style="text-align:right;white-space:nowrap">${r.status === "open" ? `
+            <button class="btn ghost sm" data-rep="dismiss" data-id="${esc(r.rid)}">Asılsız</button>
+            <button class="btn ghost sm" data-rep="reject" data-id="${esc(r.rid)}" style="color:var(--over);border-color:var(--over)">Yayından Kaldır</button>` : ""}</td></tr>`).join("")
+          : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Şikayet yok.</td></tr>');
+      $$("#repTable [data-rep]").forEach((bt) => bt.addEventListener("click", async () => {
+        if (bt.dataset.rep === "reject" && !confirm("İlan yayından kaldırılacak. Emin misiniz?")) return;
+        const r = await api("api/admin/report", { method: "POST", body: JSON.stringify({ rid: bt.dataset.id, action: bt.dataset.rep }) });
+        if (r && r.error) alert(r.error);
+        refresh();
+      }));
+    }
     $("#userSearch").addEventListener("input", renderUsers);
 
     $("#adminFilter").addEventListener("change", render);

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Yönetim Paneli | EmlakAI</title>
   <meta name="robots" content="noindex, nofollow">
-  <link rel="stylesheet" href="assets/style.css?v=0655669b">
+  <link rel="stylesheet" href="assets/style.css?v=0282c9ec">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
 <body data-page="admin">
@@ -85,6 +85,7 @@
         <button class="tab-btn active" data-tab="listings" type="button">İlanlar</button>
         <button class="tab-btn" data-tab="messages" type="button">Mesajlar <span id="msgBadge"></span></button>
         <button class="tab-btn" data-tab="users" type="button">Üyeler <span id="userBadge"></span></button>
+        <button class="tab-btn" data-tab="reports" type="button">🚩 Şikayetler <span id="repBadge"></span></button>
       </div>
 
       <!-- İlanlar sekmesi -->
@@ -144,6 +145,16 @@
         Şifresini unutan üyeye panelden geçici şifre atayabilirsiniz.</p>
       </div>
 
+      <!-- Şikayetler sekmesi -->
+      <div id="tabReports" style="display:none">
+        <div class="detail-card" style="margin-top:12px">
+          <table class="spec-table admin-table" id="repTable"></table>
+        </div>
+        <p class="notice" style="margin-top:14px">Farklı kişilerden gelen açık şikayet sayısı eşiğe ulaşınca ilan
+        kendiliğinden yayından çekilip <b>Onay Bekliyor</b>a düşer. <b>Asılsız</b> şikayeti kapatır (ilan başka açık
+        şikayet yoksa yeniden yayına girer); <b>Yayından Kaldır</b> ilanı kaldırır ve ilana ait tüm şikayetleri kapatır.</p>
+      </div>
+
       <!-- Düzenleme penceresi (JS doldurur) -->
       <div id="editModal"></div>
     </div>
@@ -161,9 +172,9 @@
     </div>
   </footer>
 
-  <script src="assets/config.js?v=ace163b8"></script>
-  <script src="assets/data.js?v=309e9aed"></script>
+  <script src="assets/config.js?v=cb475764"></script>
+  <script src="assets/data.js?v=38547b20"></script>
   <script src="assets/ai.js?v=a9359180"></script>
-  <script src="assets/app.js?v=44f16940"></script>
+  <script src="assets/app.js?v=ce5c0703"></script>
 </body>
 </html>
