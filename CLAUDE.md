@@ -421,3 +421,6 @@ gerekiyorsa dosya olarak repoya ekle.
 - `npm run build` → SEO çıktıları; `npm start` → build + sunucu (http://localhost:3000).
 - `node -c assets/app.js && node -c assets/ai.js && node -c assets/data.js && node -c assets/config.js && node -c server.js && node -c build-seo.js`
 - Sunucuyu başlatıp ana sayfaların 200 döndüğünü doğrula.
+
+## Ajan düzeni (maliyet)
+Fable yalnız `mimar` (tema/dizayn/SEO planı) ve `kritik-denetci`'de; uygulama Sonnet/Haiku ajanlarında: @docs/ajanlar.md
