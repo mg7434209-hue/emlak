@@ -49,10 +49,10 @@ EMLAK.config = {
       hint: "Belediyeden alınan imar durum belgesine göre.", options: [
       "Konut İmarlı", "Ticari İmarlı", "Turizm İmarlı", "Sanayi İmarlı", "Tarla",
       "Bağ & Bahçe", "Zeytinlik", "Villa İmarlı", "İmarsız", "Belirtilmemiş"] },
-    adaNo: { label: "Ada No", type: "text", max: 20, placeholder: "örn. 1453",
+    adaNo: { label: "Ada No", type: "text", max: 20, placeholder: "örn. 1453", section: "tapu",
       hint: "Tapu belgesinde ya da e-Devlet tapu bilgilerinde yazar." },
-    parselNo: { label: "Parsel No", type: "text", max: 20, placeholder: "örn. 27" },
-    paftaNo: { label: "Pafta No", type: "text", max: 20, placeholder: "örn. K24" },
+    parselNo: { label: "Parsel No", type: "text", max: 20, placeholder: "örn. 27", section: "tapu" },
+    paftaNo: { label: "Pafta No", type: "text", max: 20, placeholder: "örn. K24", section: "tapu" },
     kaks: { label: "KAKS (Emsal)", type: "text", max: 20, placeholder: "örn. 0.30",
       hint: "İmar durum belgesindeki emsal oranı." },
     gabari: { label: "Gabari", type: "text", max: 20, placeholder: "örn. 6.50 m",
@@ -78,16 +78,24 @@ EMLAK.config = {
     // — Bina —
     daireSayisi: { label: "Daire Sayısı", type: "number", max: 500 },
     // — Ortak (emlak) —
-    tapuDurumu: { label: "Tapu Durumu", type: "select", options: [
+    tapuDurumu: { label: "Tapu Durumu", type: "select", section: "tapu", options: [
       "Kat Mülkiyetli", "Kat İrtifaklı", "Müstakil Tapulu", "Hisseli Tapu",
       "Arsa Tapulu", "Tarla Tapulu", "Bilinmiyor"] },
-    krediyeUygun: { label: "Krediye Uygunluk", type: "select", options: ["Evet", "Hayır", "Bilinmiyor"] },
-    takas: { label: "Takaslı", type: "select", options: ["Evet", "Hayır"] },
-    // Tapunun üzerindeki "Taşınmaz Kimlik No" — alıcı için güven işareti;
-    // e-Devlet "Tapu Bilgilerim" ekranında da görünür.
-    tasinmazNo: { label: "Taşınmaz (Tapu) Numarası", type: "text", max: 30,
-      placeholder: "örn. 31163394",
-      hint: "Tapunuzun üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar. Alıcıya güven verir, zorunlu değildir." },
+    krediyeUygun: { label: "Krediye Uygunluk", type: "select", section: "tapu", options: ["Evet", "Hayır", "Bilinmiyor"] },
+    // Yeni ilanda "Hayır" hazır gelir (sahibinden gibi): çoğu ilan takassızdır, bir karar eksilir.
+    takas: { label: "Takaslı", type: "select", section: "tapu", options: ["Evet", "Hayır"], default: "Hayır" },
+    // Binalarda Enerji Performansı Yönetmeliği: satış/kiralamada Enerji Kimlik Belgesi sınıfı.
+    enerjiSinifi: { label: "Enerji Kimlik Belgesi", type: "select", section: "tapu",
+      options: ["A", "B", "C", "D", "E", "F", "G", "Belgesi yok"],
+      hint: "Belgenizdeki enerji sınıfı. Belge yoksa “Belgesi yok” seçin." },
+    // TAŞINMAZ NUMARASI — ZORUNLU (sahibinden.com ile aynı kural). Tapu senedinin
+    // üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar. YALNIZ RAKAM.
+    // Herkese açık yanıtlarda TAM GÖSTERİLMEZ (yalnız son 3 hane): numara açık olursa
+    // başkasının taşınmazı için sahte ilan vermek kolaylaşır. pattern: rakam ya da
+    // maskeleme noktası (•) — public liste maskeli geri okunabilsin diye.
+    tasinmazNo: { label: "Taşınmaz Numarası", type: "text", max: 20, required: true, section: "tapu",
+      pattern: "^[0-9•]{5,20}$", digits: [5, 12], inputmode: "numeric", placeholder: "örn. 103555719",
+      hint: "Tapu senedinizin üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar. Yalnız rakam. Alıcılara tam görünmez (yalnız son 3 hane)." },
     // — Vasıta —
     renk: { label: "Renk", type: "select", options: [
       "Beyaz", "Siyah", "Gri", "Gümüş", "Kırmızı", "Mavi", "Lacivert", "Yeşil",
@@ -116,8 +124,8 @@ EMLAK.config = {
         { label: "Konut",
           // NOT: Balkon / Eşyalı / Site İçi "Özellikler" kutucuklarında zaten var,
           // burada TEKRAR edilmez.
-          fields: ["katNo", "binaKat", "banyoSayisi", "isitma", "siteAdi", "aidat",
-                   "kullanimDurumu", "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
+          fields: ["katNo", "binaKat", "banyoSayisi", "isitma", "siteAdi", "aidat", "kullanimDurumu",
+                   "tapuDurumu", "tasinmazNo", "krediyeUygun", "takas", "enerjiSinifi"],
           kinds: [
           { kind: "daire", label: "Daire" },
           { kind: "residence", label: "Rezidans" },
@@ -126,9 +134,8 @@ EMLAK.config = {
           { kind: "yazlik", label: "Yazlık" },
         ] },
         { label: "İş Yeri",
-          fields: ["katNo", "binaKat", "bolumSayisi", "banyoSayisi", "isitma",
-                   "aidat", "kullanimDurumu", "tapuDurumu", "krediyeUygun", "takas",
-                   "tasinmazNo"],
+          fields: ["katNo", "binaKat", "bolumSayisi", "banyoSayisi", "isitma", "aidat", "kullanimDurumu",
+                   "tapuDurumu", "tasinmazNo", "krediyeUygun", "takas", "enerjiSinifi"],
           kinds: [
           { kind: "dukkan", label: "Dükkan" },
           { kind: "ofis", label: "Ofis" },
@@ -137,8 +144,8 @@ EMLAK.config = {
         ] },
         { label: "Arsa & Arazi",
           // sahibinden.com arsa formundaki alanlar: imar, ada/parsel/pafta, kaks, gabari
-          fields: ["imarDurumu", "adaNo", "parselNo", "paftaNo", "kaks", "gabari",
-                   "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
+          fields: ["imarDurumu", "kaks", "gabari", "adaNo", "parselNo", "paftaNo",
+                   "tapuDurumu", "tasinmazNo", "krediyeUygun", "takas"],
           kinds: [
           { kind: "arsa", label: "Arsa" },
           { kind: "tarla", label: "Tarla" },
@@ -146,7 +153,7 @@ EMLAK.config = {
         ] },
         { label: "Diğer Gayrimenkul",
           fields: ["binaKat", "daireSayisi", "isitma", "kullanimDurumu",
-                   "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
+                   "tapuDurumu", "tasinmazNo", "krediyeUygun", "takas", "enerjiSinifi"],
           kinds: [
           { kind: "bina", label: "Komple Bina" },
           { kind: "devremulk", label: "Devre Mülk" },
@@ -984,5 +991,6 @@ EMLAK.config = {
   assistant: { name: "EVA", maxResults: 6 },
 
   // ── Yönetim paneli (admin.html) ─────────────────────────────────────────
-  admin: { pass: "emlak2026" },
+  // Yönetici şifresi BURADA TUTULMAZ (repo açık olabilir): Railway ortam değişkeni ADMIN_PASS.
+  admin: {},
 };

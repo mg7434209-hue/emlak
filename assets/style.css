@@ -707,3 +707,78 @@ html[data-theme="dark"] .fav-btn { background: rgba(21,28,48,0.9); }
 .convo-empty { color: var(--muted); padding: 18px; }
 .convo-thread .notice { margin: 12px; }
 @media (max-width: 760px) { .convo { grid-template-columns: 1fr; } .convo-list { max-height: 260px; } }
+
+/* ── İlan ver: adımlar + bölümlü form + önizleme (sahibinden akışı) ───────── */
+.iv-head { display: flex; flex-direction: column; gap: 14px; }
+.iv-steps { list-style: none; display: flex; align-items: flex-start; counter-reset: s; max-width: 640px; margin: 4px 0 0; padding: 0; }
+.iv-steps li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; color: var(--muted); font-size: .82rem; font-weight: 600; text-align: center; }
+.iv-steps li::before { content: ""; position: absolute; top: 15px; left: -50%; width: 100%; height: 2px; background: var(--border); z-index: 0; }
+.iv-steps li:first-child::before { display: none; }
+.iv-steps li i { position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-style: normal; background: var(--surface); border: 2px solid var(--border); font-weight: 700; }
+.iv-steps li.done::before, .iv-steps li.on::before { background: var(--primary); }
+.iv-steps li.done i { background: var(--primary); border-color: var(--primary); color: var(--surface); }
+.iv-steps li.on { color: var(--text); }
+.iv-steps li.on i { border-color: var(--primary); color: var(--primary); }
+.iv-card { padding: 22px; }
+.fs { border: none; border-top: 1px solid var(--border); padding: 18px 0 6px; margin: 0; min-width: 0; }
+.fs:first-of-type { border-top: none; padding-top: 4px; }
+.fs legend { font-size: 1.02rem; font-weight: 700; padding: 0 0 12px; color: var(--text); float: left; width: 100%; }
+.fs legend + * { clear: both; }
+.fs legend small { font-weight: 500; color: var(--muted); font-size: .82rem; }
+.fs > * + * { margin-top: 12px; }
+.form-grid.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.form-grid.g4 .kf-wide { grid-column: span 2; }
+.req { color: var(--over); font-weight: 700; }
+.fs-tapu { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)) !important; padding: 16px 16px 10px; margin-top: 14px; }
+.link-ai { display: inline-block; margin-top: 6px; background: none; border: none; padding: 4px 0; color: var(--accent); font-weight: 600; font-size: .84rem; min-height: 32px; }
+.link-ai:hover { text-decoration: underline; }
+.iv-error { margin: 0 0 14px; padding: 11px 14px; border-radius: 10px; background: color-mix(in srgb, var(--over) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--over) 45%, var(--border)); color: var(--over); font-size: .92rem; font-weight: 600; }
+.iv-error[hidden] { display: none; }
+.iv-error.iv-ok { background: color-mix(in srgb, var(--deal) 10%, var(--surface)); border-color: color-mix(in srgb, var(--deal) 45%, var(--border)); color: var(--text); font-weight: 500; }
+input.invalid, select.invalid, textarea.invalid { border-color: var(--over); outline: 2px solid color-mix(in srgb, var(--over) 25%, transparent); }
+.iv-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.iv-actions .btn { min-height: 46px; padding-inline: 26px; }
+.iv-feat { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--text); font-size: .95rem; }
+.iv-feat input { width: auto; }
+.iv-feat[hidden] { display: none; }
+.iv-h2 { font-size: 1.2rem; margin: 0 0 14px; }
+.iv-prev { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.5fr) minmax(0, .9fr); gap: 20px; align-items: start; }
+.ivp-cover { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); }
+.ivp-nophoto { aspect-ratio: 4 / 3; display: grid; place-items: center; border: 1px dashed var(--border); border-radius: 12px; color: var(--muted); background: var(--surface-2); }
+.ivp-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.ivp-thumbs img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+.ivp-price { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+.ivp-info h3 { font-size: 1.05rem; margin: 4px 0 12px; line-height: 1.35; }
+.ivp-facts { display: grid; gap: 0; margin: 0 0 14px; }
+.ivp-facts div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .9rem; }
+.ivp-facts dt { color: var(--muted); } .ivp-facts dd { font-weight: 600; text-align: right; }
+.ivp-desc { font-size: .9rem; color: var(--text); max-height: 220px; overflow-y: auto; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; }
+.ivp-check { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--surface-2); font-size: .9rem; }
+.ivp-check ul { list-style: none; margin: 8px 0 6px; display: grid; gap: 6px; padding: 0; }
+.ivp-check li.ok { color: var(--deal); } .ivp-check li.warn { color: var(--over); }
+.iv-done { text-align: center; padding: 36px 22px; }
+.iv-done h2 { margin: 8px 0; }
+.iv-done p { color: var(--muted); margin: 6px auto; max-width: 520px; }
+.ivd-check { width: 64px; height: 64px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; background: var(--deal); color: #fff; font-size: 2rem; font-weight: 700; }
+.iv-tips { max-width: 760px; font-size: .9rem; color: var(--muted); }
+.iv-tips summary { cursor: pointer; font-weight: 600; color: var(--text); padding: 6px 0; min-height: 32px; }
+.iv-tips ol { margin: 6px 0 0 20px; display: grid; gap: 4px; }
+@media (max-width: 1000px) { .form-grid.g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .iv-prev { grid-template-columns: 1fr; } }
+@media (max-width: 560px) {
+  .form-grid.g4 { grid-template-columns: 1fr; }
+  .form-grid.g4 .kf-wide { grid-column: auto; }
+  .iv-card { padding: 16px; }
+  .iv-steps li { font-size: .72rem; }
+  .iv-actions .btn { flex: 1 1 100%; }
+  .iv-actions { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0; margin-inline: -4px; }
+}
+.kf-hint[hidden] { display: none; }
+
+/* ── Yasal sayfalar + alt bilgi bağlantıları ───────────────────────────── */
+.footer-legal { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin: 10px 0 4px; font-size: .82rem; }
+.footer-legal a { color: var(--muted); }
+.legal { max-width: 860px; }
+.legal h2 { font-size: 1.1rem; margin: 22px 0 8px; }
+.legal p, .legal li { line-height: 1.65; font-size: .95rem; }
+.legal ul { margin: 6px 0 6px 20px; display: grid; gap: 6px; }
+.legal table { margin: 8px 0; }

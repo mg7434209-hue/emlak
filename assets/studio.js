@@ -128,7 +128,8 @@
     "aidat aidati tl lira fiyat fiyati fiyatimiz mulkiyetli irtifakli hisseli tapu tapulu krediye uygun kredili " +
     "takas takasli bos kiracili oda salon ada parsel pafta imarli imarsiz imar kaks emsal gabari donum " +
     "model km benzin dizel otomatik manuel lpg hibrit hasar kaydi kayitsiz yok var beyaz siyah gri gumus " +
-    "kirmizi mavi esyali otopark asansor guvenlik balkon mahallesi mah ve ile bir cok").split(" "));
+    "kirmizi mavi esyali otopark asansor guvenlik balkon mahallesi mah ve ile bir cok " +
+    "tasinmaz numarasi numara kimlik enerji sinifi belgesi belge").split(" "));
   function informative(s, extra) {
     return strip(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !/^\d/.test(w) &&
       !COVERED.has(w) && !(extra && extra.has(w))).length;
@@ -138,6 +139,8 @@
     const seen = new Set();
     String(text || "")
       .replace(URL_RE, " ").replace(PHONE_RE, " ").replace(EMOJI_RE, " ")
+      .replace(/ta[sş][ıi]nmaz[^\n.]{0,24}?\d[\d.\s]{4,}/gi, " ")      // taşınmaz numarası açıklamaya GİRMEZ
+      .replace(/\b\d{6,}\b/g, " ")
       .replace(/(?:tel(?:efon)?|iletisim|whatsapp|wp)\s*[:.]?\s*(?=\n|$)/gi, " ")
       .replace(/\d{1,3}(?:\.\d{3})+(?:,\d+)?\s*(?:tl|₺|try)?|\d+(?:[.,]\d+)?\s*(?:milyon|bin)\s*(?:tl|₺)?|\d+\s*(?:tl|₺)/gi, " ")
       .split(/\n+|(?<=[^\d\s][.!?])\s+|\s+[-•*–]\s+|^[-•*–]\s*/m)
@@ -283,6 +286,8 @@
 
       const tno = q.match(/tasinmaz\s*(?:kimlik)?\s*(?:no|numarasi)\s*[:]?\s*(\d{5,12})/);
       if (tno) r.details.tasinmazNo = tno[1];
+      const en = q.match(/enerji\s*(?:kimlik\s*)?(?:belgesi\s*|sinifi\s*)?[:]?\s*\b([a-g])\b/);
+      if (en) r.details.enerjiSinifi = en[1].toUpperCase();
     }
     if (f.creditOk || /krediye uygun/.test(q)) r.details.krediyeUygun = "Evet";
     else if (/krediye uygun degil/.test(q)) r.details.krediyeUygun = "Hayır";
@@ -590,6 +595,7 @@
       if (det.banyoSayisi) hl.push(`${det.banyoSayisi} banyo`);
       if (det.isitma) hl.push(`Isıtma: ${det.isitma}`);
       if (det.siteAdi) hl.push(det.siteAdi);
+      if (det.enerjiSinifi) hl.push(det.enerjiSinifi === "Belgesi yok" ? "Enerji kimlik belgesi yok" : `Enerji sınıfı: ${det.enerjiSinifi}`);
       if (det.aidat === 0) hl.push("Aidat yok");
       else if (det.aidat) hl.push(`Aidat: ${fmt(det.aidat)} ₺/ay`);
       if (det.imarDurumu) hl.push(`İmar: ${det.imarDurumu}`);
@@ -625,6 +631,9 @@
     const land = LAND.indexOf(l.kind) >= 0;
     add(l.kind && l.category, 15, "Kategori ve ilan türü belirlendi", "Formda kategori seçin.");
     add(l.city && l.district, 15, "Konum (il / ilçe)", "Metinde ilçe adı geçmiyor; formda seçin.");
+    if (l.segment === "emlak" && D.requiredFields(l.kind).some((f) => f.key === "tasinmazNo")) {
+      add(l.details && l.details.tasinmazNo, 10, "Taşınmaz numarası (zorunlu)", "Tapudaki taşınmaz numarasını ekleyin; olmadan ilan gönderilemez.");
+    }
     add(l.price > 0, 15, "Fiyat", "Fiyat girin ya da AI fiyat önerisini kullanın.");
     if (l.segment === "emlak") {
       add(l.m2 >= 10, 10, land ? "Yüz ölçümü (m²)" : "Alan (m²)", "m² bilgisini ekleyin.");
@@ -791,6 +800,12 @@
     { key: "fiyat", required: true, ask: (r) => r.category === "kiralik" ? "Aylık kira bedeli ne kadar?" : "Fiyatı ne kadar?",
       has: (r) => r.price > 0,
       ctx: (a) => (/fiyat|tl|lira|₺/.test(strip(a)) ? a : "fiyat " + a + " tl") },
+    // TAŞINMAZ NUMARASI ZORUNLU (config.fieldDefs.tasinmazNo.required) — emlak türlerinde sorulur
+    { key: "tapuno", required: true,
+      when: (r) => r.segment === "emlak" && D.requiredFields(r.kind).some((f) => f.key === "tasinmazNo"),
+      ask: () => "Taşınmaz numarası nedir? Tapu senedinizin üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar. Rakamları yazabilir ya da söyleyebilirsiniz.",
+      has: (r) => !!r.details.tasinmazNo,
+      ctx: (a) => { const d = String(a).replace(/\D/g, ""); return d.length >= 5 ? "taşınmaz numarası " + d : a; } },
     { key: "ek", ask: (r) => r.segment === "vasita"
         ? "Eklemek istediğiniz bir şey var mı? Hasar kaydı, boya-değişen, renk, takas… Yoksa “yok” deyin."
         : "Eklemek istediğiniz özellik var mı? Site, havuz, otopark, manzara, tapu durumu, aidat, krediye uygunluk… Yoksa “yok” deyin.",

@@ -74,6 +74,7 @@
       }
       const sv = String(v).slice(0, def.max || 60);
       if (def.type === "select") { if ((def.options || []).indexOf(sv) >= 0) out[key] = sv; return; }
+      if (def.pattern && !new RegExp(def.pattern).test(sv)) return;   // ör. taşınmaz no: yalnız rakam / maske
       out[key] = sv;
     });
     return Object.keys(out).length ? out : undefined;
@@ -348,6 +349,13 @@
     canValue: (kind) => (KINDS.find((k) => k.kind === kind) || { valuation: true }).valuation !== false,
     // Türe özel alan tanımları: [{key, label, type, options, max}]
     fieldsOfKind: (kind) => (FIELDS_OF[kind] || []).map((key) => Object.assign({ key }, FIELD_DEFS[key])),
+    // Bu türde ZORUNLU alanlar (ör. emlakta taşınmaz numarası) — istemci ve sunucu aynı kuralı okur
+    requiredFields: (kind) => (FIELDS_OF[kind] || []).filter((key) => FIELD_DEFS[key].required)
+      .map((key) => Object.assign({ key }, FIELD_DEFS[key])),
+    // Taşınmaz numarası: yalnız rakam; geçerli uzunlukta değilse "" döner
+    cleanTapuNo: (v) => { const d = String(v == null ? "" : v).replace(/\D/g, ""); const r = FIELD_DEFS.tasinmazNo; return r && d.length >= r.digits[0] && d.length <= r.digits[1] ? d : ""; },
+    // Herkese açık gösterim: son 3 hane
+    maskTapuNo: (v) => { const d = String(v == null ? "" : v).replace(/\D/g, ""); return d.length >= 5 ? "•".repeat(Math.min(12, d.length - 3)) + d.slice(-3) : ""; },
     fieldLabel: (key) => (FIELD_DEFS[key] || {}).label || key,
     brands: brandNames,
     modelsOf: (brand) => (C.vehicles.brands[brand] ? Object.keys(C.vehicles.brands[brand]) : []),

@@ -70,6 +70,7 @@ function chrome(body, { title, desc, canonical, jsonld }) {
         <a data-c-tel href="#">—</a>
         <a data-c-mail href="#">—</a>
       </div>
+      <div class="footer-legal"><a href="kvkk.html">KVKK Aydınlatma Metni</a><a href="kullanim-kosullari.html">Kullanım Koşulları</a><a href="cerez-politikasi.html">Çerez ve Cihaz Depolama</a></div>
       <div class="copyright">© 2026 ${esc(C.brand.name)} — Veriler ${C.seo.dataDate} dönemi piyasa ortalamalarıdır; bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
     </div>
   </footer>
@@ -223,6 +224,9 @@ const staticPages = [
   ["ilan-ver.html", "0.7", "monthly"],
   ["giris.html", "0.4", "monthly"],
   ["magaza.html", "0.3", "weekly"],
+  ["kullanim-kosullari.html", "0.3", "yearly"],
+  ["kvkk.html", "0.3", "yearly"],
+  ["cerez-politikasi.html", "0.2", "yearly"],
 ];
 // Repoya işlenen gerçek ilanlar (Node ortamında localStorage boş → yalnız REAL)
 const listingUrls = EMLAK.data.all().map((l) => `  <url><loc>${URL0}/ilan.html?id=${encodeURIComponent(l.id)}</loc><lastmod>${String(l.date).slice(0, 10)}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`);

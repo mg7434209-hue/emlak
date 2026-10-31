@@ -158,32 +158,38 @@
 
   // Türe özel alanları (ada/parsel/imar, kat/ısıtma, renk/kasa…) bir kapsayıcıya
   // çizer. `values` varsa alanlar dolu gelir (düzenleme penceresi).
-  function renderKindFields(wrap, kind, values) {
+  function renderKindFields(wrap, kind, values, filter) {
     if (!wrap) return [];
-    const defs = D.fieldsOfKind(kind);
+    const all = D.fieldsOfKind(kind);
+    const defs = filter ? all.filter(filter) : all;
     const v = values || {};
     wrap.innerHTML = defs.map((f) => {
       const id = "kf_" + f.key;
+      // Yeni ilanda varsayılan (ör. Takaslı = Hayır); düzenlemede kayıtlı değer korunur
+      const cur = v[f.key] !== undefined ? v[f.key] : (values ? undefined : f.default);
+      const lab = esc(f.label) + (f.required ? ' <span class="req">*</span>' : "");
+      const req = f.required ? ' data-required="1"' : "";
       // Evet/hayır alanları da açılır liste: form ızgarası hizalı kalsın
       if (f.type === "bool") {
-        return `<div><label for="${id}">${esc(f.label)}</label>
-          <select id="${id}" data-kf="${esc(f.key)}" data-kf-bool="1">
+        return `<div><label for="${id}">${lab}</label>
+          <select id="${id}" data-kf="${esc(f.key)}" data-kf-bool="1"${req}>
             <option value="">Seçiniz</option>
-            <option value="1"${v[f.key] ? " selected" : ""}>Var</option>
-            <option value="0"${v[f.key] === false ? " selected" : ""}>Yok</option>
+            <option value="1"${cur ? " selected" : ""}>Var</option>
+            <option value="0"${cur === false ? " selected" : ""}>Yok</option>
           </select></div>`;
       }
       const inner = f.type === "select"
-        ? `<select id="${id}" data-kf="${esc(f.key)}"><option value="">Seçiniz</option>` +
-          (f.options || []).map((o) => `<option${o === v[f.key] ? " selected" : ""}>${esc(o)}</option>`).join("") + "</select>"
-        : `<input id="${id}" data-kf="${esc(f.key)}" type="${f.type === "number" ? "number" : "text"}"` +
+        ? `<select id="${id}" data-kf="${esc(f.key)}"${req}><option value="">Seçiniz</option>` +
+          (f.options || []).map((o) => `<option${o === cur ? " selected" : ""}>${esc(o)}</option>`).join("") + "</select>"
+        : `<input id="${id}" data-kf="${esc(f.key)}" type="${f.type === "number" ? "number" : "text"}"${req}` +
+          (f.inputmode ? ` inputmode="${esc(f.inputmode)}"` : "") +
           (f.type === "number" ? ` min="0" max="${f.max || 1000000}"` : ` maxlength="${f.max || 60}"`) +
           (f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : "") +
-          ` value="${v[f.key] == null ? "" : esc(String(v[f.key]))}">`;
+          ` value="${cur == null ? "" : esc(String(cur))}">`;
       // Alan ipucu (ör. "Tapunuzun üzerinde yazar") — kullanıcı nereden
       // bulacağını bilsin diye alanın altında küçük not olarak çıkar.
       const ipucu = f.hint ? `<small class="kf-hint">${esc(f.hint)}</small>` : "";
-      return `<div><label for="${id}">${esc(f.label)}</label>${inner}${ipucu}</div>`;
+      return `<div class="${f.key === "tasinmazNo" ? "kf-wide" : ""}"><label for="${id}">${lab}</label>${inner}${ipucu}</div>`;
     }).join("");
     return defs;
   }
@@ -625,6 +631,7 @@
     $$("[data-c-tel]").forEach((a) => { a.href = "tel:" + C.company.phone.intl; a.textContent = C.company.phone.display; });
     $$("[data-c-mail]").forEach((a) => { a.href = "mailto:" + C.company.email; a.textContent = C.company.email; });
     $$("[data-c-addr]").forEach((el) => { el.textContent = C.company.address; });
+    $$("[data-c-title]").forEach((el) => { el.textContent = C.company.title; });
     injectSiteJsonLd();
     observeReveals(document);
   }
@@ -1352,6 +1359,8 @@
       // Türe özel alanlar (ada/parsel/imar, kat/ısıtma, renk/kasa…) künyeye eklenir
       .concat(Object.keys(l.details || {}).map((k) => {
         const v = l.details[k];
+        // Taşınmaz numarası tam gösterilmez (sahte ilan için kopyalanmasın): "Beyan edildi (•••••719)"
+        if (k === "tasinmazNo") return [D.fieldLabel(k), `Beyan edildi (${D.maskTapuNo(v) || v})`];
         return [D.fieldLabel(k), v === true ? "Var" : String(v)];
       }))
       .filter(Boolean);
@@ -1632,6 +1641,8 @@
       if (wizEl) wizEl.style.display = "none";   // kategori seçici de kapanır
       const stEl = $("#studio");
       if (stEl) stEl.style.display = "none";     // AI stüdyosu da kapanır
+      const stepsEl = $("#ivSteps");
+      if (stepsEl) stepsEl.style.display = "none";
       const ph = $(".page-head p");
       if (ph) ph.textContent = "İlan vermek için ücretsiz hesabınızla giriş yapın.";
       return;
@@ -1670,15 +1681,19 @@
       const sug = $("#suggestBtn");
       if (sug) sug.style.display = seg === "diger" ? "none" : "";
       const sugOut = $("#suggestOut");
-      if (sugOut && seg === "diger") sugOut.textContent = "";
+      if (sugOut && seg === "diger") { sugOut.textContent = ""; sugOut.hidden = true; }
     }
     // Türe özel alanlar (arsada ada/parsel/imar, konutta kat/ısıtma/aidat…)
     function syncKindFields() {
       const wrap = $("#kindFieldsWrap");
       if (!wrap) return;
       const kind = $("#pKind").value;
-      const defs = renderKindFields($("#kindFields"), kind, null);
+      const defs = renderKindFields($("#kindFields"), kind, null, (f) => f.section !== "tapu");
+      const tapuDefs = renderKindFields($("#tapuFields"), kind, null, (f) => f.section === "tapu");
       wrap.style.display = defs.length ? "" : "none";
+      $("#tapuWrap").style.display = tapuDefs.length ? "" : "none";
+      const seg0 = $("#pSeg").value;
+      $("#fsMainTitle").textContent = seg0 === "vasita" ? "Araç bilgileri" : seg0 === "diger" ? "İlan bilgileri" : (LAND.indexOf(kind) >= 0 ? "Arazi bilgileri" : "Taşınmaz bilgileri");
       // Arsa/arazide oda ve bina yaşı sorulmaz (ai.js ile aynı kural)
       const arazi = LAND.indexOf(kind) >= 0;
       [["#pRooms", arazi], ["#pAge", arazi], ["#pM2Net", arazi]].forEach(([sel, gizle]) => {
@@ -1686,7 +1701,7 @@
         if (el && el.parentElement) el.parentElement.style.display = gizle ? "none" : "";
       });
       const m2Label = $("#pM2") && $("#pM2").parentElement.querySelector("label");
-      if (m2Label) m2Label.textContent = arazi ? "Yüz Ölçümü (m²)" : "Alan (m²)";
+      if (m2Label) m2Label.innerHTML = (arazi ? "Yüz Ölçümü (m²)" : "Alan (m²)") + ' <span class="req">*</span>';
     }
     $("#pKind").addEventListener("change", syncKindFields);
     $("#pSeg").addEventListener("change", syncSegmentUI);
@@ -1694,6 +1709,7 @@
     function syncLicense() {
       const on = $("#pSeg").value === "emlak" && $("#pSellerType").value === "ofis";
       $("#pLicenseWrap").hidden = !on;
+      $("#licenseHint").hidden = !on;
       if (on && !$("#pLicense").value) { try { $("#pLicense").value = localStorage.getItem("emlakai.license") || ""; } catch (e) { /* depolama kapalı */ } }
     }
     $("#pSellerType").addEventListener("change", syncLicense);
@@ -1711,7 +1727,7 @@
     // bulamadıysa sihirbazı açar ve seçim bitince stüdyo verisi forma dolar.
     let wizardApi = null;
     let pendingStudio = null;
-    let autoPublish = false;     // stüdyodaki "Onayla ve İlanı Gönder"
+    let autoPublish = false;     // stüdyodaki "Önizlemeye geç"
     (function katalogSihirbazi() {
       const wiz = $("#catWizard");
       const form = $("#ilanVerForm");
@@ -1769,6 +1785,7 @@
         $("#formCrumbText").innerHTML = $("#wzCrumb").innerHTML;
         wiz.style.display = "none";
         form.style.display = "";
+        setStep(2);
         basMetni(false);
         const st = $("#studio");
         if (st) st.style.display = "none";
@@ -1792,6 +1809,7 @@
       $("#crumbChange").addEventListener("click", () => {
         form.style.display = "none";
         wiz.style.display = "";
+        setStep(1);
         basMetni(true);
         window.scrollTo({ top: wiz.offsetTop - 70, behavior: "smooth" });
       });
@@ -1875,13 +1893,19 @@
       }));
     }
 
+    // Alanlar iki kapsayıcıdadır (yapı bilgileri + tapu bölümü); taşınmaz numarası yalnız rakama indirilir
+    function collectDetails() {
+      const d = Object.assign({}, collectKindFields($("#kindFields")), collectKindFields($("#tapuFields")));
+      if (d.tasinmazNo != null) { const c = D.cleanTapuNo(d.tasinmazNo); if (c) d.tasinmazNo = c; else delete d.tasinmazNo; }
+      return d;
+    }
     function collect() {
       const seg = $("#pSeg").value;
       const sellerType = $("#pSellerType").value;
       const sellerName = $("#pSellerName").value.trim() || (sellerType === "ofis" ? "Emlak Ofisi" : "Sahibinden");
       const base = {
         // Türe özel alanlar (config.fieldDefs) — boş bırakılanlar yazılmaz
-        details: collectKindFields($("#kindFields")),
+        details: collectDetails(),
         segment: seg,
         category: $("#pCat").value,
         city: $("#pCity").value, district: $("#pDistrict").value,
@@ -1938,31 +1962,74 @@
       });
     }
 
-    function validate(l) {
-      if (!l.district) return "Lütfen ilçe seçin.";
-      // Taşınmaz Ticareti Hakkında Yönetmelik: emlak işletmesi ilanında yetki belgesi no zorunlu
-      if (l.segment === "emlak" && l.seller.type === "ofis" && !/^\d{5,12}$/.test(l.seller.license || "")) {
-        return "Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur (yalnız rakam).";
+    // Doğrulama: ilk hatalı alanı `bad` selector'ıyla işaretler (showError odaklar).
+    // soft=true: AI önerisi / yazarı için yalnız konum ve ölçü bilgisi aranır (zorunlu belgeler değil).
+    let bad = null;
+    function validate(l, soft) {
+      const fail = (msg, sel) => { bad = sel || null; return msg; };
+      bad = null;
+      if (!l.district) return fail("Lütfen ilçe seçin.", "#pDistrict");
+      if (!l.price && !soft) return fail("Fiyat girin (ya da “AI fiyat önerisi al”ı kullanın).", "#pPrice");
+      if (l.segment === "diger") {
+        if ($("#pPhone").value.trim() && !l.phone) return fail("Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).", "#pPhone");
+        return null;   // sade form: başlık/fiyat/konum yeterli
       }
-      if ($("#pPhone").value.trim() && !l.phone) return "Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).";
-      if (l.segment === "diger") return null;   // sade form: başlık/fiyat/konum yeterli
       if (l.segment === "vasita") {
-        if (!l.brand || !l.model) return "Marka ve model seçin.";
-        if (!l.year || l.year < C.vehicles.minYear || l.year > new Date().getFullYear() + 1) return "Geçerli bir model yılı girin.";
-        if (l.km == null || l.km < 0) return "Geçerli bir kilometre girin.";
-        return null;
+        if (!l.brand || !l.model) return fail("Marka ve model seçin.", "#pBrand");
+        if (!l.year || l.year < C.vehicles.minYear || l.year > new Date().getFullYear() + 1) return fail("Geçerli bir model yılı girin.", "#pYear");
+        if (l.km == null || l.km < 0) return fail("Geçerli bir kilometre girin.", "#pKm");
+      } else {
+        if (!l.m2 || l.m2 < 10) return fail(LAND.indexOf(l.kind) >= 0 ? "Geçerli bir yüz ölçümü (m²) girin." : "Geçerli bir m² girin.", "#pM2");
+        if (l.m2Net && l.m2Net > l.m2) return fail("Net alan brüt alandan büyük olamaz.", "#pM2Net");
+        if (soft) return null;
+        // ZORUNLU ALANLAR (config.fieldDefs[].required): taşınmaz numarası vb.
+        for (const f of D.requiredFields(l.kind)) {
+          const el = $("#kf_" + f.key);
+          const raw = el ? (el.value || "").trim() : "";
+          if (!raw) return fail(`${f.label} zorunludur. ${f.hint ? f.hint.split(".")[0] + "." : ""}`, "#kf_" + f.key);
+          if (f.key === "tasinmazNo" && !D.cleanTapuNo(raw)) {
+            return fail("Taşınmaz numarası yalnız rakamlardan oluşmalı ve 5–12 haneli olmalı (örn. 103555719).", "#kf_tasinmazNo");
+          }
+        }
+        // Taşınmaz Ticareti Hakkında Yönetmelik: emlak işletmesi ilanında yetki belgesi no zorunlu
+        if (l.seller.type === "ofis" && !/^\d{5,12}$/.test(l.seller.license || "")) {
+          return fail("Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur (yalnız rakam).", "#pLicense");
+        }
       }
-      if (!l.m2 || l.m2 < 10) return "Geçerli bir m² girin.";
-      if (l.m2Net && l.m2Net > l.m2) return "Net alan brüt alandan büyük olamaz.";
+      if (soft) return null;
+      if ($("#pPhone").value.trim() && !l.phone) return fail("Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).", "#pPhone");
       return null;
     }
+    // Hata gösterimi: kırmızı bant + ilgili alan işaretlenip odaklanır
+    function showError(msg, box) {
+      const el = $(box || "#ivError");
+      $$(".invalid").forEach((x) => x.classList.remove("invalid"));
+      el.className = "iv-error";
+      el.textContent = msg;
+      el.hidden = false;
+      const f = bad ? $(bad) : null;
+      if (f) { f.classList.add("invalid"); try { f.focus({ preventScroll: true }); } catch (e) { /* odak yok */ } }
+      (f || el).scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    function ivNote(html) {            // olumlu bilgi bandı (stüdyodan aktarıldı vb.)
+      const el = $("#ivError");
+      el.className = "iv-error iv-ok";
+      el.innerHTML = html;
+      el.hidden = false;
+    }
+    document.addEventListener("input", (e) => {
+      if (e.target.classList && e.target.classList.contains("invalid")) e.target.classList.remove("invalid");
+    });
 
     // AI fiyat önerisi
     $("#suggestBtn").addEventListener("click", () => {
       const l = collect();
-      const err = validate(l);
       const out = $("#suggestOut");
-      if (err) { out.innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
+      out.hidden = false;
+      // Fiyat boşken de çalışmalı: yalnız konum ve alan/araç bilgisi gerekir
+      l.price = l.price || 1;
+      const err = validate(l);
+      if (err && bad !== "#pPrice") { out.innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
       const est = AI.estimate(l);
       if (!est) { out.textContent = "Bu seçim için piyasa verisi bulunamadı."; return; }
       out.innerHTML = `AI fiyat önerisi: <b>${fmt(est.low)} – ${fmt(est.high)} ₺${priceSuffix(l)}</b> (orta nokta ${fmt(est.mid)} ₺). Hızlı satış için bandın altını, pazarlık payı için üstünü seçebilirsiniz.`;
@@ -1978,50 +2045,133 @@
     // AI başlık + açıklama
     $("#writeBtn").addEventListener("click", () => {
       const l = collect();
-      const err = validate(l);
-      if (err) { $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
+      const err = validate(l, true);
+      if (err) { showError(err); return; }
       l.id = "TMP" + Date.now();
       $("#pTitle").value = autoTitle(l);
       $("#pDesc").value = AI.describe(l);
     });
 
-    // Yayınla — sunucu varsa oraya gönderilir (onaylı yayın akışı);
-    // statik yayında cihaz-yerel kayda düşer.
+    // ── ADIMLAR: 1 Kategori · 2 İlan Detayları · 3 Önizleme · 4 Yayında ────
+    // 1-2 arası geçişi sihirbaz/stüdyo yönetir; 3 ve 4 burada.
+    function setStep(n) {
+      $$("#ivSteps li").forEach((li) => {
+        const k = +li.dataset.s;
+        li.classList.toggle("on", k === n);
+        li.classList.toggle("done", k < n);
+      });
+      $("#ivPreview").hidden = n !== 3;
+      $("#ivDone").hidden = n !== 4;
+      if (n === 3 || n === 4) $("#ilanVerForm").style.display = "none";
+      else if (n === 2) $("#ilanVerForm").style.display = "";
+    }
+    // Yönetici/yönetici üye: öne çıkarma kutusu yalnız onlara (üye için etkisizdi, karışıklık yaratıyordu)
+    if (adminToken() || (me && me.role === "admin")) $("#pFeaturedWrap").hidden = false;
+
+
+    // Önizleme: ilan sayfasındaki görünümün özeti + hazırlık denetimi (engelleyici değil)
+    function buildPreview(l) {
+      const photos = (l.photos || []).filter((x) => safePhoto(x));
+      const title = l.title || autoTitle(l);
+      const desc = l.desc || (() => { l.id = l.id || "TMP"; return AI.describe(l); })();
+      const catLabel = l.category === "satilik" ? "Satılık" : "Kiralık";
+      const facts = [["İlan Türü", `${catLabel} ${l.kindLabel}`], ["Konum", [l.city, l.district, l.locality].filter(Boolean).join(" / ")]];
+      if (l.segment === "vasita") {
+        facts.push(["Araç", [l.year, l.brand, l.model].filter(Boolean).join(" ")], ["Kilometre", fmt(l.km) + " km"], ["Yakıt / Vites", [l.fuel, l.gear].filter(Boolean).join(" · ")]);
+      } else if (l.segment === "emlak") {
+        facts.push(["Alan", fmt(l.m2) + " m²" + (l.m2Net ? ` (net ${fmt(l.m2Net)} m²)` : "")]);
+        if (l.rooms) facts.push(["Oda", l.rooms]);
+        if (l.age != null) facts.push(["Bina Yaşı", l.age === 0 ? "Sıfır" : String(l.age)]);
+      }
+      Object.keys(l.details || {}).forEach((k) => {
+        const v = l.details[k];
+        facts.push([D.fieldLabel(k), k === "tasinmazNo" ? `Beyan edildi (${D.maskTapuNo(v)})` : v === true ? "Var" : String(v)]);
+      });
+      if ((l.features || []).length) facts.push(["Özellikler", l.features.join(", ")]);
+      facts.push(["İlanı Veren", l.seller.type === "ofis" ? `${l.seller.name} (Emlak Ofisi${l.seller.license ? " · Yetki No " + l.seller.license : ""})` : l.seller.name]);
+      const checks = [
+        [true, "Zorunlu alanlar tamam"],
+        [photos.length >= 4, photos.length >= 4 ? `${photos.length} fotoğraf` : `Fotoğraf ${photos.length}/4 — en az 4 öneririz`],
+        [(l.desc || "").length >= 120, (l.desc || "").length >= 120 ? "Açıklama ayrıntılı" : "Açıklama kısa/boş — otomatik yazılacak"],
+        [!!l.phone || !!(A.user() && A.user().phone), "İletişim telefonu"],
+      ];
+      const b = l.price && l.segment !== "diger" ? AI.priceBadge(Object.assign({}, l, { id: l.id || "TMP" })) : null;
+      if (b) checks.push([b.key !== "ustu", b.key === "ustu" ? `Fiyat piyasanın %${b.pct} üstünde` : "Fiyat piyasa bandında"]);
+      $("#ivPrevBody").innerHTML = `
+        <div class="ivp-media">
+          ${photos[0] ? `<img class="ivp-cover" src="${safePhoto(photos[0])}" alt="Kapak fotoğrafı">` : '<div class="ivp-nophoto">Fotoğraf eklenmedi</div>'}
+          ${photos.length > 1 ? `<div class="ivp-thumbs">${photos.slice(1, 7).map((x, i) => `<img src="${safePhoto(x)}" alt="Fotoğraf ${i + 2}">`).join("")}</div>` : ""}
+        </div>
+        <div class="ivp-info">
+          <div class="ivp-price">${fmt(l.price)} ₺${priceSuffix(l)}</div>
+          <h3>${esc(title)}</h3>
+          <dl class="ivp-facts">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+          <div class="ivp-desc desc-text">${esc(desc)}</div>
+        </div>
+        <aside class="ivp-check"><b>Yayına hazırlık</b>
+          <ul>${checks.map(([ok, t]) => `<li class="${ok ? "ok" : "warn"}">${ok ? "✓" : "!"} ${esc(t)}</li>`).join("")}</ul>
+          <button class="link-ai" id="ivPrevEdit" type="button">Bilgileri düzenle</button>
+        </aside>`;
+      $("#ivPrevEdit").addEventListener("click", () => setStep(2));
+    }
+    $("#toPreview").addEventListener("click", () => {
+      const l = collect();
+      const err = validate(l);
+      if (err) { setStep(2); showError(err); return; }
+      $("#ivError").hidden = true;
+      $("#ivError2").hidden = true;
+      buildPreview(l);
+      setStep(3);
+      window.scrollTo({ top: $("#ivSteps").offsetTop - 20, behavior: "smooth" });
+    });
+    $("#backEdit").addEventListener("click", () => { setStep(2); window.scrollTo({ top: $("#ilanVerForm").offsetTop - 70, behavior: "smooth" }); });
+
+    // Gönder — sunucu varsa oraya gönderilir (onaylı yayın akışı); statik yayında cihaz-yerel kayda düşer.
     $("#publishBtn").addEventListener("click", async () => {
       const l = collect();
-      const err = validate(l) || (!l.price ? "Fiyat girin ya da AI önerisini kullanın." : null);
-      if (err) { $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
+      const err = validate(l);
+      if (err) { setStep(2); showError(err); return; }
       l.title = l.title || autoTitle(l);
       l.desc = l.desc || null;
+      const e2 = (msg) => { const el = $("#ivError2"); el.className = "iv-error"; el.textContent = msg; el.hidden = false; el.scrollIntoView({ behavior: "smooth", block: "center" }); };
       if (D.hasServer()) {
         const btn = $("#publishBtn");
         btn.disabled = true; btn.textContent = "Gönderiliyor…";
         try {
           const r = await D.submit(l, adminToken());
           if (r && r.ok) {
+            if (r.status === "active" && !r.photoWarning) { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
             // Sunucu bazı fotoğrafları kaydedemediyse SESSİZ kalma, söyle
-            const warn = r.photoWarning ? `<br><span style="color:var(--over)">⚠ ${esc(r.photoWarning)}</span>` : "";
-            if (r.status === "active" && !warn) { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
-            $("#suggestOut").innerHTML = r.status === "active"
-              ? `<b style="color:var(--deal)">İlanınız yayında ✓</b> <a href="ilan.html?id=${encodeURIComponent(r.id)}">İlanı gör →</a>${warn}`
-              : `<b style="color:var(--deal)">İlanınız alındı ✓</b> İlan numaranız <b>${esc(r.id)}</b>${r.photosSaved ? ` · ${r.photosSaved} fotoğraf yüklendi` : ""}. Yönetici onayından sonra yayına girecek; durumunu <a href="hesap.html">Hesabım › İlanlarım</a> sayfasından izleyebilirsiniz.${warn}`;
-            btn.textContent = "İlan Gönderildi ✓";
+            const warn = r.photoWarning ? `<p class="iv-error">⚠ ${esc(r.photoWarning)}</p>` : "";
+            $("#ivDoneBody").innerHTML = `
+              <div class="ivd-check" aria-hidden="true">✓</div>
+              <h2>${r.status === "active" ? "İlanınız yayında" : "İlanınız alındı"}</h2>
+              <p>İlan numaranız <b>${esc(r.id)}</b>${r.photosSaved ? ` · ${r.photosSaved} fotoğraf yüklendi` : ""}.</p>
+              ${r.status === "active" ? "" : "<p>Yönetici onayından sonra yayına girecek. Onay sürecinde Hesabım › İlanlarım'dan önizleyebilir, düzenleyebilirsiniz.</p>"}
+              ${warn}
+              <div class="iv-actions" style="justify-content:center">
+                <a class="btn" href="hesap.html">İlanlarım</a>
+                <a class="btn ghost" href="ilan.html?id=${encodeURIComponent(r.id)}">İlanı ${r.status === "active" ? "gör" : "önizle"}</a>
+                <a class="btn ghost" href="ilan-ver.html">Yeni ilan ver</a>
+              </div>`;
+            setStep(4);
+            window.scrollTo({ top: $("#ivSteps").offsetTop - 20, behavior: "smooth" });
             return;
           }
-          if (r && r.error && /giriş/i.test(r.error)) {
-            location.href = "giris.html?next=ilan-ver.html";
-            return;
-          }
-          $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "İlan gönderilemedi, lütfen tekrar deneyin.")}</span>`;
+          if (r && r.error && /giriş/i.test(r.error)) { location.href = "giris.html?next=ilan-ver.html"; return; }
+          // Sunucu doğrulaması (ör. taşınmaz numarası, yetki belgesi) → formda ilgili alanı göster
+          if (r && r.error && /taşınmaz numarası/i.test(r.error)) { bad = "#kf_tasinmazNo"; setStep(2); showError(r.error); }
+          else if (r && r.error && /yetki belgesi/i.test(r.error)) { bad = "#pLicense"; setStep(2); showError(r.error); }
+          else e2((r && r.error) || "İlan gönderilemedi, lütfen tekrar deneyin.");
         } catch (e) {
-          $("#suggestOut").innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı, lütfen tekrar deneyin.</span>';
+          e2("Sunucuya ulaşılamadı, lütfen tekrar deneyin.");
         }
-        btn.disabled = false; btn.textContent = "İlanı Yayınla";
+        btn.disabled = false; btn.textContent = "İlanı Gönder";
         return;
       }
       const saved = D.saveUserListing(l);
       if (!saved) { // depolama kotası aşıldı (fotoğraflar çok yer kaplıyor)
-        $("#suggestOut").innerHTML = '<span style="color:var(--over)">İlan kaydedilemedi: fotoğraflar cihaz depolamasına sığmadı. Birkaç fotoğrafı kaldırıp yeniden deneyin.</span>';
+        e2("İlan kaydedilemedi: fotoğraflar cihaz depolamasına sığmadı. Birkaç fotoğrafı kaldırıp yeniden deneyin.");
         return;
       }
       location.href = "ilan.html?id=" + encodeURIComponent(saved.id);
@@ -2399,7 +2549,7 @@
           if (!$("#stChatPanel").hidden) {
             convo.done = true;
             const rd = ST.readiness(Object.assign(stDraft(), { desc: $("#stDesc").value }), stSelected());
-            bubble("bot", `İlanınız hazır ✓ Yayına hazırlık puanı ${rd.score}/100. Aşağıda başlığı, açıklamayı ve fotoğraf sırasını görebilirsiniz; uygunsa “Onayla ve İlanı Gönder”e dokunun. Bir şey eklemek isterseniz buraya yazın ya da söyleyin.`);
+            bubble("bot", `İlanınız hazır ✓ Yayına hazırlık puanı ${rd.score}/100. Aşağıda başlığı, açıklamayı ve fotoğraf sırasını görebilirsiniz; uygunsa “Önizlemeye geç”e dokunun. Bir şey eklemek isterseniz buraya yazın ya da söyleyin.`);
           }
           $("#stResult").hidden = false;
           $("#stResult").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2576,24 +2726,27 @@
         setVal("#pGear", l.gear);
       }
       // Türe özel alanlar: yalnız bu türün tanımlı alanları dolar
-      renderKindFields($("#kindFields"), $("#pKind").value, l.details);
+      // Varsayılanlar (Takaslı = Hayır) stüdyo verisinde yoksa korunur
+      const det = Object.assign({}, l.details);
+      D.fieldsOfKind($("#pKind").value).forEach((f) => { if (f.default !== undefined && det[f.key] === undefined) det[f.key] = f.default; });
+      renderKindFields($("#kindFields"), $("#pKind").value, det, (f) => f.section !== "tapu");
+      renderKindFields($("#tapuFields"), $("#pKind").value, det, (f) => f.section === "tapu");
       if (l.phone && !$("#pPhone").value.trim()) $("#pPhone").value = l.phone;
       $("#pTitle").value = l.title || "";
       $("#pDesc").value = l.desc || "";
-      const out = $("#suggestOut");
-      out.innerHTML = "Fotoğraflar hazırlanıyor…";
+      ivNote("Fotoğraflar hazırlanıyor…");
       photos.length = 0;
       const errors = await addPhotoFiles(l.files || [], photos, renderPhotoPreview);
       renderPhotoPreview();
       photoStatus(errors);
       if (autoPublish) {
         autoPublish = false;
-        // Eksik zorunlu alan varsa yayın düğmesi hatayı formda gösterir
-        $("#publishBtn").click();
+        // Önizlemeye geç: zorunlu alan (ör. taşınmaz numarası) eksikse form o alanı gösterir
+        $("#toPreview").click();
         return;
       }
-      out.innerHTML = `<b style="color:var(--deal)">✦ Stüdyodan aktarıldı.</b> Bilgileri ve fotoğraf sırasını son kez kontrol edin; ` +
-        `eksik alanları tamamlayıp <b>İlanı Yayınla</b>'ya basın.` + (l.price ? "" : " Fiyat girilmedi — “AI Fiyat Önerisi Al” ile bant görebilirsiniz.");
+      ivNote(`<b>✦ Stüdyodan aktarıldı.</b> Bilgileri ve fotoğraf sırasını kontrol edin; eksik alanları tamamlayıp <b>Önizleme</b>'ye geçin.` +
+        (l.price ? "" : " Fiyat girilmedi — “AI fiyat önerisi al” ile bant görebilirsiniz."));
     }
   }
 
@@ -2658,8 +2811,9 @@
         out.innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz (örn. 0543 743 42 09).</span>'; return;
       }
       if (!$("#rTerms").checked) {
-        out.innerHTML = '<span style="color:var(--over)">Devam etmek için onay kutusunu işaretleyin.</span>'; return;
+        out.innerHTML = '<span style="color:var(--over)">Devam etmek için Kullanım Koşulları ve KVKK Aydınlatma Metni onayını işaretleyin.</span>'; return;
       }
+      payload.consent = true;
       run("#registerSubmit", "#registerOut", () => A.register(payload));
     });
     $("#rPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#registerSubmit").click(); });
@@ -3212,7 +3366,10 @@
           const [sl, sc] = STATUS[l.status] || ["—", "var(--muted)"];
           return `<tr>
             <td><a href="ilan.html?id=${encodeURIComponent(l.id)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b></a><br>
-              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${esc(ownerLabel(l))} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small></td>
+              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${esc(ownerLabel(l))} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small>
+              ${(l.details || {}).tasinmazNo ? `<br><small>🪪 Taşınmaz No: <b>${esc(l.details.tasinmazNo)}</b>${(l.seller || {}).license ? " · Yetki No: <b>" + esc(l.seller.license) + "</b>" : ""}</small>` : (l.segment || "emlak") === "emlak" ? '<br><small style="color:var(--over)">⚠ Taşınmaz numarası yok</small>' : ""}
+              ${(l.dupOf || []).length ? `<br><small style="color:var(--over);font-weight:700">⚠ Aynı taşınmaz numarası başka ilanda: ${esc(l.dupOf.join(", "))} — onaylamadan önce kontrol edin</small>` : ""}
+              ${l.reported ? '<br><small style="color:var(--over);font-weight:700">🚩 Şikayetler nedeniyle incelemede</small>' : ""}</td>
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">

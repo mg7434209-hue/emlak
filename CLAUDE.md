@@ -388,7 +388,7 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
   listesinden tohumlanır — Volume yoksa her dağıtımda sıfırlanır; panel bunu
   kırmızı uyarıyla söyler (`persistent:false`). Kalıcı ilan = Volume bağla ya
   da REAL'e işleyip commit'le; panelden JSON yedek al / yedekten yükle.
-- Şifre: `ADMIN_PASS` ortam değişkeni (yoksa `config.admin.pass` — değiştir!).
+- Şifre: YALNIZ `ADMIN_PASS` ortam değişkeni (yoksa açılışta rastgele geçici şifre günlüğe yazılır).
   `admin.html` girişi İKİ SEKMELİDİR: "Yönetici Şifresi" ve "Hesabımla Giriş"
   (yalnız `role:"admin"` üyeler). Panelden çıkış `emlakai.adminPanelClosed`
   bayrağıyla işaretlenir — yönetici üyenin site oturumu düşmez.
@@ -497,6 +497,33 @@ sırasız bırakır (en çok `config.studio.maxInputPhotos`):
 - FAVORİ FİYAT ALARMI: `favPriceAlert()` (initChrome) favorilerin fiyat
   anlık görüntüsünü `emlakai.favPrices`'ta tutar; düşüş varsa bir kez `.toast`.
 
+## CANLIYA ALMA VE İLAN KURALLARI (31 Eki 2026)
+- YAYIN DALI: GitHub'ın varsayılan dalı `claude/ai-real-estate-platform-89ai1h`'dır ve Railway oradan
+  yayın yapar; özellik dalları birleştirilmeden canlıya çıkmaz (canlı site bu yüzden eski tasarımı gösteriyordu).
+- TAŞINMAZ NUMARASI ZORUNLU (sahibinden kuralı): emlak ilanında `details.tasinmazNo` olmadan ilan
+  kabul edilmez (yönetici hariç). Tek kural `config.fieldDefs.tasinmazNo.required` + `digits [5,12]`;
+  istemci `validate()`, sunucu `needsTapuNo()`, studio sohbeti (`tapuno` sorusu) ve `readiness` aynı
+  alanı okur. Yalnız RAKAM saklanır (`D.cleanTapuNo`); noktalı yazım kabul edilir. HERKESE AÇIK
+  yanıtlarda (`/api/listings`, `/api/seller`, ilan künyesi, SSR) TAM GÖSTERİLMEZ — `pub()` /
+  `D.maskTapuNo` yalnız son 3 hane ("•••••719"); tam hâli sahibine (`/api/my/*`) ve yöneticiye döner.
+  Açıklamaya/notlara SIZDIRMA (studio `cleanNotes`, `ai-studio.js` bunu siler).
+  Yeni bir public çıktı eklersen `pub()`'dan geçir. Aynı üye + aynı numara + aynı kategori → 409;
+  başka üye → ilan alınır, `dupOf` ile yönetici panelinde kırmızı uyarı.
+  Doğrulama BEYANDIR: TKGM erişimi yok, otomatik doğrulama iddia etme.
+- ZORUNLU ALAN MEKANİZMASI: `fieldDefs[].required` → `D.requiredFields(kind)`; `section: "tapu"` alanlar
+  formda "Tapu ve belgeler" bölümünde (`#tapuFields`), kalanlar `#kindFields`'ta çizilir. `default` (Takaslı =
+  Hayır) yalnız yeni ilanda uygulanır. Enerji Kimlik Belgesi (`enerjiSinifi`) konut/iş yeri/bina için opsiyonel.
+- İLAN VER AKIŞI: 4 adım (`#ivSteps`): Kategori (stüdyo/sihirbaz) → İlan Detayları (bölümlü form, `.fs`
+  fieldset'leri) → Önizleme (`#ivPreview`, hazırlık denetimi) → Yayında (`#ivDone`). `setStep(n)` yönetir;
+  hata `showError()` ile ilgili alana odaklanır. "Öne çıkar" kutusu yalnız yöneticiye görünür.
+- YÖNETİCİ ŞİFRESİ repoda YOK: yalnız `ADMIN_PASS` env; tanımsızsa açılışta rastgele geçici şifre
+  üretilip günlüğe yazılır. `config.admin`'e şifre YAZMA (repo açık olabilir; eski `emlak2026` bu yüzden kaldırıldı).
+- KVKK/YASAL: `kvkk.html`, `kullanim-kosullari.html`, `cerez-politikasi.html` (taslak, hukukçu onayı gerekir).
+  Site ÇEREZ KULLANMAZ (yalnız localStorage) → çerez bandı yok. Kayıtta onay zorunlu (`consent:true`,
+  `LEGAL_VERSION` ile kayda geçer). Ziyaretçi sayacı ham IP SAKLAMAZ (tuzlu özet). Yeni veri toplarsan
+  KVKK metnini de güncelle (özellikle yurt dışı aktarım: Railway, isteğe bağlı Anthropic).
+- TEST: `npm test` = `tests/smoke.js` (geçici veri klasörüyle sunucuyu açar). Birleştirmeden önce yeşil olmalı.
+
 ## YAYIN İZİN LİSTESİ (server.js `isPublicPath`) — tekrar düşme
 Statik sunucu eskiden kökteki HER dosyayı veriyordu: `data/session.key`
 (oturum imza anahtarı → sahte yönetici jetonu), `.git/`, `server.js`,
@@ -509,6 +536,6 @@ Buluttaki Claude Code dış sitelere erişemez (egress izin listesi). Dış veri
 gerekiyorsa dosya olarak repoya ekle.
 
 ## Çalıştırma & Test (commit öncesi)
-- `npm run build` → SEO çıktıları; `npm start` → build + sunucu (http://localhost:3000).
+- `npm test` → uçtan uca duman testi; `npm run build` → SEO çıktıları; `npm start` → build + sunucu (http://localhost:3000).
 - `node -c assets/app.js && node -c assets/ai.js && node -c assets/data.js && node -c assets/config.js && node -c server.js && node -c build-seo.js`
 - Sunucuyu başlatıp ana sayfaların 200 döndüğünü doğrula.

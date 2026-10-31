@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "build": "node build-seo.js",
-    "start": "node build-seo.js && node visitor-server.js"
+    "start": "node build-seo.js && node visitor-server.js",
+    "test": "node tests/smoke.js"
   },
   "engines": {
     "node": ">=18"

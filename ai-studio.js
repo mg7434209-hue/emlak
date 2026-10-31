@@ -93,6 +93,7 @@ function systemPrompt() {
 KESİN KURALLAR
 - Yalnızca metinde YAZAN ya da fotoğrafta AÇIKÇA GÖRÜNEN bilgiyi kullan. Tahmin, abartı, uydurma yok. Emin olmadığın alanı boş bırak ("" / 0 / -1).
 - Fotoğrafta görünen ama metinde olmayan bir özelliği (ör. havuz, deniz manzarası) features'a ancak fotoğrafta tartışmasız görünüyorsa ekle ve warnings'e "fotoğraftan çıkarıldı: X — doğrulayın" yaz.
+- Taşınmaz numarasını (tapu numarası) açıklama metnine ASLA yazma; yalnız details içindeki tasinmazNo alanına yaz (yalnız rakam).
 - Telefon numarası, e-posta, bağlantı ve fiyat pazarlığı dışı reklam cümlelerini açıklamaya yazma; "ACİL", "kaçırmayın", ünlem yağmuru, büyük harf kullanma.
 - Açıklama Türkçe, sade, güven veren ve kurumsal bir dille yazılır. Biçim: 1-2 cümlelik giriş paragrafı, ardından boş satır, "ÖNE ÇIKANLAR" başlığı ve "• " ile başlayan maddeler, gerekirse "KONUM VE ÇEVRE" başlığı altında metinde geçen yakınlık bilgileri, sonda tek cümlelik iletişim çağrısı. 120-260 sözcük. Yatırım vaadi ya da piyasa iddiası yazma.
 - Başlık en fazla 70 karakter: konum + oda/m² (ya da yıl marka model) + ayırt edici özellik + Satılık/Kiralık + tür. Büyük harf ve emoji kullanma.
@@ -160,10 +161,14 @@ function validate(o, nPhotos) {
   (Array.isArray(o.features) ? o.features : []).forEach((f) => {
     if (C.valuation.features[f] != null && out.features.indexOf(f) < 0) out.features.push(f);
   });
+  if (out.details.tasinmazNo) out.details.tasinmazNo = String(out.details.tasinmazNo).replace(/\D/g, "");
+  if (out.details.tasinmazNo && !/^\d{5,12}$/.test(out.details.tasinmazNo)) delete out.details.tasinmazNo;
   out.title = s(o.title, 120).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").trim();
   out.description = s(o.description, 4000)
     .replace(/(?:\+?90[\s.-]*)?\(?0?\s*5\d{2}\)?[\s.-]*\d{3}[\s.-]*\d{2}[\s.-]*\d{2}/g, "")  // telefon sızmasın
     .replace(/\bhttps?:\/\/\S+/g, "");
+  // Taşınmaz numarası metne sızmışsa sil (herkese açık açıklamada yer almaz)
+  if (out.details.tasinmazNo) out.description = out.description.split(out.details.tasinmazNo).join("").replace(/[ \t]{2,}/g, " ");
   const seen = new Set();
   (Array.isArray(o.photos) ? o.photos : []).forEach((p) => {
     if (!p || !Number.isInteger(p.index) || p.index < 0 || p.index >= nPhotos || seen.has(p.index)) return;

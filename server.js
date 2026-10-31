@@ -41,7 +41,8 @@
  *
  * Depolama: DATA_DIR (Railway Volume önerilir) ya da ./data altında
  * listings.json. İlk açılışta assets/data.js REAL[] listesinden tohumlanır.
- * Admin şifresi: ADMIN_PASS ortam değişkeni (yoksa config.admin.pass).
+ * Admin şifresi: YALNIZ ADMIN_PASS ortam değişkeni. Depoda şifre YOKTUR (repo açık
+ * olabilir); değişken tanımlı değilse açılışta rastgele geçici şifre üretilip günlüğe yazılır.
  */
 const http = require("http");
 const fs = require("fs");
@@ -65,6 +66,38 @@ const CONF = global.EMLAK.config;
 // AI İlan Stüdyosu: ANTHROPIC_API_KEY yoksa kapalıdır, site tarayıcı analiziyle çalışır.
 const STUDIO = require("./ai-studio.js");
 const NORMALIZE = global.EMLAK.data.normalize;
+const EDATA = global.EMLAK.data;
+// Yasal metinlerin sürümü (kvkk / kullanım koşulları güncellenince değiştir): üyenin onayı bu sürümle kaydedilir
+const LEGAL_VERSION = "2026-10-31";
+
+// ── TAŞINMAZ NUMARASI (zorunlu; sahibinden.com ile aynı kural) ──────────────
+// Emlakta ilan, tapudaki taşınmaz numarası OLMADAN kabul edilmez. Numara herkese
+// açık yanıtlarda TAM GÖSTERİLMEZ (son 3 hane): açık olursa başkasının taşınmazı
+// için sahte ilan vermek kolaylaşır. Tam hâli yalnız sahibine ve yöneticiye döner.
+const needsTapuNo = (l) => (l.segment || "emlak") === "emlak" &&
+  EDATA.requiredFields(l.kind).some((f) => f.key === "tasinmazNo");
+// İstemciden gelen ham gövdede numarayı rakama indirir (normalize'dan ÖNCE)
+function cleanTapuIn(b) {
+  if (b && b.details && typeof b.details === "object" && b.details.tasinmazNo != null) {
+    b.details = Object.assign({}, b.details, { tasinmazNo: EDATA.cleanTapuNo(b.details.tasinmazNo) });
+  }
+  return b;
+}
+const TAPU_MSG = "Taşınmaz numarası zorunludur (yalnız rakam). Tapu senedinizin üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar.";
+// Aynı numara + aynı kategori başka ilanda mı? Aynı üyeden → engel; başka üyeden → yönetici incelemesi.
+function tapuConflict(l) {
+  const no = l.details && l.details.tasinmazNo;
+  if (!no || !/^\d+$/.test(no)) return { hard: null, ids: [] };
+  const others = LISTINGS.filter((x) => x.id !== l.id && x.status !== "rejected" && x.category === l.category &&
+    x.details && x.details.tasinmazNo === no);
+  const own = others.find((x) => l.ownerId && x.ownerId === l.ownerId);
+  return { hard: own ? own.id : null, ids: others.map((x) => x.id) };
+}
+// Herkese açık görünüm: taşınmaz numarası maskeli, iç alanlar yok
+function pub(l) {
+  if (!l || !l.details || !l.details.tasinmazNo) return l;
+  return Object.assign({}, l, { details: Object.assign({}, l.details, { tasinmazNo: EDATA.maskTapuNo(l.details.tasinmazNo) }) });
+}
 const SEED = global.EMLAK.data.all(); // Node ortamında yalnız REAL[]
 
 // ── İlan deposu (JSON dosyası; Railway'de kalıcılık için Volume + DATA_DIR) ─
@@ -454,7 +487,15 @@ const VIEW_TTL = 12 * 60 * 60 * 1000;
 const str = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 // ── Admin oturumları (bellek içi token; yeniden başlatınca sıfırlanır) ────
-const ADMIN_PASS = process.env.ADMIN_PASS || (CONF.admin && CONF.admin.pass) || "";
+// Eskiden config.js'te varsayılan bir şifre vardı (açık depoda herkes görürdü).
+// Artık yalnız ortam değişkeni; yoksa her açılışta RASTGELE geçici şifre üretilir
+// ve günlüğe yazılır — yönetici kilitlenmez, ama kimse tahmin edemez.
+const ADMIN_PASS_SET = !!process.env.ADMIN_PASS;
+const ADMIN_PASS = process.env.ADMIN_PASS || crypto.randomBytes(9).toString("base64url");
+if (!ADMIN_PASS_SET) {
+  console.warn("⚠ ADMIN_PASS tanımlı değil. Bu açılış için GEÇİCİ yönetici şifresi: " + ADMIN_PASS +
+    "  (Railway › Variables › ADMIN_PASS ile kalıcı bir şifre belirleyin; ayrıca ADMIN_EMAIL tanımlayabilirsiniz.)");
+}
 // Bu e-posta ile açılan/giren hesap otomatik yönetici olur (ilk kurulum kolaylığı)
 const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
 const TOKENS = new Map(); // token → sonGeçerlilik (ms)
@@ -525,6 +566,8 @@ async function handleApi(req, res, urlPath) {
     const b = await readBody(req, 8192);
     const name = str(b.name, 80), email = normEmail(b.email), pw = String(b.password || "");
     const phone = normPhoneSrv(b.phone);
+    // Kullanım Koşulları + KVKK Aydınlatma Metni onayı zorunlu (kayıt altına alınır)
+    if (b.consent !== true) return sendJson(res, 400, { error: "Kullanım Koşulları ve KVKK Aydınlatma Metni'ni onaylamanız gerekir." });
     if (name.length < 2) return sendJson(res, 400, { error: "Ad soyad en az 2 karakter olmalı." });
     if (!EMAIL_RE.test(email)) return sendJson(res, 400, { error: "Geçerli bir e-posta girin." });
     if (pw.length < 8) return sendJson(res, 400, { error: "Şifre en az 8 karakter olmalı." });
@@ -536,6 +579,7 @@ async function handleApi(req, res, urlPath) {
       name, email, phone, pass: hashPassword(pw),
       role: ADMIN_EMAIL && email === ADMIN_EMAIL ? "admin" : "user",
       created: new Date().toISOString(),
+      consent: { at: new Date().toISOString(), v: LEGAL_VERSION },
     };
     USERS.push(u);
     saveUsers(USERS);
@@ -608,7 +652,7 @@ async function handleApi(req, res, urlPath) {
 
   // GET /api/listings — herkese açık: yalnız aktif ilanlar
   if (urlPath === "/api/listings" && req.method === "GET") {
-    return sendJson(res, 200, { listings: LISTINGS.filter((l) => l.status === "active") });
+    return sendJson(res, 200, { listings: LISTINGS.filter((l) => l.status === "active").map(pub) });
   }
 
   // POST /api/listings — ilan gönder (herkes; admin token'la doğrudan aktif)
@@ -623,9 +667,13 @@ async function handleApi(req, res, urlPath) {
       return sendJson(res, 429, { error: "Saatlik ilan sınırına ulaştınız. Daha sonra tekrar deneyin." });
     }
     const b = await readBody(req, BODY_PHOTOS); // fotoğraflar base64 (kota kadar)
-    const l = NORMALIZE(b);
+    const l = NORMALIZE(cleanTapuIn(b));
     if (!l) return sendJson(res, 400, { error: "Geçersiz ilan verisi." });
     if (!l.title || !l.price || !l.district) return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
+    // Taşınmaz numarası zorunlu (yönetici hariç); aynı üyenin aynı taşınmaza ikinci ilanı engellenir
+    if (!isAdmin && needsTapuNo(l) && !(l.details && /^\d{5,12}$/.test(l.details.tasinmazNo || ""))) {
+      return sendJson(res, 400, { error: TAPU_MSG });
+    }
     // Taşınmaz Ticareti Hakkında Yönetmelik: emlak işletmesi ilanında yetki belgesi no
     if (!isAdmin && (l.segment || "emlak") === "emlak" && l.seller && l.seller.type === "ofis" &&
         !/^\d{5,12}$/.test(l.seller.license || "")) {
@@ -637,6 +685,10 @@ async function handleApi(req, res, urlPath) {
     delete l.user; delete l.ownerId; delete l.priceHistory; delete l.updated;
     l.id = "EA" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
     l.date = new Date().toISOString();
+    if (user) l.ownerId = user.uid;                  // çakışma denetimi sahibi bilsin (aşağıda yeniden atanır)
+    const tc = tapuConflict(l);
+    if (tc.hard) return sendJson(res, 409, { error: "Bu taşınmaz numarasıyla zaten bir ilanınız var (" + tc.hard + "). Mevcut ilanı Hesabım › İlanlarım'dan düzenleyin." });
+    if (tc.ids.length) l.dupOf = tc.ids;             // yönetici panelinde uyarı çıkar
     // Yayın kararı yöneticinindir: yalnızca yöneticinin KENDİ girdiği ilan
     // (config.moderation.adminAutoPublish) doğrudan yayına girer.
     l.status = isAdmin && MOD.adminAutoPublish !== false ? "active" : "pending";
@@ -693,7 +745,7 @@ async function handleApi(req, res, urlPath) {
         views: listings.reduce((t, l) => t + (l.views || 0), 0),
         phone: listings.length ? (listings[0].phone || u.phone || null) : null,
       },
-      listings,
+      listings: listings.map(pub),
     });
   }
 
@@ -902,10 +954,16 @@ async function handleApi(req, res, urlPath) {
     if (b.action !== "edit") return sendJson(res, 400, { error: "Bilinmeyen eylem." });
     const patch = b.value && typeof b.value === "object" ? b.value : null;
     if (!patch) return sendJson(res, 400, { error: "Geçersiz düzenleme verisi." });
-    const merged = NORMALIZE(Object.assign({}, l, patch));
+    const merged = NORMALIZE(Object.assign({}, l, cleanTapuIn(patch)));
     if (!merged || !merged.title || !merged.price || !merged.district) {
       return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
     }
+    if (needsTapuNo(merged) && !(merged.details && /^\d{5,12}$/.test(merged.details.tasinmazNo || ""))) {
+      return sendJson(res, 400, { error: TAPU_MSG });
+    }
+    { const tc = tapuConflict(Object.assign({}, merged, { id: l.id, ownerId: l.ownerId }));
+      if (tc.hard) return sendJson(res, 409, { error: "Bu taşınmaz numarasıyla zaten başka bir ilanınız var (" + tc.hard + ")." });
+      if (tc.ids.length) merged.dupOf = tc.ids; else delete merged.dupOf; }
     if ((merged.segment || "emlak") === "emlak" && merged.seller && merged.seller.type === "ofis" &&
         !/^\d{5,12}$/.test(merged.seller.license || "")) {
       return sendJson(res, 400, { error: "Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur." });
@@ -916,6 +974,7 @@ async function handleApi(req, res, urlPath) {
     pushPriceHistory(l, merged.price);
     const hist = l.priceHistory;
     Object.assign(l, merged, {
+      dupOf: merged.dupOf,
       id: l.id, date: l.date, ownerId: l.ownerId, views: l.views || 0,
       favCount: l.favCount || 0, photos: keptPhotos, priceHistory: hist,
       // Düzenlenen ilan yeniden yönetici onayından geçer (yalnız fiyat
@@ -967,10 +1026,12 @@ async function handleApi(req, res, urlPath) {
         if (!patch) return sendJson(res, 400, { error: "Geçersiz düzenleme verisi." });
         // Düzenlenebilir alanlar birleştirilip normalize edilir; kimlik ve
         // sayaç alanları ilanın kendisinden korunur.
-        const merged = NORMALIZE(Object.assign({}, l, patch));
+        const merged = NORMALIZE(Object.assign({}, l, cleanTapuIn(patch)));
         if (!merged || !merged.title || !merged.price || !merged.district) {
           return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
         }
+        { const tc = tapuConflict(Object.assign({}, merged, { id: l.id, ownerId: l.ownerId }));
+          if (tc.ids.length) merged.dupOf = tc.ids; else delete merged.dupOf; }
         const aph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos, { ownerId: l.ownerId }) : null;
         const keptPhotos = aph ? aph.photos : l.photos;
         if (aph) dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
@@ -978,6 +1039,7 @@ async function handleApi(req, res, urlPath) {
         pushPriceHistory(l, merged.price);
         const hist = l.priceHistory;
         Object.assign(l, merged, {
+          dupOf: merged.dupOf,
           id: l.id, date: l.date, status: l.status, ownerId: l.ownerId, views: l.views || 0,
           favCount: l.favCount || 0, photos: keptPhotos, priceHistory: hist,
           updated: new Date().toISOString(),
@@ -1220,7 +1282,8 @@ function renderListingHtml(html, l) {
     ["Yetki Belge No", l.seller && l.seller.type === "ofis" ? l.seller.license : ""],
   ]).concat(Object.keys(l.details || {}).map((k) => [
     (CONF.fieldDefs[k] || {}).label || k,
-    l.details[k] === true ? "Var" : String(l.details[k]),
+    k === "tasinmazNo" ? "Beyan edildi (" + EDATA.maskTapuNo(l.details[k]) + ")"
+      : l.details[k] === true ? "Var" : String(l.details[k]),
   ])).filter(([, v]) => v !== "" && v != null);
 
   // Botların ve JS'siz ziyaretçinin okuyabileceği tam içerik; app.js üzerine yazar
@@ -1801,7 +1864,7 @@ function sitemapXml() {
   const base = (CONF.seo.siteUrl || "").replace(/\/$/, "");
   const pages = ["", "/ilanlar.html", "/degerleme.html", "/ilan-ver.html",
     "/bolge-fiyatlari.html", "/rehber.html", "/asistan.html", "/favoriler.html",
-    "/giris.html"];
+    "/giris.html", "/kullanim-kosullari.html", "/kvkk.html", "/cerez-politikasi.html"];
   const esc = (u) => u.replace(/&/g, "&amp;");
   const shopUrls = [...new Set(LISTINGS.filter((l) => l.status === "active" && l.ownerId).map((l) => l.ownerId))]
     .slice(0, 200).map((uid) =>
