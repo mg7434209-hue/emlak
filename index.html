@@ -15,7 +15,7 @@
   <meta property="og:locale" content="tr_TR">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="assets/style.css?v=b0e9be0b">
-  <link rel="stylesheet" href="assets/home.css?v=dd2657e3">
+  <link rel="stylesheet" href="assets/home.css?v=b2f9246b">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
 <body data-page="index" class="home-page">
@@ -44,35 +44,45 @@
     <!-- GOOGLE SADELİĞİ: ilk ekranda yalnız marka + tek arama kutusu + birkaç
          örnek. Vitrinler ve bağlantılar kaydırınca gelir; sayfa 3 bölümdür:
          arama → öne çıkan ilanlar → kategori/bölge bağlantıları. -->
-    <section class="g-hero" aria-labelledby="heroTitle">
-      <h1 id="heroTitle" class="g-logo"><span class="logo-mark big" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path></svg></span>Emlak<span>AI</span></h1>
-      <p class="g-tag">Ev, arsa, iş yeri ya da araç — aradığınızı tek cümleyle yazın.</p>
+    <section class="h-hero" aria-labelledby="heroTitle">
+      <div class="container h-hero-in">
+        <div class="h-copy">
+          <p class="h-eyebrow">Aradığın ilana bir cümleyle ulaş</p>
+          <h1 id="heroTitle" class="h-title">Aradığını anlat, sana uygun ilanı bulalım.</h1>
+          <p class="h-sub">Ev, arsa, iş yeri veya araç. Ne aradığını yaz ya da söyle.</p>
 
-      <div class="g-tabs" id="segTabs" role="tablist" aria-label="İlan türü">
-        <button class="tab-btn active" data-seg="emlak" role="tab" aria-selected="true">🏠 Taşınmaz</button>
-        <button class="tab-btn" data-seg="vasita" role="tab" aria-selected="false">🚗 Araç</button>
-        <button class="tab-btn" data-seg="diger" role="tab" aria-selected="false">🛒 Diğer</button>
+          <div class="h-box">
+            <div class="g-tabs h-tabs" id="segTabs" role="tablist" aria-label="İlan türü">
+              <button class="tab-btn active" data-seg="emlak" role="tab" aria-selected="true">Taşınmaz</button>
+              <button class="tab-btn" data-seg="vasita" role="tab" aria-selected="false">Araç</button>
+              <button class="tab-btn" data-seg="diger" role="tab" aria-selected="false">Diğer</button>
+            </div>
+            <form class="h-search" id="gSearch" role="search" action="ilanlar.html" method="get">
+              <input id="aiQuery" name="q" type="search" autocomplete="off" enterkeyhint="search" aria-label="İlan ara" placeholder="Örn. Manavgat'ta 5 milyon altı 3+1 daire">
+              <button class="g-mic" id="aiMic" type="button" aria-label="Sesle ara" title="Sesle ara">🎤</button>
+              <button class="btn" id="aiSearchBtn" type="submit">İlanları bul →</button>
+            </form>
+            <div class="h-quick" id="quickChips" aria-label="Örnek aramalar">
+              <a href="ilanlar.html?q=Antalya%20sat%C4%B1l%C4%B1k%20daire">Satılık daire</a>
+              <a href="ilanlar.html?q=kiral%C4%B1k%202%2B1">Kiralık ev</a>
+              <a href="ilanlar.html?q=havuzlu%20villa">Havuzlu villa</a>
+              <a href="ilanlar.html?q=yat%C4%B1r%C4%B1ml%C4%B1k%20arsa">Yatırımlık arsa</a>
+              <a href="ilanlar.html?q=2020%20%C3%BCst%C3%BC%20otomatik%20ara%C3%A7">Otomatik araç</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sağ panel: home.js yayındaki en iyi ilanı (fotoğraflıysa) büyük kart yapar;
+             ilan yoksa bu karşılama paneli kalır. Uydurma örnek ilan GÖSTERİLMEZ. -->
+        <aside class="h-show" id="heroShow" aria-label="Öne çıkan">
+          <div class="h-welcome">
+            <svg viewBox="0 0 120 90" width="120" height="90" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 46 60 8l50 38"/><path d="M20 40v42h80V40"/><path d="M48 82V56h24v26"/></svg>
+            <h2>İlanını dakikalar içinde yayına hazırla</h2>
+            <p>Fotoğrafları yükle, bilgileri yaz ya da söyle. Yapay zekâ metni ve fotoğrafları düzenleyip ilanı hazırlar. Ücretsiz.</p>
+            <a class="btn" href="ilan-ver.html">+ Ücretsiz ilan ver</a>
+          </div>
+        </aside>
       </div>
-
-      <form class="g-search" id="gSearch" role="search" action="ilanlar.html" method="get">
-        <span class="g-search-ico" aria-hidden="true">🔍</span>
-        <input id="aiQuery" name="q" type="search" autocomplete="off" enterkeyhint="search" aria-label="İlan ara" placeholder="Örn. Manavgat'ta 5 milyon altı 3+1 daire">
-        <button class="g-mic" id="aiMic" type="button" aria-label="Sesle ara" title="Sesle ara">🎤</button>
-        <button class="btn" id="aiSearchBtn" type="submit">Ara</button>
-      </form>
-
-      <div class="g-quick" id="quickChips" aria-label="Örnek aramalar">
-        <a class="chip" href="ilanlar.html?q=Antalya%20sat%C4%B1l%C4%B1k%20daire">Antalya satılık daire</a>
-        <a class="chip" href="ilanlar.html?q=kiral%C4%B1k%202%2B1">Kiralık 2+1</a>
-        <a class="chip" href="ilanlar.html?q=havuzlu%20villa">Havuzlu villa</a>
-        <a class="chip" href="ilanlar.html?q=yat%C4%B1r%C4%B1ml%C4%B1k%20arsa">Yatırımlık arsa</a>
-        <a class="chip" href="ilanlar.html?q=2020%20%C3%BCst%C3%BC%20otomatik%20ara%C3%A7">2020 üstü otomatik araç</a>
-      </div>
-
-      <div class="g-actions">
-        <a class="btn ghost" href="ilan-ver.html">+ Ücretsiz ilan ver</a>
-      </div>
-      <p class="g-note"><span aria-hidden="true">✦</span> İlan verirken yapay zekâ metinden ve fotoğraflardan ilanınızı hazırlar.</p>
     </section>
 
     <!-- Tek akış: günün önerisi + fırsatlar + fiyatı düşenler + yeni ilanlar
@@ -81,8 +91,8 @@
     <section class="home-section" id="feedSection" aria-labelledby="feedTitle">
       <div class="container">
         <div class="home-section-head">
-          <h2 id="feedTitle">Öne çıkan ilanlar</h2>
-          <a class="home-more" href="ilanlar.html">Tüm ilanlar →</a>
+          <h2 id="feedTitle">Yeni eklenen ilanlar</h2>
+          <a class="home-more" href="ilanlar.html">Tüm ilanları gör →</a>
         </div>
         <div class="home-grid" id="homeFeed">
           <div class="home-skeleton"></div><div class="home-skeleton"></div><div class="home-skeleton"></div><div class="home-skeleton"></div>
@@ -126,6 +136,6 @@
   <script src="assets/ai.js?v=3604b196"></script>
   <script src="assets/app.js?v=f829d02d"></script>
   <script src="assets/visitor.js?v=d820edaf"></script>
-  <script src="assets/home.js?v=fb3dac62"></script>
+  <script src="assets/home.js?v=55d469d6"></script>
 </body>
 </html>
