@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EmlakAI — Satılık, kiralık ev ve araç ilanları | Yapay zekâ destekli</title>
-  <meta name="description" content="Aradığınızı tek cümleyle yazın: EmlakAI satılık ve kiralık daire, villa, arsa, iş yeri ve araç ilanlarını bulur, fiyatı piyasayla karşılaştırır, fırsatları işaretler. İlan vermek ücretsiz.">
+  <title>EmlakAI — Satılık, kiralık ev ve araç ilanları</title>
+  <meta name="description" content="Aradığınızı tek cümleyle yazın: EmlakAI satılık ve kiralık daire, villa, arsa, iş yeri ve araç ilanlarını bulur. İlan vermek ücretsiz; emlak ilanlarında tapu numarası zorunlu, ilanlar yayından önce incelenir.">
   <link rel="canonical" href="https://emlak-production.up.railway.app/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="EmlakAI">
-  <meta property="og:title" content="EmlakAI — Satılık, kiralık ev ve araç ilanları | Yapay zekâ destekli">
-  <meta property="og:description" content="Aradığınızı tek cümleyle yazın; EmlakAI ilanı bulsun, fiyatı piyasayla karşılaştırsın, fırsatı işaretlesin.">
+  <meta property="og:title" content="EmlakAI — Satılık, kiralık ev ve araç ilanları">
+  <meta property="og:description" content="Aradığınızı tek cümleyle yazın; EmlakAI ilanı bulsun. İlan vermek ücretsiz.">
   <meta property="og:url" content="https://emlak-production.up.railway.app/">
   <meta property="og:image" content="https://emlak-production.up.railway.app/assets/img/og.png">
   <meta property="og:locale" content="tr_TR">
@@ -32,7 +32,6 @@
       <nav class="main-nav" id="mainNav">
         <a href="index.html" class="active">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>
-        <a href="degerleme.html">Değerleme</a>
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
       </nav>
@@ -72,9 +71,8 @@
 
       <div class="g-actions">
         <a class="btn ghost" href="ilan-ver.html">+ Ücretsiz ilan ver</a>
-        <a class="btn ghost" href="degerleme.html">Evim ne eder?</a>
       </div>
-      <p class="g-note"><span aria-hidden="true">✦</span> Yapay zekâ her ilanın fiyatını bölge verisiyle karşılaştırır ve fırsatları işaretler.</p>
+      <p class="g-note"><span aria-hidden="true">✦</span> İlan verirken yapay zekâ metinden ve fotoğraflardan ilanınızı hazırlar.</p>
     </section>
 
     <!-- Tek akış: günün önerisi + fırsatlar + fiyatı düşenler + yeni ilanlar
@@ -94,6 +92,7 @@
 
     <!-- Bağlantılar: kategori ve bölge sayfaları (SEO rotaları). Kartlar
          app.js pageIndex() ve server.js renderHomeHtml ile AYNI listeden. -->
+    <!-- LINKS:START -->
     <section class="home-section home-links" aria-labelledby="linksTitle">
       <div class="container">
         <div class="home-section-head">
@@ -102,19 +101,17 @@
         <div class="cat-grid" id="catGrid"></div>
         <div class="home-section-head">
           <h2>Bölgeler</h2>
-          <a class="home-more" href="bolge-fiyatlari.html">Tüm bölge fiyatları →</a>
         </div>
         <div class="region-grid" id="regionGrid"></div>
       </div>
     </section>
+    <!-- LINKS:END -->
   </main>
 
   <footer class="site-footer">
     <div class="container">
       <div class="footer-links">
-        <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
-        <a href="rehber.html">Rehber</a>
-        <a href="asistan.html">AI Asistan</a>
+        <a href="rehber.html">Yardım ve İletişim</a>
         <a data-c-tel href="#" hidden>—</a>
         <a data-c-mail href="#">—</a>
       </div>
@@ -123,12 +120,11 @@
     </div>
   </footer>
 
-  <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
 
-  <script src="assets/config.js?v=ed013792"></script>
+  <script src="assets/config.js?v=214292dd"></script>
   <script src="assets/data.js?v=21f5b8b4"></script>
-  <script src="assets/ai.js?v=35951508"></script>
-  <script src="assets/app.js?v=f09a0440"></script>
+  <script src="assets/ai.js?v=3604b196"></script>
+  <script src="assets/app.js?v=f829d02d"></script>
   <script src="assets/visitor.js?v=d820edaf"></script>
   <script src="assets/home.js?v=fb3dac62"></script>
 </body>

@@ -233,6 +233,13 @@ EMLAK.config = {
     },
   ],
 
+  // PİYASA VERİSİ KAPALI (31 Eki 2026): aşağıdaki ₺/m² tablosu (ve araç taban fiyatları, kira
+  // getirisi, yıllık eğilim) kaynağı doğrulanmış GERÇEK veri DEĞİL, kaba tahmindir. Bunlardan
+  // türetilen "Fırsat Fiyatı / Piyasa Üstü" etiketi, "AI Değerleme", fiyat önerisi, bölge fiyat sayfası,
+  // trend grafiği ve kira/amortisman cümleleri yanıltıcı olacağı için sitede GÖSTERİLMEZ.
+  // Gerçek bir veri kaynağı (TCMB konut fiyat endeksi, TKGM, lisanslı veri) eklenip tablo güncellenince
+  // `enabled: true` yapılır; ilgili kod yerinde duruyor.
+  marketData: { enabled: false },
   market: {
     rentYieldMonthly: 0.0042,
     // 81 İL · 474 ilçe · tahmini satılık konut ₺/m² (dönem: config.seo.dataDate).

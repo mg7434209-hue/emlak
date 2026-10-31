@@ -57,7 +57,7 @@ const daire = (over) => Object.assign({
   console.log(`EmlakAI duman testi (port ${PORT})`);
 
   await t("sayfalar açılıyor (200)", async () => {
-    for (const p of ["", "ilanlar.html", "ilan-ver.html", "degerleme.html", "kvkk.html", "kullanim-kosullari.html", "cerez-politikasi.html", "giris.html"]) {
+    for (const p of ["", "ilanlar.html", "ilan-ver.html", "kvkk.html", "kullanim-kosullari.html", "cerez-politikasi.html", "giris.html"]) {
       const r = await call(p); assert.strictEqual(r.s, 200, p + " → " + r.s);
     }
   });

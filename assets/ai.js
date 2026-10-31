@@ -14,6 +14,7 @@
   const C = EMLAK.config;
 
   // Arsa/arazi türleri: bina yaşı ve kira getirisi hesabı uygulanmaz.
+  const MARKET_ON = !!(C.marketData && C.marketData.enabled);
   const LAND_KINDS = ["arsa", "tarla", "bagbahce"];
   const isLand = (kind) => LAND_KINDS.indexOf(kind) >= 0;
 
@@ -287,6 +288,8 @@
   /** p: {city, district, kind, m2, rooms, age, floorPos, features[], category} — emlak
    *  ya da {segment:"vasita", brand, model, year, km, fuel, gear, category} — araç */
   function estimate(p) {
+    // Piyasa verisi kaynaksız tahmindir; kapalıyken HİÇBİR değerleme/etiket/öneri üretilmez
+    if (!MARKET_ON) return null;
     if (p.segment === "vasita") return estimateVehicle(p);
     // "Diğer" segmenti ve piyasa verisi olmayan türler (hayvan, hizmet, iş
     // ilanı…) için AI değerleme YAPILMAZ — uydurma bant üretmektense yok.
@@ -488,7 +491,7 @@
           (est.paybackYears ? `, kendini amorti etme süresi yaklaşık ${est.paybackYears} yıldır.` : "."));
       }
     }
-    const city = C.market.cities[l.city];
+    const city = MARKET_ON ? C.market.cities[l.city] : null;
     if (city && l.segment !== "vasita") {
       s.push(`${l.city} genelinde konut değerlerinde yıllık yaklaşık %${city.yieldTrend} reel artış eğilimi gözlenmektedir.`);
     }
@@ -553,6 +556,7 @@
 
   // ── İlçe fiyat eğilimi (12 ay, deterministik seri) ──────────────────────
   function trend(city, district) {
+    if (!MARKET_ON) return null;
     const cityData = C.market.cities[city];
     if (!cityData) return null;
     const base = cityData.districts[district];

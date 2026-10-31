@@ -539,3 +539,11 @@ gerekiyorsa dosya olarak repoya ekle.
 - `npm test` → uçtan uca duman testi; `npm run build` → SEO çıktıları; `npm start` → build + sunucu (http://localhost:3000).
 - `node -c assets/app.js && node -c assets/ai.js && node -c assets/data.js && node -c assets/config.js && node -c server.js && node -c build-seo.js`
 - Sunucuyu başlatıp ana sayfaların 200 döndüğünü doğrula.
+
+## KAYNAKSIZ PİYASA VERİSİ KAPALI (31 Eki 2026)
+`config.marketData.enabled=false`: `config.market` (₺/m²), araç taban fiyatları, kira getirisi ve
+trend KAYNAKSIZ tahmindir. Kapalıyken değerleme, fiyat etiketi (Fırsat/Piyasa Üstü), trend, kredi
+kutusu, AI fiyat önerisi, bölge fiyatları ve SEO/llms piyasa metinleri GÖSTERİLMEZ.
+`degerleme.html`, `asistan.html` (EVA), `bolge-fiyatlari.html` KALDIRILDI (server.js GONE → 301).
+Nav 4 öğe: Ana Sayfa · İlanlar · Favoriler · İlan Ver. Yardım: `rehber.html` (Yardım ve İletişim).
+Gerçek, kaynaklı veri gelmeden `enabled:true` YAPMA; açınca sayfa/menü/öneri düğmesi de geri eklenmeli.

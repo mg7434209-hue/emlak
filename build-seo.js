@@ -1,8 +1,7 @@
 /**
  * EmlakAI — SEO/AEO üretim betiği
  * `assets/config.js` TEK KAYNAK kalır; bu betik oradaki veriden şunları üretir:
- *   - bolge-fiyatlari.html : statik bölge fiyat tabloları (arama motorları ve
- *     AI tarayıcıları JS çalıştırmadan okuyabilsin diye tamamen statik HTML)
+ *   - bolge-fiyatlari.html : YALNIZ config.marketData.enabled=true iken (kaynaksız tahmin tablosu olduğu için kapalı)
  *   - sitemap.xml          : statik sayfalar + repodaki gerçek ilanlar (data.js REAL)
  *   - robots.txt           : klasik + AI tarayıcı (GPTBot, ClaudeBot…) izinleri
  *   - llms.txt             : LLM'ler için site özeti (AEO)
@@ -53,7 +52,6 @@ function chrome(body, { title, desc, canonical, jsonld }) {
       <nav class="main-nav" id="mainNav">
         <a href="index.html">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>
-        <a href="degerleme.html">Değerleme</a>
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
       </nav>
@@ -66,7 +64,6 @@ function chrome(body, { title, desc, canonical, jsonld }) {
     <div class="container">
       <div class="footer-links">
         <a href="rehber.html">Rehber</a>
-        <a href="asistan.html">AI Asistan</a>
         <a data-c-tel href="#" hidden>—</a>
         <a data-c-mail href="#">—</a>
       </div>
@@ -74,7 +71,6 @@ function chrome(body, { title, desc, canonical, jsonld }) {
       <div class="copyright">© 2026 ${esc(C.brand.name)} — Veriler ${C.seo.dataDate} dönemi piyasa ortalamalarıdır; bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
     </div>
   </footer>
-  <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
   <script src="assets/config.js"></script>
   <script src="assets/data.js"></script>
   <script src="assets/ai.js"></script>
@@ -165,7 +161,9 @@ const bcLd = {
   ],
 };
 
-fs.writeFileSync(path.join(__dirname, "bolge-fiyatlari.html"), chrome(body, {
+const MD = !!(C.marketData && C.marketData.enabled);
+if (!MD) { try { fs.unlinkSync(path.join(__dirname, "bolge-fiyatlari.html")); } catch (e) { /* zaten yok */ } }
+else fs.writeFileSync(path.join(__dirname, "bolge-fiyatlari.html"), chrome(body, {
   title: `Bölge Bazlı Konut m² Fiyatları ${C.seo.dataDate} — İstanbul, Ankara, İzmir, Antalya, Bursa | ${C.brand.name}`,
   desc: `${allRows.length} ilçe için güncel ortalama satılık konut ₺/m² fiyatları, 100 m² daire maliyeti ve kira tahminleri. En pahalı: ${top.city} ${top.district} (${fmt(top.perM2)} ₺/m²).`,
   canonical: URL0 + "/bolge-fiyatlari.html",
@@ -217,9 +215,6 @@ fs.readdirSync(__dirname)
 const staticPages = [
   ["", "1.0", "daily"],
   ["ilanlar.html", "0.9", "daily"],
-  ["bolge-fiyatlari.html", "0.9", "weekly"],
-  ["degerleme.html", "0.8", "weekly"],
-  ["asistan.html", "0.7", "weekly"],
   ["rehber.html", "0.8", "weekly"],
   ["ilan-ver.html", "0.7", "monthly"],
   ["giris.html", "0.4", "monthly"],
@@ -283,29 +278,20 @@ const cityLines = Object.entries(cities).map(([city, cd]) => {
 fs.writeFileSync(path.join(__dirname, "llms.txt"),
   `# ${C.brand.name}
 
-> ${C.brand.tagline}. Satılık/kiralık konut, iş yeri, arsa ve araç ilanları;
-> tamamı istemci tarafında çalışan yapay zekâ araçları: doğal dil arama, anında
-> değerleme (taşınmaz + araç), fiyat-piyasa analizi, ilan yazarı ve EVA asistanı.
+> ${C.brand.tagline}. Satılık/kiralık konut, iş yeri, arsa ve araç ilanları. İlan vermek ücretsizdir;
+> ilanlar yayınlanmadan önce incelenir; emlak ilanlarında tapudaki taşınmaz numarası zorunludur.
 
 ## Önemli sayfalar
 
-- [Ana sayfa](${URL0}/): AI destekli ilan arama (taşınmaz + araç)
+- [Ana sayfa](${URL0}/): doğal dille ilan arama (taşınmaz + araç)
 - [İlanlar](${URL0}/ilanlar.html): filtreli satılık/kiralık taşınmaz ve araç listesi
-- [Bölge fiyatları](${URL0}/bolge-fiyatlari.html): il/ilçe bazlı güncel konut m² fiyat tabloları (${C.seo.dataDate})
-- [AI Değerleme](${URL0}/degerleme.html): ücretsiz anında değerleme — taşınmaz (konum+özellik) ve araç (marka/model/yıl/km); konut ve taşıt kredisi hesaplayıcı
-- [İlan Ver](${URL0}/ilan-ver.html): AI fiyat önerisi ve AI başlık/açıklama yazarıyla ücretsiz ilan verme
-- [Rehber](${URL0}/rehber.html): ev alma-satma ve kredi SSS/rehberi
-- [AI Asistan](${URL0}/asistan.html): doğal dille taşınmaz/araç sorularına yanıt
-
-## Bölge fiyat özeti (${C.seo.dataDate}, satılık konut)
-
-${cityLines}
-
-Aylık kira tahmini = satış değerinin ~%${(C.market.rentYieldMonthly * 100).toFixed(2)}'i.
+- [İlan Ver](${URL0}/ilan-ver.html): ücretsiz ilan verme; yapay zekâ metinden ve fotoğraflardan ilanı hazırlar
+- [Yardım ve iletişim](${URL0}/rehber.html): sık sorulan sorular, ilan kuralları, güvenli alışveriş
+- [Kullanım koşulları](${URL0}/kullanim-kosullari.html) · [KVKK](${URL0}/kvkk.html) · [Çerez ve cihaz depolama](${URL0}/cerez-politikasi.html)
 
 ## Yapay zekâ motorları için
 
-- Ayrıntılı özet (tüm ilanlar + ilçe fiyat tablosu + SSS cevapları): ${URL0}/llms-full.txt
+- Ayrıntılı özet (yayındaki ilanlar + SSS): ${URL0}/llms-full.txt
 - Makine okunur ilan akışı (JSON): ${URL0}/veri/ilanlar.json
 - Site haritası: ${URL0}/sitemap.xml
 
@@ -314,21 +300,11 @@ Aylık kira tahmini = satış değerinin ~%${(C.market.rentYieldMonthly * 100).t
 ## İletişim
 
 ${C.company.phone ? "- Telefon: " + C.company.phone.display + "\n" : ""}- E-posta: ${C.company.email}
-
-Not: Veriler bölgesel piyasa ortalamasıdır; bilgi amaçlıdır, yatırım tavsiyesi
-değildir. Kesin değerleme için yerinde ekspertiz gerekir.
 `);
 
 // ── 4b) llms-full.txt (statik yedek — sunucu canlı sürümünü üretir) ──────
 // Sunucu çalışırken /llms-full.txt yayındaki ilanları da içeren canlı sürümü
 // döner; bu dosya statik yayın (GitHub Pages) ve ilk tarama içindir.
-const ilceSatirlari = Object.entries(cities).map(([city, cd]) => {
-  const rows = Object.entries(cd.districts).sort((a, b) => b[1] - a[1]);
-  return `### ${city} (yıllık reel değer eğilimi ~%${cd.yieldTrend})\n\n` + rows.map(([d, v]) =>
-    `- ${city} / ${d}: ${fmt(v)} TL/m² · 100 m² tahmini değer ${fmt(v * 100)} TL · tahmini aylık kira ${fmt(Math.round(v * 100 * C.market.rentYieldMonthly))} TL`
-  ).join("\n");
-}).join("\n\n");
-
 fs.writeFileSync(path.join(__dirname, "llms-full.txt"),
   `# ${C.brand.name} — tam site özeti (llms-full.txt)
 
@@ -338,40 +314,28 @@ fs.writeFileSync(path.join(__dirname, "llms-full.txt"),
 ## Site hakkında
 
 - Ad: ${C.brand.name} (${URL0})
-- Ne yapar: satılık ve kiralık taşınmaz (konut, iş yeri, arsa) ile araç ilanları yayınlar; her ilan için
-  yapay zekâ fiyat analizi, tahmini değer bandı, kira getirisi ve amortisman süresi hesaplar.
+- Ne yapar: satılık ve kiralık taşınmaz (konut, iş yeri, arsa), araç ve diğer ilanları yayınlar.
 - İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.
+- Emlak ilanlarında tapudaki taşınmaz numarası zorunludur; emlak ofisleri yetki belgesi numarasını belirtir.
 - İletişim: ${C.company.phone ? C.company.phone.display + " · " : ""}${C.company.email}${C.company.address ? "\n- Adres: " + C.company.address : ""}
 
-## Sık sorulan sorular (cevaplarıyla)
+## Sık sorulan sorular
 
 ### ${C.brand.name} nedir?
 
-${C.brand.name}, satılık ve kiralık taşınmaz ile araç ilanlarını yapay zekâ fiyat analiziyle birlikte
-yayınlayan bir ilan platformudur. Her ilan bulunduğu ilçenin m² piyasa ortalamasıyla karşılaştırılır ve
-Fırsat / Piyasa Uygunu / Piyasa Üstü olarak etiketlenir.
+${C.brand.name}, satılık ve kiralık taşınmaz ile araç ilanlarının yayınlandığı bir ilan platformudur.
+İlan sahibi ile alıcı arasındaki satış veya kiralama sözleşmesinin tarafı değildir.
 
 ### İlan vermek ücretli mi?
 
-Hayır, ücretsizdir. Ücretsiz üyelik açıp ilan formunu doldurmak yeterlidir; yapay zekâ fiyat önerisi ve
-ilan metni yazarı da ücretsizdir.
-
-### Değerleme nasıl hesaplanıyor?
-
-İlçe bazlı m² piyasa fiyatı, konut/araç yaşı, oda sayısı, alan ve özellik katsayılarıyla tahmini bir değer
-bandı üretilir. Aylık kira tahmini satış değerinin yaklaşık %${(C.market.rentYieldMonthly * 100).toFixed(2)}'idir.
-
-## İlçe bazlı konut m² fiyatları (${C.seo.dataDate})
-
-${ilceSatirlari}
+Hayır, ücretsizdir. Ücretsiz üyelik açıp ilan formunu doldurmak yeterlidir; yapay zekâ metinden ve fotoğraflardan
+ilanı hazırlamaya yardım eder.
 
 ## Makine okunur veri
 
 - İlan akışı (JSON): ${URL0}/veri/ilanlar.json
 - Site haritası: ${URL0}/sitemap.xml
-
-Not: Piyasa değerleri bölgesel ortalamadır; bilgi amaçlıdır, yatırım tavsiyesi değildir.
 `);
 
-console.log("SEO çıktıları üretildi: bolge-fiyatlari.html, sitemap.xml, robots.txt, llms.txt, llms-full.txt" +
+console.log("SEO çıktıları üretildi: sitemap.xml, robots.txt, llms.txt, llms-full.txt" +
   (synced ? " · canonical/OG + varlık sürümü güncellendi: " + synced + " sayfa" : ""));

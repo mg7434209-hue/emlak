@@ -12,6 +12,8 @@
   const fmtPrice = (l) => fmt(l.price) + " ₺" + priceSuffix(l);
 
   // ── Tema ────────────────────────────────────────────────────────────────
+  // Piyasa verisi (kaynaksız ₺/m² tablosu) KAPALI: değerleme, fiyat etiketi, trend, kredi kutusu gösterilmez (bkz. config.marketData)
+  const MD = !!(C.marketData && C.marketData.enabled);
   const themeKey = "emlakai.theme";
   function applyTheme(t) {
     document.documentElement.setAttribute("data-theme", t);
@@ -912,9 +914,10 @@
           n: countOf({ category: cat, kind: k }),
         });
       });
-      catEl.innerHTML = kartlar.map((k) =>
+      // Yalnız ilanı olan kategoriler (boş "İlan bekleniyor" kartları ciddi görünmüyordu)
+      catEl.innerHTML = kartlar.filter((k) => k.n).map((k) =>
         `<a class="cat-card" href="${k.href}"><b>${esc(k.title)}</b>
-          <span>${k.n ? fmt(k.n) + " ilan" : "İlan bekleniyor"}</span></a>`).join("");
+          <span>${fmt(k.n)} ilan</span></a>`).join("");
     }
 
     // Bölge kartları: ilan sayısı + bölge ₺/m² ve kira tahmini
@@ -935,13 +938,17 @@
       const ilceSayac = {};
       D.cities.forEach((c) => D.districtsOf(c).forEach((d) => { ilceSayac[d] = (ilceSayac[d] || 0) + 1; }));
       const bolgeSlug = (r) => (ilceSayac[r.d] > 1 ? slug(r.city) + "-" + slug(r.d) : slug(r.d));
-      regEl.innerHTML = bolgeler.slice(0, 12).map((r) =>
+      // Yalnız ilanı olan bölgeler; ₺/m² ve kira satırı YOK (kaynaksız tahmindi)
+      regEl.innerHTML = bolgeler.filter((r) => r.n).slice(0, 12).map((r) =>
         `<a class="region-card" href="/${bolgeSlug(r)}">
           <b>${esc(r.d)}</b><small>${esc(r.city)}</small>
-          <div class="rc-count">${r.n ? fmt(r.n) + " ilan" : "İlan bekleniyor"}</div>
-          <small>${fmt(r.perM2)} ₺/m² · kira ≈ ${fmt(Math.round(r.perM2 * C.market.rentYieldMonthly))} ₺/m²</small>
+          <div class="rc-count">${fmt(r.n)} ilan</div>
         </a>`).join("");
     }
+
+    // Henüz hiç ilan yoksa kategori/bölge bölümü tümüyle gizlenir
+    const links = $(".home-links");
+    if (links && catEl && regEl && !catEl.children.length && !regEl.children.length) links.hidden = true;
 
     // Popüler doğal dil aramaları
     const popEl = $("#popularTags");
@@ -1410,7 +1417,7 @@
               <tr><td>Güncel</td><td><b>${fmt(l.price)} ₺</b></td></tr>
             </table>
           </div>` : ""}
-          ${l.segment !== "vasita" ? `<div class="detail-card">
+          ${MD && l.segment !== "vasita" ? `<div class="detail-card">
             <h2>${esc(l.district)} Fiyat Eğilimi</h2>
             <div id="trendChart"></div>
           </div>` : ""}
@@ -1497,7 +1504,7 @@
             <button class="btn sm" id="reportSend" type="button">Şikayeti Gönder</button>
             <div class="notice" id="reportOut"></div>
           </div>
-          ${l.category === "satilik" && l.segment !== "diger" ? (() => {
+          ${MD && l.category === "satilik" && l.segment !== "diger" ? (() => {
             const cr = l.segment === "vasita" ? C.credit.vehicle : C.credit;
             return `<div class="est-box">
             <b>${l.segment === "vasita" ? "Taşıt Kredisi" : "Konut Kredisi"} Taksiti</b><br>
@@ -1565,7 +1572,7 @@
     if ((l.priceHistory || []).length) {
       sparkline($("#priceHistChart"), l.priceHistory.map((h) => h.price).concat(l.price), "İlan fiyatı", "₺ değişimi");
     }
-    sparkline($("#trendChart"), AI.trend(l.city, l.district), l.city + " / " + l.district);
+    if ($("#trendChart")) sparkline($("#trendChart"), AI.trend(l.city, l.district), l.city + " / " + l.district);
     renderCards($("#similarGrid"), AI.similar(l, D.all(), 4));
     $$(".photo-strip img", root).forEach((im) => im.addEventListener("click", () => {
       $("#galleryMain").innerHTML = `<img src="${safePhoto(l.photos[+im.dataset.photo])}" alt="${esc(l.title)}">`;
@@ -1683,7 +1690,7 @@
       syncKindFields();
       // "Diğer" segmentinde piyasa verisi yok → AI fiyat önerisi anlamsız.
       const sug = $("#suggestBtn");
-      if (sug) sug.style.display = seg === "diger" ? "none" : "";
+      if (sug) sug.style.display = seg === "diger" ? "none" : "";   // düğme yalnız piyasa verisi açıkken HTML'e eklenir
       const sugOut = $("#suggestOut");
       if (sugOut && seg === "diger") { sugOut.textContent = ""; sugOut.hidden = true; }
     }
@@ -2026,7 +2033,7 @@
     });
 
     // AI fiyat önerisi
-    $("#suggestBtn").addEventListener("click", () => {
+    if ($("#suggestBtn")) $("#suggestBtn").addEventListener("click", () => {
       const l = collect();
       const out = $("#suggestOut");
       out.hidden = false;
@@ -3241,7 +3248,7 @@
         ["Yakıt", (l) => l.fuel || "—"],
         ["Vites", (l) => l.gear || "—"],
       );
-      rows.push(["AI Etiketi", (l) => { const b = AI.priceBadge(l); return b ? b.label.replace("AI: ", "") : "—"; }]);
+      if (MD) rows.push(["AI Etiketi", (l) => { const b = AI.priceBadge(l); return b ? b.label.replace("AI: ", "") : "—"; }]);
       $("#compareTable").innerHTML =
         "<tr><td></td>" + four.map((l) => `<td><b><a href="ilan.html?id=${encodeURIComponent(l.id)}">${esc(l.title)}</a></b></td>`).join("") + "</tr>" +
         rows.map(([k, fn]) => `<tr><td>${esc(k)}</td>` + four.map((l) => `<td>${esc(fn(l))}</td>`).join("") + "</tr>").join("");
