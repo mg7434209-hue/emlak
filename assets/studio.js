@@ -1,5 +1,5 @@
 /**
- * EmlakAI — AI İlan Stüdyosu (EMLAK.studio)
+ * İlan AI — AI İlan Stüdyosu (EMLAK.studio)
  * Karışık verilen bilgiyi (WhatsApp mesajı, not, ilan metni) ve sıralanmamış
  * fotoğrafları analiz edip YAYINA HAZIR bir ilana dönüştürür:
  *  - analyzeText   : serbest metinden yapılandırılmış alanlar (tür, konum,

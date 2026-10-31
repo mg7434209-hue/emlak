@@ -1,5 +1,5 @@
 /**
- * EmlakAI — ilan veri katmanı
+ * İlan AI — ilan veri katmanı
  * Örnek/demo ilan YOKTUR. İki gerçek kaynak vardır:
  *   1) REAL[]  : repoya işlenen gerçek ilanlar (tüm ziyaretçiler görür;
  *                yeni ilan eklemek = bu listeye ekleyip commit'lemek).

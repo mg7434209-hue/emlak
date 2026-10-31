@@ -1,5 +1,5 @@
 /**
- * EmlakAI — arayüz mantığı
+ * İlan AI — arayüz mantığı
  * Sayfa yönlendirmesi <body data-page="..."> özniteliğiyle yapılır.
  */
 (function () {

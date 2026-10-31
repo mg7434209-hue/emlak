@@ -1,5 +1,5 @@
 /**
- * EmlakAI — AI İlan Stüdyosu, sunucu tarafı (Claude görsel + metin analizi)
+ * İlan AI — AI İlan Stüdyosu, sunucu tarafı (Claude görsel + metin analizi)
  *
  * İstemci (assets/studio.js) her şeyi tarayıcıda da yapabilir; bu modül
  * YALNIZCA `ANTHROPIC_API_KEY` ortam değişkeni tanımlıysa devreye girer ve

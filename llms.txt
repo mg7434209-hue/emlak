@@ -1,4 +1,4 @@
-# EmlakAI
+# İlan AI
 
 > Yapay zekâ destekli taşınmaz ve araç ilan platformu. Satılık/kiralık konut, iş yeri, arsa ve araç ilanları. İlan vermek ücretsizdir;
 > ilanlar yayınlanmadan önce incelenir; emlak ilanlarında tapudaki taşınmaz numarası zorunludur.
@@ -17,7 +17,7 @@
 - Makine okunur ilan akışı (JSON): https://emlak-production.up.railway.app/veri/ilanlar.json
 - Site haritası: https://emlak-production.up.railway.app/sitemap.xml
 
-İçerik kaynak gösterilerek alıntılanabilir: EmlakAI (https://emlak-production.up.railway.app).
+İçerik kaynak gösterilerek alıntılanabilir: İlan AI (https://emlak-production.up.railway.app).
 
 ## İletişim
 

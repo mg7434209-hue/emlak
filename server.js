@@ -1,5 +1,5 @@
 /**
- * EmlakAI — statik dosya sunucusu + ilan API'si (Railway için)
+ * İlan AI — statik dosya sunucusu + ilan API'si (Railway için)
  * Bağımlılık gerektirmez: Node.js'in yerleşik modülleriyle çalışır.
  *
  * API (sahibinden benzeri onaylı yayın akışı):
@@ -1564,7 +1564,7 @@ function llmsFullTxt() {
   L.push("## Sık sorulan sorular (cevaplarıyla)");
   L.push("");
   const sss = [
-    ["EmlakAI nedir?", CONF.brand.name + ", satılık ve kiralık taşınmaz ile araç ilanlarının yayınlandığı bir ilan platformudur; ilan sahibi ile alıcı arasındaki sözleşmenin tarafı değildir."],
+    ["İlan AI nedir?", CONF.brand.name + ", satılık ve kiralık taşınmaz ile araç ilanlarının yayınlandığı bir ilan platformudur; ilan sahibi ile alıcı arasındaki sözleşmenin tarafı değildir."],
     ["İlan vermek ücretli mi?", "Hayır, ücretsizdir. Ücretsiz üyelik açıp ilan formunu doldurmak yeterlidir; yapay zekâ metinden ve fotoğraflardan ilanı hazırlamaya yardım eder. İlanlar yönetici onayından sonra yayınlanır."],
     ["Doğal dille arama yapabilir miyim?", "Evet. \"Manavgat'ta 5 milyon altı deniz manzaralı villa\" gibi bir cümle yazdığınızda şehir, ilçe, tür, oda, fiyat, m², bina yaşı ve özellikler ayrıştırılıp filtreye çevrilir."],
     ["İlanlar güncel mi?", "Evet; ilanlar üyeler tarafından girilir, yönetici onayıyla yayınlanır ve fiyat değişiklikleri fiyat geçmişinde tutulur. Bu dosyadaki liste " + bugun + " tarihinde üretilmiştir."],
@@ -2210,5 +2210,5 @@ const server = http.createServer((req, res) => {
 sweepOrphanPhotos(); // boyut defterini kur + yetim fotoğrafları temizle
 
 server.listen(PORT, () => {
-  console.log("EmlakAI sunucusu çalışıyor: http://localhost:" + PORT);
+  console.log("İlan AI sunucusu çalışıyor: http://localhost:" + PORT);
 });

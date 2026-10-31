@@ -1,5 +1,5 @@
 /**
- * EmlakAI — yapay zekâ motoru (tamamı istemci tarafı, çevrimdışı çalışır)
+ * İlan AI — yapay zekâ motoru (tamamı istemci tarafı, çevrimdışı çalışır)
  *  - parseQuery : doğal dil arama → yapılandırılmış filtre
  *  - estimate   : piyasa verisi + katsayılarla değerleme (₺ bandı)
  *  - priceBadge : ilan fiyatını piyasayla kıyaslayan AI etiketi

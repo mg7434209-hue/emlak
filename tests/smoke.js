@@ -1,5 +1,5 @@
 /**
- * EmlakAI — uçtan uca duman testi:  npm test
+ * İlan AI — uçtan uca duman testi:  npm test
  * Sunucuyu geçici veri klasörüyle başlatır, kritik akışları API üzerinden dener.
  * Bağımlılık yok (Node 18+ fetch). Hata varsa çıkış kodu 1.
  */
@@ -54,7 +54,7 @@ const daire = (over) => Object.assign({
   srv.stdout.on("data", (d) => { log += d; }); srv.stderr.on("data", (d) => { log += d; });
   const done = (code) => { try { srv.kill(); } catch (e) { /* kapalı */ } try { fs.rmSync(DATA, { recursive: true, force: true }); } catch (e) { /* temizlik */ } process.exit(code); };
   try { await waitReady(); } catch (e) { console.log(log); done(1); return; }
-  console.log(`EmlakAI duman testi (port ${PORT})`);
+  console.log(`İlan AI duman testi (port ${PORT})`);
 
   await t("sayfalar açılıyor (200)", async () => {
     for (const p of ["", "ilanlar.html", "ilan-ver.html", "kvkk.html", "kullanim-kosullari.html", "cerez-politikasi.html", "giris.html"]) {
