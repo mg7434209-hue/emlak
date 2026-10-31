@@ -6,8 +6,6 @@
 .home-page .site-footer { margin-top: 56px; }
 
 /* Ana sayfada başlık çubuğu sade: logo büyük aramanın içinde, çubukta tekrar etmez */
-.home-page .site-header { background: transparent; border-bottom-color: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
-.home-page .site-header .logo { visibility: hidden; }
 
 /* Bölümler */
 .home-section { padding: 28px 0; }
@@ -95,5 +93,60 @@ html[data-theme="dark"] .home-page {
   --shadow: var(--l-shadow); --shadow-lg: var(--l-shadow-lg);
   background: var(--bg); color: var(--text);
 }
-/* Telefonda gizli logo yer kaplamasın: tema + menü düğmeleri sağa yaslanır */
-@media (max-width: 860px) { .home-page .site-header .logo { display: none; } .home-page #themeToggle { margin-left: auto; } }
+
+/* ── İki kolonlu açılış: sol başlık + arama kartı, sağ öne çıkan ilan ── */
+body[data-page="index"] main { display: block; }
+.h-hero { padding: clamp(28px, 6vw, 64px) 0 clamp(24px, 4vw, 40px); }
+.h-hero-in { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); align-items: center; }
+.h-eyebrow { color: var(--accent); font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 14px; }
+.h-title { font-size: clamp(2.1rem, 5.2vw, 3.7rem); font-weight: 800; line-height: 1.04; letter-spacing: -.035em; }
+.h-sub { color: var(--muted); font-size: 1.05rem; margin: 16px 0 24px; max-width: 34em; }
+.h-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 18px 16px; box-shadow: var(--shadow); }
+.h-tabs { justify-content: flex-start; gap: 22px; margin: 0 0 14px; border-bottom: 1px solid var(--border); }
+.h-tabs .tab-btn { background: none; border: none; border-radius: 0; padding: 6px 2px 10px; margin-bottom: -1px; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; }
+.h-tabs .tab-btn.active { background: none; color: var(--text); border-bottom-color: var(--accent); }
+.h-search { display: flex; align-items: center; gap: 6px; }
+.h-search input { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); padding: 13px 14px; font-size: 1rem; }
+.h-search input:focus { outline: none; border-color: var(--primary); }
+.h-search .btn { border-radius: 10px; padding: 13px 20px; white-space: nowrap; }
+.h-quick { display: flex; flex-wrap: wrap; gap: 4px 0; margin-top: 12px; font-size: .88rem; }
+.h-quick a { color: var(--text); padding: 2px 12px; border-left: 1px solid var(--border); }
+.h-quick a:first-child { padding-left: 0; border-left: none; }
+.h-quick a:hover { color: var(--accent); text-decoration: underline; }
+
+.h-show { min-width: 0; }
+.h-welcome {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: clamp(24px, 4vw, 40px);
+  min-height: 340px; justify-content: center; border-radius: 18px; color: var(--surface);
+  background: linear-gradient(135deg, var(--text), color-mix(in srgb, var(--text) 62%, var(--accent)));
+  box-shadow: var(--shadow-lg);
+}
+.h-welcome svg { color: var(--accent); }
+.h-welcome h2 { font-size: clamp(1.4rem, 2.6vw, 1.9rem); line-height: 1.15; letter-spacing: -.02em; }
+.h-welcome p { opacity: .82; max-width: 30em; }
+.h-welcome .btn { background: var(--accent); color: var(--text); border-color: var(--accent); margin-top: 6px; }
+.h-feat { position: relative; display: block; overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-lg); }
+.h-feat-media { position: relative; aspect-ratio: 16 / 10; background: var(--surface-2); }
+.h-feat-media img { width: 100%; height: 100%; object-fit: cover; }
+.h-feat-tag { position: absolute; top: 14px; left: 14px; padding: 6px 12px; border-radius: 8px; background: var(--accent); color: var(--surface); font-size: .8rem; font-weight: 700; }
+.h-feat-body { padding: 16px 20px 18px; }
+.h-feat-title { font-size: 1.15rem; font-weight: 700; letter-spacing: -.01em; }
+.h-feat-loc { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+.h-feat-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 10px; }
+.h-feat-price { font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; }
+.h-feat-meta { color: var(--muted); font-size: .9rem; }
+.h-feat a.h-feat-link { position: absolute; inset: 0; }
+
+.home-section-head h2 { font-size: 1.4rem; }
+
+@media (max-width: 900px) {
+  .h-hero-in { grid-template-columns: minmax(0, 1fr); }
+  .h-welcome { min-height: 0; }
+}
+@media (max-width: 520px) {
+  .h-search { flex-wrap: wrap; }
+  .h-search input { flex: 1 1 100%; }
+  .h-search .g-mic { order: 2; }
+  .h-search .btn { order: 3; flex: 1; }
+  .h-tabs { gap: 16px; }
+}

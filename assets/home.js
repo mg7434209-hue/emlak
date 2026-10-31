@@ -226,6 +226,23 @@
       : emptyState("İlk ilanlar burada görünecek", "Yayınlanan ilanlar geldikçe bu akış kendiliğinden dolar — ilk ilanı siz verebilirsiniz.");
   }
 
+  // Sağ vitrin: fotoğraflı en iyi ilan büyük kart olur; yoksa karşılama paneli kalır.
+  function renderShow(list) {
+    const root = $("#heroShow");
+    if (!root) return;
+    const pool = (Array.isArray(list) ? list : []).filter((l) => l && l.id && safePhoto(l.photos && l.photos[0]));
+    if (!pool.length) return;
+    pool.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || new Date(b.date) - new Date(a.date));
+    const l = pool[0];
+    const meta = (l.segment === "vasita" ? [l.year, l.km ? fmt(l.km) + " km" : ""] : [l.rooms, l.m2 ? fmt(l.m2) + " m²" : ""]).filter(Boolean).join(" · ");
+    root.innerHTML = '<div class="h-feat">' +
+      '<div class="h-feat-media">' + thumb(l) + '<span class="h-feat-tag">' + (l.featured ? "Öne çıkan ilan" : "Yeni ilan") + '</span></div>' +
+      '<div class="h-feat-body"><div class="h-feat-title">' + esc(l.title || "İlan") + '</div>' +
+      '<div class="h-feat-loc">📍 ' + esc([l.city, l.district].filter(Boolean).join(", ") || "Konum belirtilmemiş") + '</div>' +
+      '<div class="h-feat-row"><span class="h-feat-price">' + priceText(l) + '</span><span class="h-feat-meta">' + esc(meta) + '</span></div></div>' +
+      '<a class="h-feat-link" href="ilan.html?id=' + encodeURIComponent(l.id) + '" aria-label="' + esc(l.title || "İlan detayı") + '"></a></div>';
+  }
+
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-home-fav]");
     if (!button) return;
@@ -243,7 +260,9 @@
       return;
     }
     try { await D.init(); } catch (e) {}
-    renderAll(typeof D.all === "function" ? D.all() : []);
+    const all = typeof D.all === "function" ? D.all() : [];
+    renderAll(all);
+    renderShow(all);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
