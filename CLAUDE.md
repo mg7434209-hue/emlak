@@ -1,9 +1,9 @@
-# CLAUDE.md — EmlakAI
+# CLAUDE.md — İlan AI
 
 > Repo kök dizinindedir; Claude Code her oturum başında otomatik okur.
 
 ## Proje
-EmlakAI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
+İlan AI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
 (`segment: "emlak"`) + araç (`segment: "vasita"`), her ikisi satılık/kiralık.
 Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, Node statik sunucu
 (`server.js`, Railway uyumlu; tek bağımlılık `@anthropic-ai/sdk` — yalnız AI
@@ -547,3 +547,5 @@ kutusu, AI fiyat önerisi, bölge fiyatları ve SEO/llms piyasa metinleri GÖSTE
 `degerleme.html`, `asistan.html` (EVA), `bolge-fiyatlari.html` KALDIRILDI (server.js GONE → 301).
 Nav 4 öğe: Ana Sayfa · İlanlar · Favoriler · İlan Ver. Yardım: `rehber.html` (Yardım ve İletişim).
 Gerçek, kaynaklı veri gelmeden `enabled:true` YAPMA; açınca sayfa/menü/öneri düğmesi de geri eklenmeli.
+
+## MARKA ADI (31 Eki 2026): site adı **İlan AI** (eski EmlakAI). localStorage anahtarları (`emlakai.*`) ve global `EMLAK` bilerek DEĞİŞMEDİ (oturum/favori kaybolmasın). Alan adı alınınca `config.seo.siteUrl` + server.js HOST_OK + `npm run build`.

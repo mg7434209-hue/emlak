@@ -1,5 +1,5 @@
 /**
- * EmlakAI — SEO/AEO üretim betiği
+ * İlan AI — SEO/AEO üretim betiği
  * `assets/config.js` TEK KAYNAK kalır; bu betik oradaki veriden şunları üretir:
  *   - bolge-fiyatlari.html : YALNIZ config.marketData.enabled=true iken (kaynaksız tahmin tablosu olduğu için kapalı)
  *   - sitemap.xml          : statik sayfalar + repodaki gerçek ilanlar (data.js REAL)
@@ -48,7 +48,7 @@ function chrome(body, { title, desc, canonical, jsonld }) {
 <body data-page="bolge-fiyatlari">
   <header class="site-header">
     <div class="container header-in">
-      <a class="logo" href="index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></span>Emlak<span class="ai">AI</span></a>
+      <a class="logo" href="index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></span>İlan<span class="ai">AI</span></a>
       <nav class="main-nav" id="mainNav">
         <a href="index.html">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>

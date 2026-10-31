@@ -1,7 +1,7 @@
 {
   "name": "emlakai",
   "version": "1.0.0",
-  "description": "EmlakAI — yapay zekâ destekli emlak ilan platformu (statik) — Railway/Node ile sunum",
+  "description": "İlan AI — yapay zekâ destekli emlak ilan platformu (statik) — Railway/Node ile sunum",
   "private": true,
   "main": "server.js",
   "scripts": {

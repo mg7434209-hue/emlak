@@ -1,4 +1,4 @@
-# 🏠 EmlakAI — AI Destekli Taşınmaz & Araç İlan Platformu
+# 🏠 İlan AI — AI Destekli Taşınmaz & Araç İlan Platformu
 
 ## 🚀 Canlıya alma kontrol listesi
 

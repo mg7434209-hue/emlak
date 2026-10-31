@@ -1,12 +1,12 @@
 /**
- * EmlakAI — TEK DOĞRU KAYNAK
+ * İlan AI — TEK DOĞRU KAYNAK
  * Marka, iletişim, şehir/ilçe piyasa verileri ve yapay zekâ katsayıları
  * YALNIZCA burada tutulur. Sayfalara/JS'e elle gömülmez.
  */
 window.EMLAK = window.EMLAK || {};
 EMLAK.config = {
   brand: {
-    name: "EmlakAI",
+    name: "İlan AI",
     tagline: "Yapay zekâ destekli taşınmaz ve araç ilan platformu",
     domain: "emlakai.example",
   },
@@ -18,7 +18,7 @@ EMLAK.config = {
   },
   company: {
     // Gerçek ticari unvan öğrenilince buraya yazılır; o zamana dek yalnız marka adı görünür.
-    title: "EmlakAI",
+    title: "İlan AI",
     // Şimdilik İLETİŞİM YALNIZCA E-POSTA. 0800 hattı alınınca şu satırı doldurmak yeterli:
     //   phone: { display: "0800 000 00 00", intl: "+908000000000", wa: "" }  (wa boşsa WhatsApp düğmesi çıkmaz)
     // Boş (null/"") alanlar sitede, JSON-LD'de ve llms.txt'te HİÇ görünmez.

@@ -1,4 +1,4 @@
-/* EmlakAI ana sayfa — ilan keşfi, vitrinler ve veri odaklı sıralama */
+/* İlan AI ana sayfa — ilan keşfi, vitrinler ve veri odaklı sıralama */
 (function () {
   "use strict";
 

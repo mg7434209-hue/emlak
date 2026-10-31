@@ -1,11 +1,11 @@
-# EmlakAI — tam site özeti (llms-full.txt)
+# İlan AI — tam site özeti (llms-full.txt)
 
 > Yapay zekâ destekli taşınmaz ve araç ilan platformu. Bu dosya yapay zekâ arama motorları ve asistanlar için hazırlanmıştır.
 > Alıntılarken kaynak: https://emlak-production.up.railway.app
 
 ## Site hakkında
 
-- Ad: EmlakAI (https://emlak-production.up.railway.app)
+- Ad: İlan AI (https://emlak-production.up.railway.app)
 - Ne yapar: satılık ve kiralık taşınmaz (konut, iş yeri, arsa), araç ve diğer ilanları yayınlar.
 - İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.
 - Emlak ilanlarında tapudaki taşınmaz numarası zorunludur; emlak ofisleri yetki belgesi numarasını belirtir.
@@ -13,9 +13,9 @@
 
 ## Sık sorulan sorular
 
-### EmlakAI nedir?
+### İlan AI nedir?
 
-EmlakAI, satılık ve kiralık taşınmaz ile araç ilanlarının yayınlandığı bir ilan platformudur.
+İlan AI, satılık ve kiralık taşınmaz ile araç ilanlarının yayınlandığı bir ilan platformudur.
 İlan sahibi ile alıcı arasındaki satış veya kiralama sözleşmesinin tarafı değildir.
 
 ### İlan vermek ücretli mi?
