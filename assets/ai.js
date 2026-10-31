@@ -625,7 +625,9 @@
     }
     if (/iletisim|telefon|ulasabilir|whatsapp/.test(q)) {
       const co = C.company;
-      return { reply: `Bize ${co.phone.display} numarasından ya da WhatsApp üzerinden ulaşabilirsiniz. E-posta: ${co.email}` };
+      return { reply: co.phone
+        ? `Bize ${co.phone.display} numarasından ya da WhatsApp üzerinden ulaşabilirsiniz. E-posta: ${co.email}`
+        : `Bize e-posta ile ulaşabilirsiniz: ${co.email}. İlan sahibine ulaşmak için ilan sayfasındaki mesaj formunu kullanın.` };
     }
 
     // Varsayılan niyet: ilan arama

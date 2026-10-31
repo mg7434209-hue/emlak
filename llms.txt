@@ -110,7 +110,6 @@ Aylık kira tahmini = satış değerinin ~%0.42'i.
 
 ## İletişim
 
-- Telefon/WhatsApp: 0543 743 42 09
 - E-posta: gesmarketim@gmail.com
 
 Not: Veriler bölgesel piyasa ortalamasıdır; bilgi amaçlıdır, yatırım tavsiyesi

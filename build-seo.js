@@ -67,7 +67,7 @@ function chrome(body, { title, desc, canonical, jsonld }) {
       <div class="footer-links">
         <a href="rehber.html">Rehber</a>
         <a href="asistan.html">AI Asistan</a>
-        <a data-c-tel href="#">—</a>
+        <a data-c-tel href="#" hidden>—</a>
         <a data-c-mail href="#">—</a>
       </div>
       <div class="footer-legal"><a href="kvkk.html">KVKK Aydınlatma Metni</a><a href="kullanim-kosullari.html">Kullanım Koşulları</a><a href="cerez-politikasi.html">Çerez ve Cihaz Depolama</a></div>
@@ -313,8 +313,7 @@ Aylık kira tahmini = satış değerinin ~%${(C.market.rentYieldMonthly * 100).t
 
 ## İletişim
 
-- Telefon/WhatsApp: ${C.company.phone.display}
-- E-posta: ${C.company.email}
+${C.company.phone ? "- Telefon: " + C.company.phone.display + "\n" : ""}- E-posta: ${C.company.email}
 
 Not: Veriler bölgesel piyasa ortalamasıdır; bilgi amaçlıdır, yatırım tavsiyesi
 değildir. Kesin değerleme için yerinde ekspertiz gerekir.
@@ -342,8 +341,7 @@ fs.writeFileSync(path.join(__dirname, "llms-full.txt"),
 - Ne yapar: satılık ve kiralık taşınmaz (konut, iş yeri, arsa) ile araç ilanları yayınlar; her ilan için
   yapay zekâ fiyat analizi, tahmini değer bandı, kira getirisi ve amortisman süresi hesaplar.
 - İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.
-- İletişim: ${C.company.phone.display} (WhatsApp) · ${C.company.email}
-- Adres: ${C.company.address}
+- İletişim: ${C.company.phone ? C.company.phone.display + " · " : ""}${C.company.email}${C.company.address ? "\n- Adres: " + C.company.address : ""}
 
 ## Sık sorulan sorular (cevaplarıyla)
 

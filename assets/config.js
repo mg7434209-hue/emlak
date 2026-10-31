@@ -17,10 +17,14 @@ EMLAK.config = {
     vasita: { label: "Araç" },
   },
   company: {
-    title: "EmlakAI Teknoloji Ltd. Şti.",
-    phone: { display: "0543 743 42 09", intl: "+905437434209", wa: "905437434209" },
+    // Gerçek ticari unvan öğrenilince buraya yazılır; o zamana dek yalnız marka adı görünür.
+    title: "EmlakAI",
+    // Şimdilik İLETİŞİM YALNIZCA E-POSTA. 0800 hattı alınınca şu satırı doldurmak yeterli:
+    //   phone: { display: "0800 000 00 00", intl: "+908000000000", wa: "" }  (wa boşsa WhatsApp düğmesi çıkmaz)
+    // Boş (null/"") alanlar sitede, JSON-LD'de ve llms.txt'te HİÇ görünmez.
+    phone: null,
     email: "gesmarketim@gmail.com",
-    address: "Örnek Mah. 1551 Sok. No:10/1, Manavgat / Antalya",
+    address: "",
   },
 
   // ── SEO / AEO — canonical, sitemap, JSON-LD ve llms.txt buradan üretilir ─

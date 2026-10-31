@@ -126,7 +126,7 @@
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
-  // Telefon normalizasyonu: "0543 743 42 09" → {display, intl, wa}
+  // Telefon normalizasyonu: "05XX XXX XX XX" → {display, intl, wa}
   function normPhone(raw) {
     let d = String(raw || "").replace(/\D/g, "");
     if (d.startsWith("90")) d = d.slice(2);
@@ -628,7 +628,10 @@
     injectAuthLink();
     favPriceAlert();
     // İletişim enjeksiyonu
-    $$("[data-c-tel]").forEach((a) => { a.href = "tel:" + C.company.phone.intl; a.textContent = C.company.phone.display; });
+    // Telefon/adres tanımlı değilse bu alanlar HTML'de gizli kalır (config.company.phone/address boş)
+    const ph = C.company.phone;
+    $$("[data-c-tel]").forEach((a) => { if (ph) { a.href = "tel:" + ph.intl; a.textContent = ph.display; a.hidden = false; } });
+    $$("[data-c-need]").forEach((el) => { el.hidden = !C.company[el.dataset.cNeed]; });
     $$("[data-c-mail]").forEach((a) => { a.href = "mailto:" + C.company.email; a.textContent = C.company.email; });
     $$("[data-c-addr]").forEach((el) => { el.textContent = C.company.address; });
     $$("[data-c-title]").forEach((el) => { el.textContent = C.company.title; });
@@ -720,8 +723,8 @@
       "@context": "https://schema.org", "@type": "Organization",
       name: C.brand.name, legalName: C.company.title, url,
       logo: url + C.seo.ogImage, email: C.company.email,
-      telephone: C.company.phone.intl,
-      address: { "@type": "PostalAddress", streetAddress: C.company.address, addressCountry: "TR" },
+      ...(C.company.phone ? { telephone: C.company.phone.intl } : {}),
+      ...(C.company.address ? { address: { "@type": "PostalAddress", streetAddress: C.company.address, addressCountry: "TR" } } : {}),
       sameAs: C.seo.sameAs,
     });
     addJsonLd({
@@ -1366,7 +1369,7 @@
       .filter(Boolean);
 
     const dotPos = est ? Math.max(4, Math.min(96, 50 + ((l.price / est.mid - 1) / 0.25) * 50)) : 50;
-    const contact = l.phone || C.company.phone; // ilana özel telefon varsa o kullanılır
+    const contact = l.phone || C.company.phone || null; // ilana özel telefon; yoksa site telefonu; o da yoksa yalnız mesaj
     // İstatistikler: sunucu varsa görüntülenme sunucuda sayılır (IP başına
     // 12 saatte bir); statik yayında cihaz içi sayaç ilanın tabanına eklenir.
     let totalViews = (l.views || 0) + (D.hasServer() ? 0 : bumpViews(l.id));
@@ -1375,7 +1378,7 @@
     const prevPrice = (l.priceHistory || []).length ? l.priceHistory[l.priceHistory.length - 1].price : null;
     const priceDrop = prevPrice && prevPrice > l.price
       ? { old: prevPrice, pct: Math.round((1 - l.price / prevPrice) * 100) } : null;
-    const wa = "https://wa.me/" + contact.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`);
+    const wa = contact && contact.wa ? "https://wa.me/" + contact.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`) : "";
 
     root.innerHTML = `
       ${preview ? `<div class="container" style="padding-top:14px"><div class="notice" style="border:1px solid var(--accent);color:var(--accent)">
@@ -1431,7 +1434,7 @@
             <p class="notice" style="margin-bottom:12px">Bilgileriniz yalnızca bu ilan için ilan sahibine iletilir; en kısa sürede size dönüş yapılır.</p>
             <div class="form-grid">
               <div><label for="mName">Adınız Soyadınız</label><input id="mName" type="text" maxlength="80" autocomplete="name"></div>
-              <div><label for="mPhone">Telefonunuz</label><input id="mPhone" type="tel" maxlength="25" autocomplete="tel" placeholder="örn. 0543 743 42 09"></div>
+              <div><label for="mPhone">Telefonunuz</label><input id="mPhone" type="tel" maxlength="25" autocomplete="tel" placeholder="örn. 05XX XXX XX XX"></div>
               <div class="full"><label for="mMail">E-posta (isteğe bağlı)</label><input id="mMail" type="email" maxlength="120" autocomplete="email"></div>
               <div class="full"><label for="mText">Mesajınız</label><textarea id="mText" rows="4" maxlength="1200"></textarea></div>
               <div class="full" style="position:absolute;left:-9999px" aria-hidden="true">
@@ -1470,8 +1473,9 @@
               ${l.seller.type === "ofis" && l.seller.license ? `<br><small class="license-line">🪪 Yetki Belge No: <b>${esc(l.seller.license)}</b></small>` : ""}
               ${l.ownerId ? `<br><a href="magaza.html?u=${encodeURIComponent(l.ownerId)}" style="font-size:0.85rem">Mağazasındaki tüm ilanlar →</a>` : ""}</div>
           </div>
-          <a class="btn" id="callBtn" href="#" data-tel="${esc(contact.intl)}" data-tel-label="${esc(contact.display)}">📞 Telefonu Göster</a>
-          <a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
+          ${contact ? `<a class="btn" id="callBtn" href="#" data-tel="${esc(contact.intl)}" data-tel-label="${esc(contact.display)}">📞 Telefonu Göster</a>` : ""}
+          ${wa ? `<a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>` : ""}
+          ${!contact && D.hasServer() ? '<a class="btn" href="#msgCard">✉ Satıcıya mesaj gönder</a>' : ""}
           <button class="btn ghost" data-fav="${esc(l.id)}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
           <div style="display:flex;gap:8px">
             <button class="btn ghost sm" id="shareBtn" type="button" style="flex:1">Paylaş</button>
@@ -1600,7 +1604,7 @@
     $("#printBtn", root).addEventListener("click", () => window.print());
     // Telefonu göster: numara ilk dokunuşta açılır (toplu numara kazımaya karşı)
     const callBtn = $("#callBtn", root);
-    callBtn.addEventListener("click", (e) => {
+    if (callBtn) callBtn.addEventListener("click", (e) => {
       if (callBtn.dataset.shown) return;            // ikinci dokunuş: arar
       e.preventDefault();
       callBtn.dataset.shown = "1";
@@ -1971,7 +1975,7 @@
       if (!l.district) return fail("Lütfen ilçe seçin.", "#pDistrict");
       if (!l.price && !soft) return fail("Fiyat girin (ya da “AI fiyat önerisi al”ı kullanın).", "#pPrice");
       if (l.segment === "diger") {
-        if ($("#pPhone").value.trim() && !l.phone) return fail("Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).", "#pPhone");
+        if ($("#pPhone").value.trim() && !l.phone) return fail("Telefon numarası geçersiz görünüyor (örn. 05XX XXX XX XX).", "#pPhone");
         return null;   // sade form: başlık/fiyat/konum yeterli
       }
       if (l.segment === "vasita") {
@@ -1997,7 +2001,7 @@
         }
       }
       if (soft) return null;
-      if ($("#pPhone").value.trim() && !l.phone) return fail("Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).", "#pPhone");
+      if ($("#pPhone").value.trim() && !l.phone) return fail("Telefon numarası geçersiz görünüyor (örn. 05XX XXX XX XX).", "#pPhone");
       return null;
     }
     // Hata gösterimi: kırmızı bant + ilgili alan işaretlenip odaklanır
@@ -2808,7 +2812,7 @@
         out.innerHTML = '<span style="color:var(--over)">Şifre en az 8 karakter olmalı.</span>'; return;
       }
       if (!normPhone(payload.phone)) {
-        out.innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz (örn. 0543 743 42 09).</span>'; return;
+        out.innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz (örn. 05XX XXX XX XX).</span>'; return;
       }
       if (!$("#rTerms").checked) {
         out.innerHTML = '<span style="color:var(--over)">Devam etmek için Kullanım Koşulları ve KVKK Aydınlatma Metni onayını işaretleyin.</span>'; return;

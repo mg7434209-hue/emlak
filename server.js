@@ -415,7 +415,7 @@ const isAdminReq = (req) => checkToken(req) || ((currentUser(req) || {}).role ==
 const publicUser = (u) => ({ uid: u.uid, name: u.name, email: u.email, phone: u.phone || "", role: u.role || "user" });
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@.]+(\.[^\s@.]+)+$/;
 const normEmail = (v) => String(v || "").trim().toLowerCase().slice(0, 120);
-// Telefonu normalize eder: "0543 743 42 09" → {display, intl, wa} (yoksa null)
+// Telefonu normalize eder: "05XX XXX XX XX" → {display, intl, wa} (yoksa null)
 function normPhoneSrv(raw) {
   let d = String(raw || "").replace(/\D/g, "");
   if (d.startsWith("90")) d = d.slice(2);
@@ -571,7 +571,7 @@ async function handleApi(req, res, urlPath) {
     if (name.length < 2) return sendJson(res, 400, { error: "Ad soyad en az 2 karakter olmalı." });
     if (!EMAIL_RE.test(email)) return sendJson(res, 400, { error: "Geçerli bir e-posta girin." });
     if (pw.length < 8) return sendJson(res, 400, { error: "Şifre en az 8 karakter olmalı." });
-    if (!phone) return sendJson(res, 400, { error: "Geçerli bir telefon girin (örn. 0543 743 42 09)." });
+    if (!phone) return sendJson(res, 400, { error: "Geçerli bir telefon girin (örn. 05XX XXX XX XX)." });
     if (USERS.some((u) => u.email === email)) return sendJson(res, 409, { error: "Bu e-posta ile zaten bir hesap var. Giriş yapın." });
     if (USERS.length >= 5000) return sendJson(res, 429, { error: "Üye kapasitesi dolu." });
     const u = {
@@ -1361,8 +1361,9 @@ function siteJsonLd() {
     name: CONF.brand.name, legalName: CONF.company.title, url: SITE,
     logo: SITE + CONF.seo.ogImage, image: SITE + CONF.seo.ogImage,
     description: CONF.brand.tagline,
-    email: CONF.company.email, telephone: CONF.company.phone.intl,
-    address: { "@type": "PostalAddress", streetAddress: CONF.company.address, addressCountry: "TR" },
+    email: CONF.company.email,
+    ...(CONF.company.phone ? { telephone: CONF.company.phone.intl } : {}),
+    ...(CONF.company.address ? { address: { "@type": "PostalAddress", streetAddress: CONF.company.address, addressCountry: "TR" } } : {}),
     areaServed: [{ "@type": "Country", name: "Türkiye" }]
       .concat(oneCikan.map((c) => ({ "@type": "City", name: c }))),
     knowsAbout: [
@@ -1556,7 +1557,7 @@ function llmsFullTxt() {
   L.push("  her ilan için yapay zekâ fiyat analizi, tahmini değer bandı, kira getirisi ve amortisman süresi hesaplar.");
   L.push("- Ücretsiz araçlar: doğal dil arama, anında değerleme (taşınmaz + araç), konut/taşıt kredisi hesaplayıcı, EVA asistanı.");
   L.push("- İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.");
-  L.push("- İletişim: " + CONF.company.phone.display + " (WhatsApp) · " + CONF.company.email);
+  L.push("- İletişim: " + (CONF.company.phone ? CONF.company.phone.display + " · " : "") + CONF.company.email);
   if (CONF.company.address) L.push("- Adres: " + CONF.company.address);
   L.push("");
   L.push("## Sık sorulan sorular (cevaplarıyla)");
