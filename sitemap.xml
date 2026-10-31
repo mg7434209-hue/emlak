@@ -9,5 +9,8 @@
   <url><loc>https://emlak-production.up.railway.app/ilan-ver.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://emlak-production.up.railway.app/giris.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://emlak-production.up.railway.app/magaza.html</loc><changefreq>weekly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/kullanim-kosullari.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/kvkk.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://emlak-production.up.railway.app/cerez-politikasi.html</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
   <url><loc>https://emlak-production.up.railway.app/ilan.html?id=EA1001</loc><lastmod>2026-07-03</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
 </urlset>

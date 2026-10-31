@@ -4,17 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ücretsiz İlan Ver — AI Destekli | EmlakAI</title>
-  <meta name="description" content="Dakikalar içinde ücretsiz ilan verin. Yapay zekâ başlık ve açıklamanızı yazsın, fiyat önerisi sunsun.">
+  <meta name="description" content="Dakikalar içinde ücretsiz ilan verin. Bilgileri karışık yapıştırın, fotoğrafları sırasız yükleyin; AI İlan Stüdyosu analiz edip yayına hazır, profesyonel ilan hazırlasın.">
   <link rel="canonical" href="https://emlak-production.up.railway.app/ilan-ver.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="EmlakAI">
   <meta property="og:title" content="Ücretsiz İlan Ver — AI Destekli | EmlakAI">
-  <meta property="og:description" content="Dakikalar içinde ücretsiz ilan verin. Yapay zekâ başlık ve açıklamanızı yazsın, fiyat önerisi sunsun.">
+  <meta property="og:description" content="Dakikalar içinde ücretsiz ilan verin. Bilgileri karışık yapıştırın, fotoğrafları sırasız yükleyin; AI İlan Stüdyosu analiz edip yayına hazır, profesyonel ilan hazırlasın.">
   <meta property="og:url" content="https://emlak-production.up.railway.app/ilan-ver.html">
   <meta property="og:image" content="https://emlak-production.up.railway.app/assets/img/og.png">
   <meta property="og:locale" content="tr_TR">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="assets/style.css?v=30add926">
+  <link rel="stylesheet" href="assets/style.css?v=b0e9be0b">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
 <body data-page="ilan-ver">
@@ -34,9 +34,14 @@
   </header>
 
   <main>
-    <div class="container page-head">
+    <div class="container page-head iv-head">
       <h1>İlan Ver</h1>
-      <p>Taşınmaz ya da araç ilanınızın bilgilerini girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. Ücretsiz üyelikle gönderdiğiniz ilan, yönetici onayından sonra yayınlanır.</p>
+      <ol class="iv-steps" id="ivSteps" aria-label="İlan verme adımları">
+        <li class="on" data-s="1"><i>1</i><span>Kategori</span></li>
+        <li data-s="2"><i>2</i><span>İlan Detayları</span></li>
+        <li data-s="3"><i>3</i><span>Önizleme</span></li>
+        <li data-s="4"><i>4</i><span>Yayında</span></li>
+      </ol>
     </div>
 
     <!-- Üyelik kapısı: sunucuda ilan vermek için giriş gerekir -->
@@ -52,9 +57,101 @@
       </div>
     </div>
 
+    <!-- ADIM 0 (önerilen): AI İLAN STÜDYOSU — karışık metin + sıralanmamış
+         fotoğraflar → analiz → yayına hazır ilan. Mantık assets/studio.js,
+         denetim app.js pageIlanVer() içindeki studio IIFE'si. -->
+    <div class="container section" id="studio" style="padding-top:18px">
+      <div class="form-card studio-card">
+        <div class="studio-head">
+          <span class="studio-pill">✦ AI İlan Stüdyosu</span>
+          <h2>Hızlı başlayın: yazın, söyleyin ya da fotoğraf çekin</h2>
+          <p>Yapay zekâ bilgileri alanlara ayırır, fotoğrafları düzenler ve ilanı hazırlar.</p>
+        </div>
+        <div class="st-tabs" role="tablist" aria-label="İlan oluşturma yolu">
+          <button type="button" role="tab" id="stTabChat" data-mode="chat" aria-selected="false">💬 Sohbetle oluştur</button>
+          <button type="button" role="tab" id="stTabPaste" data-mode="paste" aria-selected="false">✍️ Metin yapıştır</button>
+        </div>
+
+        <!-- SOHBET: asistan eksikleri tek tek sorar; yazarak ya da mikrofonla
+             cevaplanır. Fotoğraflar sohbet içinden kamerayla çekilir. -->
+        <div class="st-chat-panel" id="stChatPanel" role="tabpanel" aria-labelledby="stTabChat" hidden>
+          <div class="st-chat" id="stChat" aria-live="polite"></div>
+          <div class="st-chatbar">
+            <button type="button" class="st-mic" id="stMic" aria-label="Konuşarak cevapla">🎤</button>
+            <input id="stSay" type="text" autocomplete="off" enterkeyhint="send" placeholder="Yazın ya da 🎤 ile konuşun">
+            <button type="button" class="btn sm" id="stSend">Gönder</button>
+          </div>
+          <div class="st-chat-tools">
+            <label class="btn st-cam-btn" for="stCam">📷 Fotoğraf Çek</label>
+            <label class="btn ghost" for="stPhotos">🖼 Galeriden Seç</label>
+            <button type="button" class="btn ghost" id="stTts" aria-pressed="false">🔇 Sesli soru: kapalı</button>
+            <button type="button" class="btn warn" id="stMake">✦ İlanı şimdi oluştur</button>
+          </div>
+          <p class="st-voice-note" id="stVoiceNote">🎤 Mikrofon, tarayıcınızın ses tanıma hizmetini kullanır; konuşmanız yazıya çevrilir, ses kaydı sitemizde saklanmaz.</p>
+        </div>
+
+        <!-- METİN YAPIŞTIR: karışık metin + fotoğraf bırakma alanı -->
+        <div class="studio-grid" id="stPastePanel" role="tabpanel" aria-labelledby="stTabPaste" hidden>
+          <div>
+            <label for="stText">İlan bilgileri <small>— sırası ve biçimi önemli değil</small></label>
+            <textarea id="stText" rows="9" placeholder="Örn: Manavgat Sarılar Mah. 3+1 daire, brüt 140 net 120 m2, 3. kat, 5 katlı binada, 4 yaşında. Kombi, çift banyo, havuzlu site. Aidat 1.250 tl. Kat mülkiyetli krediye uygun. Fiyat 4.750.000 tl. Tel 05xx…"></textarea>
+          </div>
+          <div>
+            <label for="stPhotos">Fotoğraflar <small id="stPhotoRule"></small></label>
+            <label class="st-drop" id="stDrop" for="stPhotos">
+              <b>Fotoğrafları seçin ya da buraya sürükleyin</b>
+              <span>Sırasız ve fazla olabilir — en iyileri seçilir</span>
+            </label>
+            <label class="btn st-cam-btn st-cam-inline" for="stCam">📷 Fotoğraf Çek</label>
+          </div>
+        </div>
+        <!-- Ortak dosya girişleri: galeri (çoklu) ve kamera (arka kamera) -->
+        <input class="st-file" id="stPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+        <input class="st-file" id="stCam" type="file" accept="image/*" capture="environment">
+        <div class="st-thumbs" id="stInThumbs"></div>
+
+        <div class="studio-actions" id="stPasteActions">
+          <button class="btn" id="stRun" type="button">✦ Analiz Et ve İlanı Hazırla</button>
+          <button class="btn ghost" id="stSkip" type="button">Formu kendim dolduracağım →</button>
+          <span class="st-mode" id="stMode"></span>
+        </div>
+        <div class="st-progress" id="stProgress" hidden><div class="st-bar"><i id="stBar"></i></div><span id="stStep"></span></div>
+
+        <!-- Analiz sonucu -->
+        <div class="st-result" id="stResult" hidden>
+          <div class="st-score-row">
+            <div class="st-score" id="stScore"><b>0</b><small>/100</small></div>
+            <div>
+              <h3>Yayına hazırlık</h3>
+              <ul class="st-checks" id="stChecks"></ul>
+            </div>
+          </div>
+          <div class="st-warn" id="stWarnings" hidden></div>
+
+          <h3>Metinden çıkarılan bilgiler</h3>
+          <div class="st-facts" id="stFacts"></div>
+
+          <h3>Fotoğraflar <small id="stPhotoSum"></small></h3>
+          <p class="st-hint">Seçilen kareler ilan sırasıyla dizildi; ilki kapaktır. Kartlara dokunarak dahil edin/çıkarın,
+          okla sırasını değiştirin, “Önce/Sonra” ile düzeltmeyi karşılaştırın.</p>
+          <div class="st-photos" id="stPhotos2"></div>
+
+          <h3>Önerilen başlık ve açıklama</h3>
+          <input id="stTitle" type="text" maxlength="120">
+          <textarea id="stDesc" rows="12" maxlength="4000"></textarea>
+
+          <div class="studio-actions">
+            <button class="btn" id="stPublish" type="button">Önizlemeye geç →</button>
+            <button class="btn ghost" id="stApply" type="button">Forma aktar, ayrıntıları düzenleyeyim →</button>
+            <button class="btn ghost" id="stRerun" type="button">Yeniden yaz</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ADIM 1: Adım adım kategori seçimi. Form ancak kategori seçilince
          açılır; böylece kullanıcı 30 alanlık bir formla karşılaşmaz. -->
-    <div class="container section" id="catWizard" style="padding-top:18px">
+    <div class="container section" id="catWizard" style="padding-top:18px;display:none">
       <div class="form-card">
         <h2 style="font-size:1.05rem;margin-bottom:4px">Adım Adım Kategori Seç</h2>
         <div class="wz-crumb" id="wzCrumb"></div>
@@ -72,88 +169,135 @@
       </div>
     </div>
 
-    <div class="container section" id="ilanVerForm" style="padding-top:18px;display:none">
-      <div class="form-card">
-        <!-- Seçilen kategori + değiştirme bağlantısı -->
+    <!-- ADIM 2: İlan detayları — bölümlere ayrılmış; zorunlu alanlar * ile işaretli -->
+    <div class="container section" id="ilanVerForm" style="padding-top:8px;display:none">
+      <div class="form-card iv-card">
         <div class="form-crumb" id="formCrumb">
           <span id="formCrumbText"></span>
           <button class="btn ghost sm" id="crumbChange" type="button">Değiştir</button>
         </div>
-        <div class="form-grid">
-          <div><label for="pSeg">İlan Türü</label>
-            <select id="pSeg"><option value="emlak">Emlak</option><option value="vasita">Vasıta</option><option value="diger">Diğer</option></select>
+        <div class="iv-error" id="ivError" role="alert" hidden></div>
+
+        <!-- Kategori seçicileri sihirbazdan dolar; kullanıcıya gösterilmez -->
+        <div hidden>
+          <select id="pSeg"><option value="emlak">Emlak</option><option value="vasita">Vasıta</option><option value="diger">Diğer</option></select>
+          <select id="pCat"><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option></select>
+          <select id="pKind"></select>
+        </div>
+
+        <fieldset class="fs">
+          <legend>Konum ve fiyat</legend>
+          <div class="form-grid g4">
+            <div><label for="pCity">İl <span class="req">*</span></label><select id="pCity"></select></div>
+            <div><label for="pDistrict">İlçe <span class="req">*</span></label><select id="pDistrict"></select></div>
+            <div><label for="pLocality">Mahalle / Semt</label><input id="pLocality" type="text" maxlength="120" placeholder="örn. Sarılar Mahallesi"></div>
+            <div><label for="pPrice">Fiyat (₺) <span class="req">*</span></label><input id="pPrice" type="number" min="0" inputmode="numeric" placeholder="örn. 4750000">
+              <button class="link-ai" id="suggestBtn" type="button">✦ AI fiyat önerisi al</button></div>
           </div>
-          <div><label for="pCat">Kategori</label>
-            <select id="pCat"><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option></select>
+          <div class="notice" id="suggestOut" hidden></div>
+        </fieldset>
+
+        <fieldset class="fs">
+          <legend id="fsMainTitle">Taşınmaz bilgileri</legend>
+          <div class="form-grid g4">
+            <div class="p-emlak"><label for="pM2">Alan (m²) <span class="req">*</span></label><input id="pM2" type="number" min="10" inputmode="numeric" placeholder="örn. 120"></div>
+            <div class="p-emlak p-bina"><label for="pM2Net">Net Alan (m²)</label><input id="pM2Net" type="number" min="5" inputmode="numeric" placeholder="örn. 105"></div>
+            <div class="p-emlak"><label for="pRooms">Oda Sayısı</label>
+              <select id="pRooms"><option value="">Seçiniz</option><option>1+0</option><option>1+1</option><option>2+1</option><option>3+1</option><option>4+1</option><option>5+1</option><option>5+2</option></select>
+            </div>
+            <div class="p-emlak"><label for="pAge">Bina Yaşı</label><input id="pAge" type="number" min="0" max="100" inputmode="numeric" placeholder="örn. 5"></div>
+            <div class="p-vasita"><label for="pBrand">Marka <span class="req">*</span></label><select id="pBrand"></select></div>
+            <div class="p-vasita"><label for="pModel">Model <span class="req">*</span></label><select id="pModel"></select></div>
+            <div class="p-vasita"><label for="pYear">Model Yılı <span class="req">*</span></label><input id="pYear" type="number" min="2008" inputmode="numeric" placeholder="örn. 2021"></div>
+            <div class="p-vasita"><label for="pKm">Kilometre <span class="req">*</span></label><input id="pKm" type="number" min="0" inputmode="numeric" placeholder="örn. 85000"></div>
+            <div class="p-vasita"><label for="pFuel">Yakıt</label><select id="pFuel"></select></div>
+            <div class="p-vasita"><label for="pGear">Vites</label><select id="pGear"></select></div>
           </div>
-          <div><label for="pCity">Şehir</label><select id="pCity"></select></div>
-          <div><label for="pDistrict">İlçe</label><select id="pDistrict"></select></div>
-          <div><label for="pKind">Tür</label><select id="pKind"></select></div>
-          <div class="p-emlak"><label for="pM2">Alan (m²)</label><input id="pM2" type="number" min="10" placeholder="örn. 120"></div>
-          <div class="p-emlak"><label for="pRooms">Oda Sayısı</label>
-            <select id="pRooms"><option value="">Belirtme</option><option>1+0</option><option>1+1</option><option>2+1</option><option>3+1</option><option>4+1</option><option>5+2</option></select>
+          <div id="kindFieldsWrap" style="display:none"><div class="form-grid g4" id="kindFields"></div></div>
+        </fieldset>
+
+        <!-- Tapu ve belgeler: Taşınmaz Numarası ZORUNLU (sahibinden.com ile aynı kural) -->
+        <fieldset class="fs fs-tapu" id="tapuWrap" style="display:none">
+          <legend>Tapu ve belgeler</legend>
+          <div class="form-grid g4" id="tapuFields"></div>
+        </fieldset>
+
+        <fieldset class="fs p-emlak">
+          <legend>Özellikler</legend>
+          <div class="check-grid" id="featBoxes"></div>
+        </fieldset>
+
+        <fieldset class="fs">
+          <legend>Fotoğraflar <small>— ilk fotoğraf kapak olur</small></legend>
+          <input id="pPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+          <div id="photoPreview" class="photo-order"></div>
+          <div class="notice" id="photoStatus" style="margin-top:10px"></div>
+        </fieldset>
+
+        <fieldset class="fs">
+          <legend>Başlık ve açıklama</legend>
+          <div class="form-grid">
+            <div class="full"><label for="pTitle">İlan Başlığı</label><input id="pTitle" type="text" maxlength="120" placeholder="Boş bırakırsanız yapay zekâ yazar"></div>
+            <div class="full"><label for="pDesc">İlan Açıklaması</label><textarea id="pDesc" rows="6" placeholder="Boş bırakırsanız yapay zekâ yazar"></textarea></div>
+            <div class="full"><button class="btn ghost sm" id="writeBtn" type="button">✦ Başlık ve açıklamayı AI yazsın</button></div>
           </div>
-          <div class="p-emlak"><label for="pAge">Bina Yaşı</label><input id="pAge" type="number" min="0" max="100" placeholder="örn. 5"></div>
-          <div class="p-vasita"><label for="pBrand">Marka</label><select id="pBrand"></select></div>
-          <div class="p-vasita"><label for="pModel">Model</label><select id="pModel"></select></div>
-          <div class="p-vasita"><label for="pYear">Model Yılı</label><input id="pYear" type="number" min="2008" placeholder="örn. 2021"></div>
-          <div class="p-vasita"><label for="pKm">Kilometre</label><input id="pKm" type="number" min="0" placeholder="örn. 85000"></div>
-          <div class="p-vasita"><label for="pFuel">Yakıt</label><select id="pFuel"></select></div>
-          <div class="p-vasita"><label for="pGear">Vites</label><select id="pGear"></select></div>
-          <div><label for="pPrice">Fiyat (₺)</label><input id="pPrice" type="number" min="0" placeholder="Boş bırakın, AI önersin"></div>
-          <!-- Türe özel alanlar (ada/parsel/imar, kat/ısıtma/aidat, renk/kasa…)
-               app.js config.fieldDefs'ten çizer; boş bırakılanlar kaydedilmez. -->
-          <div class="full" id="kindFieldsWrap" style="display:none">
-            <label style="margin-bottom:8px">İlan Detayları <small style="font-weight:500;color:var(--muted)">— bildiklerinizi doldurun, boş bırakabilirsiniz</small></label>
-            <div class="form-grid" id="kindFields"></div>
+        </fieldset>
+
+        <fieldset class="fs">
+          <legend>İletişim</legend>
+          <div class="form-grid g4">
+            <div><label for="pSellerType">İlanı Veren</label>
+              <select id="pSellerType"><option value="sahibinden">Sahibinden</option><option value="ofis">Emlak Ofisi / Galeri</option></select>
+            </div>
+            <div><label for="pSellerName">Ad / Ofis Adı</label><input id="pSellerName" type="text" placeholder="örn. Akdeniz Gayrimenkul"></div>
+            <div><label for="pPhone">Telefon <small style="font-weight:500">(boşsa hesabınızdaki)</small></label><input id="pPhone" type="tel" placeholder="05XX XXX XX XX"></div>
+            <div id="pLicenseWrap" hidden><label for="pLicense">Yetki Belgesi No <span class="req">*</span></label>
+              <input id="pLicense" type="text" inputmode="numeric" maxlength="12" placeholder="örn. 0700123" autocomplete="off"></div>
           </div>
-          <div class="full p-emlak"><label>Özellikler</label><div class="check-grid" id="featBoxes"></div></div>
-          <div><label for="pSellerType">İlanı Veren</label>
-            <select id="pSellerType"><option value="sahibinden">Sahibinden</option><option value="ofis">Emlak Ofisi / Galeri</option></select>
-          </div>
-          <div><label for="pSellerName">Ad / Ofis Adı</label><input id="pSellerName" type="text" placeholder="örn. Akdeniz Gayrimenkul"></div>
-          <div><label for="pPhone">İlan Telefonu (isteğe bağlı)</label><input id="pPhone" type="tel" placeholder="örn. 0543 743 42 09"></div>
-          <div class="full">
-            <label for="pPhotos">Fotoğraflar</label>
-            <input id="pPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-            <div id="photoPreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
-            <div class="notice" id="photoStatus" style="margin-top:10px"></div>
-          </div>
-          <div class="full" style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn warn" id="suggestBtn" type="button">AI Fiyat Önerisi Al</button>
-            <button class="btn ghost" id="writeBtn" type="button">Başlık & Açıklamayı AI Yazsın</button>
-          </div>
-          <div class="full notice" id="suggestOut">İpucu: Önce konum ve m² girin, sonra AI butonlarını kullanın.</div>
-          <div class="full"><label for="pTitle">İlan Başlığı</label><input id="pTitle" type="text" placeholder="AI ile otomatik doldurulabilir"></div>
-          <div class="full"><label for="pDesc">İlan Açıklaması</label><textarea id="pDesc" rows="6" placeholder="AI ile otomatik doldurulabilir"></textarea></div>
-          <div class="full"><label style="display:flex;align-items:center;gap:10px;font-size:1rem;color:var(--text)">
-            <input id="pFeatured" type="checkbox" style="width:auto"> ⭐ <b>İlanımı öne çıkar</b> — listelerde önce gösterilir
-          </label></div>
-          <div class="full"><button class="btn" id="publishBtn" type="button" style="width:100%;padding:14px">İlanı Yayınla</button></div>
+          <small class="kf-hint" id="licenseHint" hidden>Taşınmaz Ticareti Hakkında Yönetmelik gereği emlak işletmeleri ilanlarında yetki belgesi numarasını belirtir.</small>
+        </fieldset>
+
+        <label class="iv-feat" id="pFeaturedWrap" hidden>
+          <input id="pFeatured" type="checkbox"> ⭐ <b>Öne çıkar</b> <small>(yönetici)</small>
+        </label>
+
+        <div class="iv-actions">
+          <button class="btn" id="toPreview" type="button">Önizleme →</button>
         </div>
       </div>
     </div>
 
-    <!-- İçerik: iyi ilan yazma ipuçları (SEO + kullanıcıya yardım) -->
-    <div class="container section" style="padding-top:0">
-      <div class="detail-card prose">
-        <h2>İlanınız daha hızlı satsın: 5 ipucu</h2>
-        <ol>
-          <li><b>Fotoğraf her şeydir.</b> Gündüz, doğal ışıkta, toplanmış bir evi çekin; en iyi kareyi ilk sıraya
-          koyun. En fazla 6 fotoğraf ekleyebilirsiniz — salon, mutfak, banyo, yatak odası, balkon/manzara ve
-          bina/site girişi iyi bir sıralamadır.</li>
-          <li><b>Başlık konum + oda + ayırt edici özellik içersin.</b> Örnek: "Manavgat Side Yolu 3+1 Deniz
-          Manzaralı Satılık Daire". "AI Yazsın" düğmesi bunu sizin için üretir.</li>
-          <li><b>Fiyatı bandın içinde tutun.</b> "AI Fiyat Önerisi Al" düğmesi bölge ortalamalarına göre bir aralık
-          verir; "Piyasa Üstü" etiketli ilanlar belirgin şekilde daha az ilgi görür.</li>
-          <li><b>Eksiksiz bilgi girin.</b> m², oda, bina yaşı, aidat, tapu durumu ve özellikler; hem doğal dil
-          aramada eşleşme şansınızı hem de arayanın güvenini artırır.</li>
-          <li><b>Telefonunuzu doğru yazın.</b> İlan telefonunuz arama ve WhatsApp düğmelerine bağlanır; boş
-          bırakırsanız hesabınızdaki numara kullanılır.</li>
-        </ol>
-        <p class="notice">İlanınız yönetici onayından sonra yayına girer. Onay beklerken
-        <a href="hesap.html">Hesabım › İlanlarım</a> bölümünden önizleyebilir, düzenleyebilir ya da silebilirsiniz.</p>
+    <!-- ADIM 3: Önizleme — ilan gönderilmeden önce nasıl görüneceği -->
+    <div class="container section" id="ivPreview" style="padding-top:8px" hidden>
+      <div class="form-card iv-card">
+        <h2 class="iv-h2">İlanınızın önizlemesi</h2>
+        <div class="iv-prev" id="ivPrevBody"></div>
+        <div class="iv-error" id="ivError2" role="alert" hidden></div>
+        <div class="iv-actions">
+          <button class="btn ghost" id="backEdit" type="button">← Düzenle</button>
+          <button class="btn" id="publishBtn" type="button">İlanı Gönder</button>
+        </div>
+        <p class="notice" id="ivPrevNote" style="margin-top:12px">İlanınız yönetici onayından sonra yayınlanır; durumunu Hesabım › İlanlarım'dan izleyebilirsiniz.</p>
       </div>
+    </div>
+
+    <!-- ADIM 4: Gönderildi -->
+    <div class="container section" id="ivDone" style="padding-top:8px" hidden>
+      <div class="form-card iv-card iv-done" id="ivDoneBody"></div>
+    </div>
+
+    <!-- Kısa ipuçları: kapalı gelir, isteyen açar -->
+    <div class="container section" style="padding-top:0">
+      <details class="iv-tips">
+        <summary>İyi bir ilan için 5 ipucu</summary>
+        <ol>
+          <li><b>Fotoğraf her şeydir:</b> gündüz, doğal ışıkta çekin; en iyi kare ilk sıraya.</li>
+          <li><b>Başlık:</b> konum + oda + ayırt edici özellik.</li>
+          <li><b>Fiyat:</b> AI fiyat önerisinin bandında kalın; “Piyasa Üstü” ilanlar az ilgi görür.</li>
+          <li><b>Eksiksiz bilgi:</b> m², oda, bina yaşı, aidat, tapu bilgisi alıcının güvenini artırır.</li>
+          <li><b>Telefon:</b> boş bırakırsanız hesabınızdaki numara kullanılır.</li>
+        </ol>
+      </details>
     </div>
 
   </main>
@@ -164,17 +308,19 @@
         <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
         <a href="rehber.html">Rehber</a>
         <a href="asistan.html">AI Asistan</a>
-        <a data-c-tel href="#">—</a>
+        <a data-c-tel href="#" hidden>—</a>
         <a data-c-mail href="#">—</a>
       </div>
+      <div class="footer-legal"><a href="kvkk.html">KVKK Aydınlatma Metni</a><a href="kullanim-kosullari.html">Kullanım Koşulları</a><a href="cerez-politikasi.html">Çerez ve Cihaz Depolama</a></div>
       <div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
     </div>
   </footer>
 
   <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
-  <script src="assets/config.js?v=913660bf"></script>
-  <script src="assets/data.js?v=309e9aed"></script>
-  <script src="assets/ai.js?v=844d60e8"></script>
-  <script src="assets/app.js?v=9953afa2"></script>
+  <script src="assets/config.js?v=ed013792"></script>
+  <script src="assets/data.js?v=21f5b8b4"></script>
+  <script src="assets/ai.js?v=35951508"></script>
+  <script src="assets/studio.js?v=bb0dc2f2"></script>
+  <script src="assets/app.js?v=f09a0440"></script>
 </body>
 </html>

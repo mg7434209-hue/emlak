@@ -126,7 +126,7 @@
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
-  // Telefon normalizasyonu: "0543 743 42 09" → {display, intl, wa}
+  // Telefon normalizasyonu: "05XX XXX XX XX" → {display, intl, wa}
   function normPhone(raw) {
     let d = String(raw || "").replace(/\D/g, "");
     if (d.startsWith("90")) d = d.slice(2);
@@ -158,32 +158,38 @@
 
   // Türe özel alanları (ada/parsel/imar, kat/ısıtma, renk/kasa…) bir kapsayıcıya
   // çizer. `values` varsa alanlar dolu gelir (düzenleme penceresi).
-  function renderKindFields(wrap, kind, values) {
+  function renderKindFields(wrap, kind, values, filter) {
     if (!wrap) return [];
-    const defs = D.fieldsOfKind(kind);
+    const all = D.fieldsOfKind(kind);
+    const defs = filter ? all.filter(filter) : all;
     const v = values || {};
     wrap.innerHTML = defs.map((f) => {
       const id = "kf_" + f.key;
+      // Yeni ilanda varsayılan (ör. Takaslı = Hayır); düzenlemede kayıtlı değer korunur
+      const cur = v[f.key] !== undefined ? v[f.key] : (values ? undefined : f.default);
+      const lab = esc(f.label) + (f.required ? ' <span class="req">*</span>' : "");
+      const req = f.required ? ' data-required="1"' : "";
       // Evet/hayır alanları da açılır liste: form ızgarası hizalı kalsın
       if (f.type === "bool") {
-        return `<div><label for="${id}">${esc(f.label)}</label>
-          <select id="${id}" data-kf="${esc(f.key)}" data-kf-bool="1">
+        return `<div><label for="${id}">${lab}</label>
+          <select id="${id}" data-kf="${esc(f.key)}" data-kf-bool="1"${req}>
             <option value="">Seçiniz</option>
-            <option value="1"${v[f.key] ? " selected" : ""}>Var</option>
-            <option value="0"${v[f.key] === false ? " selected" : ""}>Yok</option>
+            <option value="1"${cur ? " selected" : ""}>Var</option>
+            <option value="0"${cur === false ? " selected" : ""}>Yok</option>
           </select></div>`;
       }
       const inner = f.type === "select"
-        ? `<select id="${id}" data-kf="${esc(f.key)}"><option value="">Seçiniz</option>` +
-          (f.options || []).map((o) => `<option${o === v[f.key] ? " selected" : ""}>${esc(o)}</option>`).join("") + "</select>"
-        : `<input id="${id}" data-kf="${esc(f.key)}" type="${f.type === "number" ? "number" : "text"}"` +
+        ? `<select id="${id}" data-kf="${esc(f.key)}"${req}><option value="">Seçiniz</option>` +
+          (f.options || []).map((o) => `<option${o === cur ? " selected" : ""}>${esc(o)}</option>`).join("") + "</select>"
+        : `<input id="${id}" data-kf="${esc(f.key)}" type="${f.type === "number" ? "number" : "text"}"${req}` +
+          (f.inputmode ? ` inputmode="${esc(f.inputmode)}"` : "") +
           (f.type === "number" ? ` min="0" max="${f.max || 1000000}"` : ` maxlength="${f.max || 60}"`) +
           (f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : "") +
-          ` value="${v[f.key] == null ? "" : esc(String(v[f.key]))}">`;
+          ` value="${cur == null ? "" : esc(String(cur))}">`;
       // Alan ipucu (ör. "Tapunuzun üzerinde yazar") — kullanıcı nereden
       // bulacağını bilsin diye alanın altında küçük not olarak çıkar.
       const ipucu = f.hint ? `<small class="kf-hint">${esc(f.hint)}</small>` : "";
-      return `<div><label for="${id}">${esc(f.label)}</label>${inner}${ipucu}</div>`;
+      return `<div class="${f.key === "tasinmazNo" ? "kf-wide" : ""}"><label for="${id}">${lab}</label>${inner}${ipucu}</div>`;
     }).join("");
     return defs;
   }
@@ -412,6 +418,7 @@
           <div><label for="eSellerType">Satıcı Tipi</label><select id="eSellerType">
             <option value="sahibinden"${(l.seller || {}).type !== "ofis" ? " selected" : ""}>Sahibinden</option>
             <option value="ofis"${(l.seller || {}).type === "ofis" ? " selected" : ""}>Ofis / Galeri</option></select></div>
+          <div><label for="eLicense">Yetki Belgesi No <small>(emlak ofisi)</small></label><input id="eLicense" type="text" inputmode="numeric" maxlength="12" value="${esc((l.seller || {}).license || "")}"></div>
           <div class="full"><label for="ePhone">İlan Telefonu</label><input id="ePhone" type="tel" maxlength="25" value="${esc((l.phone || {}).display || "")}" placeholder="Boş = site telefonu"></div>
           <div class="full"><label for="eDesc">Açıklama</label><textarea id="eDesc" rows="7" maxlength="4000">${esc(l.desc || "")}</textarea></div>
           <div class="full"><label for="ePhotoFile">Fotoğraflar</label>
@@ -492,7 +499,8 @@
         title: val("eTitle"), category: $("#eCat").value,
         price: +val("ePrice") || 0, city: $("#eCity").value, district: $("#eDistrict").value,
         desc: val("eDesc"), photos: photos.slice(),
-        seller: { name: val("eSellerName") || "Sahibinden", type: $("#eSellerType").value },
+        seller: { name: val("eSellerName") || "Sahibinden", type: $("#eSellerType").value,
+          license: $("#eSellerType").value === "ofis" ? val("eLicense").replace(/\D/g, "") || undefined : undefined },
         phone: val("ePhone") ? normPhone(val("ePhone")) : null,
       };
       if (val("ePhone") && !patch.phone) { $("#eOut").innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz.</span>'; return; }
@@ -618,10 +626,15 @@
     }
     updateFavCount();
     injectAuthLink();
+    favPriceAlert();
     // İletişim enjeksiyonu
-    $$("[data-c-tel]").forEach((a) => { a.href = "tel:" + C.company.phone.intl; a.textContent = C.company.phone.display; });
+    // Telefon/adres tanımlı değilse bu alanlar HTML'de gizli kalır (config.company.phone/address boş)
+    const ph = C.company.phone;
+    $$("[data-c-tel]").forEach((a) => { if (ph) { a.href = "tel:" + ph.intl; a.textContent = ph.display; a.hidden = false; } });
+    $$("[data-c-need]").forEach((el) => { el.hidden = !C.company[el.dataset.cNeed]; });
     $$("[data-c-mail]").forEach((a) => { a.href = "mailto:" + C.company.email; a.textContent = C.company.email; });
     $$("[data-c-addr]").forEach((el) => { el.textContent = C.company.address; });
+    $$("[data-c-title]").forEach((el) => { el.textContent = C.company.title; });
     injectSiteJsonLd();
     observeReveals(document);
   }
@@ -646,6 +659,34 @@
   }
   // Üyelik bağlantısı: giriş yapılmışsa "Hesabım", değilse "Giriş Yap".
   // Tüm sayfalara tek yerden enjekte edilir (sayfalara elle eklenmez).
+  // FAVORİ FİYAT ALARMI: favorideki ilanın fiyatı son ziyaretten beri düştüyse
+  // bir kez bildirilir. Fiyat anlık görüntüsü localStorage'da (emlakai.favPrices).
+  function favPriceAlert() {
+    let snap = {};
+    try { snap = JSON.parse(localStorage.getItem("emlakai.favPrices") || "{}") || {}; } catch (e) { snap = {}; }
+    const ids = favs();
+    const drops = [];
+    const next = {};
+    ids.forEach((id) => {
+      const l = D.byId(id);
+      if (!l || !l.price) { if (snap[id]) next[id] = snap[id]; return; }
+      if (snap[id] && l.price < snap[id]) drops.push({ l, old: snap[id] });
+      next[id] = l.price;
+    });
+    try { localStorage.setItem("emlakai.favPrices", JSON.stringify(next)); } catch (e) { return; }
+    if (!drops.length || document.body.dataset.page === "admin") return;
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.setAttribute("role", "status");
+    const d = drops[0];
+    t.innerHTML = `🔔 <b>Favorinizin fiyatı düştü:</b> <a href="ilan.html?id=${encodeURIComponent(d.l.id)}">${esc(d.l.title)}</a> — ` +
+      `<s>${fmt(d.old)} ₺</s> → <b>${fmt(d.l.price)} ₺</b>` + (drops.length > 1 ? ` <a href="favoriler.html">(+${drops.length - 1} ilan)</a>` : "") +
+      ` <button type="button" aria-label="Kapat">✕</button>`;
+    document.body.appendChild(t);
+    $("button", t).addEventListener("click", () => t.remove());
+    setTimeout(() => t.remove(), 12000);
+  }
+
   function injectAuthLink() {
     const nav = $("#mainNav");
     if (!nav || $("#authLink")) return;
@@ -654,6 +695,11 @@
     a.id = "authLink";
     a.href = u ? "hesap.html" : "giris.html";
     a.textContent = u ? "👤 " + (u.name || "Hesabım").split(" ")[0] : "Giriş Yap";
+    // Okunmamış mesaj rozeti (sahibinden "Mesajlarım" sayacı karşılığı)
+    if (u && A.unread > 0) {
+      a.href = "hesap.html#mesajlar";
+      a.insertAdjacentHTML("beforeend", ` <span class="nav-badge" aria-label="${A.unread} okunmamış mesaj">${A.unread}</span>`);
+    }
     if (document.body.dataset.page === (u ? "hesap" : "giris")) a.classList.add("active");
     const cta = nav.querySelector("a.cta");
     nav.insertBefore(a, cta || null);
@@ -677,8 +723,8 @@
       "@context": "https://schema.org", "@type": "Organization",
       name: C.brand.name, legalName: C.company.title, url,
       logo: url + C.seo.ogImage, email: C.company.email,
-      telephone: C.company.phone.intl,
-      address: { "@type": "PostalAddress", streetAddress: C.company.address, addressCountry: "TR" },
+      ...(C.company.phone ? { telephone: C.company.phone.intl } : {}),
+      ...(C.company.address ? { address: { "@type": "PostalAddress", streetAddress: C.company.address, addressCountry: "TR" } } : {}),
       sameAs: C.seo.sameAs,
     });
     addJsonLd({
@@ -741,9 +787,16 @@
   // ── Ana sayfa (Google sadeliği: logo + tek arama kutusu) ───────────────
   function pageIndex() {
     let seg = "emlak";
-    const PH = {
-      emlak: 'Örn. "Manavgat\'ta 5 milyon altı satılık villa" ya da "İzmir\'de kiralık 1+1"',
-      vasita: 'Örn. "2020 üstü dizel otomatik Corolla" ya da "kiralık araç Antalya"',
+    // Dar ekranda kısa örnek: uzun yer tutucu kutuda kesiliyordu
+    const narrow = window.matchMedia && matchMedia("(max-width: 560px)").matches;
+    const PH = narrow ? {
+      emlak: "Örn. Manavgat 3+1 daire",
+      vasita: "Örn. 2020 otomatik Corolla",
+      diger: "Örn. traktör, özel ders",
+    } : {
+      emlak: "Örn. Manavgat'ta 5 milyon altı 3+1 daire",
+      vasita: "Örn. 2020 üstü dizel otomatik Corolla",
+      diger: "Örn. traktör, iş makinesi, özel ders",
     };
     const input = $("#aiQuery");
     input.placeholder = PH.emlak;
@@ -754,19 +807,61 @@
         b.classList.add("active");
         b.setAttribute("aria-selected", "true");
         seg = b.dataset.seg;
-        input.placeholder = PH[seg];
+        input.placeholder = PH[seg] || PH.emlak;
         input.focus();
       });
     });
     const doSearch = () => {
       const text = input.value.trim();
+      // İlan numarası yazıldıysa doğrudan ilana git ("EA1001", "#EAMV8…")
+      const no = text.replace(/^#|\s+/g, "").toUpperCase();
+      if (/^EA[0-9A-Z]{3,}$/.test(no)) { location.href = "ilan.html?id=" + encodeURIComponent(no); return; }
       const f = text ? AI.parseQuery(text) : {};
       if (!f.segment) f.segment = seg;
       location.href = "ilanlar.html?" + AI.filtersToQS(f) + (text ? "&q=" + encodeURIComponent(text) : "");
     };
-    $("#aiSearchBtn").addEventListener("click", doSearch);
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
-    input.focus();
+    // Form gönderimi JS'siz de çalışır (ilanlar.html?q= doğal dil sorgusunu ayrıştırır)
+    const form = $("#gSearch");
+    if (form) form.addEventListener("submit", (e) => { e.preventDefault(); doSearch(); });
+    else {
+      $("#aiSearchBtn").addEventListener("click", doSearch);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
+    }
+    // Sesle arama: Web Speech API (Chrome/Android, Safari/iOS 14.5+); yoksa 🎤 gizlenir
+    const mic = $("#aiMic");
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (mic && !SR) mic.hidden = true;
+    if (mic && SR) {
+      let rec = null;
+      mic.addEventListener("click", () => {
+        if (rec) { try { rec.stop(); } catch (e) { /* zaten durdu */ } return; }
+        try {
+          rec = new SR();
+          rec.lang = "tr-TR"; rec.interimResults = true; rec.maxAlternatives = 1;
+          let finalText = "";
+          mic.classList.add("on"); mic.setAttribute("aria-label", "Dinleniyor… durdurmak için dokunun");
+          input.placeholder = "Dinliyorum…";
+          rec.onresult = (e) => {
+            let interim = "";
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              if (e.results[i].isFinal) finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+            }
+            input.value = (finalText + " " + interim).trim();
+          };
+          rec.onerror = (e) => {
+            if (e.error === "not-allowed" || e.error === "service-not-allowed") input.placeholder = "Mikrofon izni verilmedi — yazarak arayabilirsiniz";
+          };
+          rec.onend = () => {
+            rec = null;
+            mic.classList.remove("on"); mic.setAttribute("aria-label", "Sesle ara");
+            if (finalText.trim()) { input.value = finalText.trim(); doSearch(); }
+            else if (input.placeholder === "Dinliyorum…") input.placeholder = PH[seg] || PH.emlak;
+          };
+          rec.start();
+        } catch (e) { rec = null; mic.classList.remove("on"); }
+      });
+    }
+    if (!window.matchMedia || !matchMedia("(pointer: coarse)").matches) input.focus(); // telefonda klavye fırlamasın
 
     // ── Portal blokları (ana sayfadaki keşif vitrinlerini home.js doldurur;
     // burada kategori/bölge/istatistik/popüler arama blokları doldurulur).
@@ -885,6 +980,9 @@
     if (qs.get("minYear")) f.minYear = +qs.get("minYear");
     if (qs.get("maxKm")) f.maxKm = +qs.get("maxKm");
     const rawQ = qs.get("q");
+    // ?q=EA1001 → ilan numarası araması: doğrudan ilana git
+    const qNo = String(rawQ || "").replace(/^#|\s+/g, "").toUpperCase();
+    if (/^EA[0-9A-Z]{3,}$/.test(qNo)) { location.replace("ilan.html?id=" + encodeURIComponent(qNo)); return; }
     // Yalnızca ?q= ile gelinirse (arama motoru SearchAction / dış bağlantı)
     // doğal dil sorgusunu ayrıştırıp filtrelere dönüştür; açık paramlar önceliklidir.
     if (rawQ) {
@@ -1264,12 +1362,14 @@
       // Türe özel alanlar (ada/parsel/imar, kat/ısıtma, renk/kasa…) künyeye eklenir
       .concat(Object.keys(l.details || {}).map((k) => {
         const v = l.details[k];
+        // Taşınmaz numarası tam gösterilmez (sahte ilan için kopyalanmasın): "Beyan edildi (•••••719)"
+        if (k === "tasinmazNo") return [D.fieldLabel(k), `Beyan edildi (${D.maskTapuNo(v) || v})`];
         return [D.fieldLabel(k), v === true ? "Var" : String(v)];
       }))
       .filter(Boolean);
 
     const dotPos = est ? Math.max(4, Math.min(96, 50 + ((l.price / est.mid - 1) / 0.25) * 50)) : 50;
-    const contact = l.phone || C.company.phone; // ilana özel telefon varsa o kullanılır
+    const contact = l.phone || C.company.phone || null; // ilana özel telefon; yoksa site telefonu; o da yoksa yalnız mesaj
     // İstatistikler: sunucu varsa görüntülenme sunucuda sayılır (IP başına
     // 12 saatte bir); statik yayında cihaz içi sayaç ilanın tabanına eklenir.
     let totalViews = (l.views || 0) + (D.hasServer() ? 0 : bumpViews(l.id));
@@ -1278,7 +1378,7 @@
     const prevPrice = (l.priceHistory || []).length ? l.priceHistory[l.priceHistory.length - 1].price : null;
     const priceDrop = prevPrice && prevPrice > l.price
       ? { old: prevPrice, pct: Math.round((1 - l.price / prevPrice) * 100) } : null;
-    const wa = "https://wa.me/" + contact.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`);
+    const wa = contact && contact.wa ? "https://wa.me/" + contact.wa + "?text=" + encodeURIComponent(`Merhaba, ${l.id} numaralı "${l.title}" ilanı hakkında bilgi almak istiyorum.`) : "";
 
     root.innerHTML = `
       ${preview ? `<div class="container" style="padding-top:14px"><div class="notice" style="border:1px solid var(--accent);color:var(--accent)">
@@ -1295,7 +1395,7 @@
           ${(l.photos || []).length > 1 ? `<div class="photo-strip">${l.photos.map((p, i) => `<img src="${safePhoto(p)}" data-photo="${i}" alt="Fotoğraf ${i + 1}" class="${i === 0 ? "sel" : ""}">`).join("")}</div>` : ""}
           <div class="detail-card">
             <h2>Açıklama</h2>
-            <p>${esc(desc)}</p>
+            <p class="desc-text">${esc(desc)}</p>
           </div>
           <div class="detail-card">
             <h2>İlan Bilgileri</h2>
@@ -1334,7 +1434,7 @@
             <p class="notice" style="margin-bottom:12px">Bilgileriniz yalnızca bu ilan için ilan sahibine iletilir; en kısa sürede size dönüş yapılır.</p>
             <div class="form-grid">
               <div><label for="mName">Adınız Soyadınız</label><input id="mName" type="text" maxlength="80" autocomplete="name"></div>
-              <div><label for="mPhone">Telefonunuz</label><input id="mPhone" type="tel" maxlength="25" autocomplete="tel" placeholder="örn. 0543 743 42 09"></div>
+              <div><label for="mPhone">Telefonunuz</label><input id="mPhone" type="tel" maxlength="25" autocomplete="tel" placeholder="örn. 05XX XXX XX XX"></div>
               <div class="full"><label for="mMail">E-posta (isteğe bağlı)</label><input id="mMail" type="email" maxlength="120" autocomplete="email"></div>
               <div class="full"><label for="mText">Mesajınız</label><textarea id="mText" rows="4" maxlength="1200"></textarea></div>
               <div class="full" style="position:absolute;left:-9999px" aria-hidden="true">
@@ -1370,16 +1470,33 @@
           <div class="seller">
             <div class="avatar">${esc(l.seller.name[0])}</div>
             <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small>
+              ${l.seller.type === "ofis" && l.seller.license ? `<br><small class="license-line">🪪 Yetki Belge No: <b>${esc(l.seller.license)}</b></small>` : ""}
               ${l.ownerId ? `<br><a href="magaza.html?u=${encodeURIComponent(l.ownerId)}" style="font-size:0.85rem">Mağazasındaki tüm ilanlar →</a>` : ""}</div>
           </div>
-          <a class="btn" id="callBtn" href="tel:${esc(contact.intl)}">📞 ${esc(contact.display)}</a>
-          <a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>
+          ${contact ? `<a class="btn" id="callBtn" href="#" data-tel="${esc(contact.intl)}" data-tel-label="${esc(contact.display)}">📞 Telefonu Göster</a>` : ""}
+          ${wa ? `<a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>` : ""}
+          ${!contact && D.hasServer() ? '<a class="btn" href="#msgCard">✉ Satıcıya mesaj gönder</a>' : ""}
           <button class="btn ghost" data-fav="${esc(l.id)}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
           <div style="display:flex;gap:8px">
             <button class="btn ghost sm" id="shareBtn" type="button" style="flex:1">Paylaş</button>
             <button class="btn ghost sm" id="printBtn" type="button" style="flex:1">Yazdır / PDF</button>
           </div>
           ${l.user ? `<button class="btn ghost" id="removeBtn" style="color:var(--over);border-color:var(--over)">İlanı Kaldır</button>` : ""}
+          <div class="safety-box">
+            <b>🛡 Güvenli alışveriş</b>
+            <ul>${((C.safety || {})[l.segment || "emlak"] || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+            ${D.hasServer() && !preview ? `<button class="link-btn" id="reportOpen" type="button">🚩 Bu ilanı şikayet et</button>` : ""}
+          </div>
+          <div class="report-box" id="reportBox" hidden>
+            <b>İlanı şikayet et</b>
+            <label for="rReason">Neden?</label>
+            <select id="rReason"><option value="">Seçin</option>${((C.moderation || {}).reportReasons || []).map((r) => `<option>${esc(r)}</option>`).join("")}</select>
+            <label for="rNote">Açıklama (isteğe bağlı)</label>
+            <textarea id="rNote" rows="3" maxlength="600"></textarea>
+            <input id="rHp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+            <button class="btn sm" id="reportSend" type="button">Şikayeti Gönder</button>
+            <div class="notice" id="reportOut"></div>
+          </div>
           ${l.category === "satilik" && l.segment !== "diger" ? (() => {
             const cr = l.segment === "vasita" ? C.credit.vehicle : C.credit;
             return `<div class="est-box">
@@ -1397,6 +1514,15 @@
       });
       const msgCard = $("#msgCard", root);
       msgCard.style.display = "";
+      const meU = A.user();
+      if (meU && l.ownerId && meU.uid === l.ownerId) msgCard.style.display = "none";   // kendi ilanı
+      else if (meU) {
+        // Üye: ad/telefon hesaptan gelir; satıcının yanıtı Hesabım › Mesajlarım'a düşer
+        ["#mName", "#mPhone", "#mMail"].forEach((sel) => { const el = $(sel, root); if (el) el.parentElement.style.display = "none"; });
+        $(".notice", msgCard).textContent = `${meU.name || "Hesabınız"} adına gönderilir. Satıcının yanıtını Hesabım › Mesajlarım'da görür, oradan yazışmaya devam edersiniz.`;
+      } else {
+        $(".notice", msgCard).innerHTML = `Bilgileriniz yalnızca ilan sahibine iletilir. <a href="giris.html?next=${encodeURIComponent("ilan.html?id=" + l.id)}">Giriş yaparsanız</a> yanıtı site içinde alırsınız.`;
+      }
       $("#msgSend", root).addEventListener("click", async () => {
         const out = $("#msgOut", root), btn = $("#msgSend", root);
         const payload = {
@@ -1404,7 +1530,7 @@
           phone: $("#mPhone", root).value.trim(), email: $("#mMail", root).value.trim(),
           message: $("#mText", root).value.trim(), hp: $("#mHp", root).value,
         };
-        if (!payload.name || !payload.phone || !payload.message) {
+        if (!payload.message || (!A.user() && (!payload.name || !payload.phone))) {
           out.innerHTML = '<span style="color:var(--over)">Ad, telefon ve mesaj alanlarını doldurun.</span>';
           return;
         }
@@ -1412,7 +1538,9 @@
         try {
           const r = await D.sendMessage(payload);
           if (r && r.ok) {
-            out.innerHTML = '<b style="color:var(--deal)">Mesajınız iletildi ✓</b> İlan sahibi en kısa sürede size dönecek.';
+            out.innerHTML = r.threaded
+              ? '<b style="color:var(--deal)">Mesajınız iletildi ✓</b> Yanıtı <a href="hesap.html#mesajlar">Hesabım › Mesajlarım</a>\'da göreceksiniz.'
+              : '<b style="color:var(--deal)">Mesajınız iletildi ✓</b> İlan sahibi en kısa sürede size dönecek.';
             btn.textContent = "Gönderildi ✓";
             return;
           }
@@ -1474,6 +1602,34 @@
       } catch (e) { /* kullanıcı paylaşımı iptal etti */ }
     });
     $("#printBtn", root).addEventListener("click", () => window.print());
+    // Telefonu göster: numara ilk dokunuşta açılır (toplu numara kazımaya karşı)
+    const callBtn = $("#callBtn", root);
+    if (callBtn) callBtn.addEventListener("click", (e) => {
+      if (callBtn.dataset.shown) return;            // ikinci dokunuş: arar
+      e.preventDefault();
+      callBtn.dataset.shown = "1";
+      callBtn.href = "tel:" + callBtn.dataset.tel;
+      callBtn.textContent = "📞 " + callBtn.dataset.telLabel;
+    });
+    // Şikayet
+    const rOpen = $("#reportOpen", root);
+    if (rOpen) {
+      rOpen.addEventListener("click", () => { const bx = $("#reportBox", root); bx.hidden = !bx.hidden; });
+      $("#reportSend", root).addEventListener("click", async () => {
+        const out = $("#reportOut", root);
+        const reason = $("#rReason", root).value;
+        if (!reason) { out.innerHTML = '<span style="color:var(--over)">Bir neden seçin.</span>'; return; }
+        try {
+          const r = await D.report({ id: l.id, reason, note: $("#rNote", root).value.trim(), hp: $("#rHp", root).value });
+          if (r && r.ok) {
+            out.innerHTML = '<b style="color:var(--deal)">Teşekkürler, şikayetiniz alındı ✓</b> Ekibimiz ilanı inceleyecek.';
+            $("#reportSend", root).disabled = true;
+            return;
+          }
+          out.innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "Gönderilemedi.")}</span>`;
+        } catch (e) { out.innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı.</span>'; }
+      });
+    }
     observeReveals(root);
   }
 
@@ -1487,6 +1643,10 @@
       $("#ilanVerForm").style.display = "none";
       const wizEl = $("#catWizard");
       if (wizEl) wizEl.style.display = "none";   // kategori seçici de kapanır
+      const stEl = $("#studio");
+      if (stEl) stEl.style.display = "none";     // AI stüdyosu da kapanır
+      const stepsEl = $("#ivSteps");
+      if (stepsEl) stepsEl.style.display = "none";
       const ph = $(".page-head p");
       if (ph) ph.textContent = "İlan vermek için ücretsiz hesabınızla giriş yapın.";
       return;
@@ -1525,26 +1685,41 @@
       const sug = $("#suggestBtn");
       if (sug) sug.style.display = seg === "diger" ? "none" : "";
       const sugOut = $("#suggestOut");
-      if (sugOut && seg === "diger") sugOut.textContent = "";
+      if (sugOut && seg === "diger") { sugOut.textContent = ""; sugOut.hidden = true; }
     }
     // Türe özel alanlar (arsada ada/parsel/imar, konutta kat/ısıtma/aidat…)
     function syncKindFields() {
       const wrap = $("#kindFieldsWrap");
       if (!wrap) return;
       const kind = $("#pKind").value;
-      const defs = renderKindFields($("#kindFields"), kind, null);
+      const defs = renderKindFields($("#kindFields"), kind, null, (f) => f.section !== "tapu");
+      const tapuDefs = renderKindFields($("#tapuFields"), kind, null, (f) => f.section === "tapu");
       wrap.style.display = defs.length ? "" : "none";
+      $("#tapuWrap").style.display = tapuDefs.length ? "" : "none";
+      const seg0 = $("#pSeg").value;
+      $("#fsMainTitle").textContent = seg0 === "vasita" ? "Araç bilgileri" : seg0 === "diger" ? "İlan bilgileri" : (LAND.indexOf(kind) >= 0 ? "Arazi bilgileri" : "Taşınmaz bilgileri");
       // Arsa/arazide oda ve bina yaşı sorulmaz (ai.js ile aynı kural)
       const arazi = LAND.indexOf(kind) >= 0;
-      [["#pRooms", arazi], ["#pAge", arazi]].forEach(([sel, gizle]) => {
+      [["#pRooms", arazi], ["#pAge", arazi], ["#pM2Net", arazi]].forEach(([sel, gizle]) => {
         const el = $(sel);
         if (el && el.parentElement) el.parentElement.style.display = gizle ? "none" : "";
       });
       const m2Label = $("#pM2") && $("#pM2").parentElement.querySelector("label");
-      if (m2Label) m2Label.textContent = arazi ? "Yüz Ölçümü (m²)" : "Alan (m²)";
+      if (m2Label) m2Label.innerHTML = (arazi ? "Yüz Ölçümü (m²)" : "Alan (m²)") + ' <span class="req">*</span>';
     }
     $("#pKind").addEventListener("change", syncKindFields);
     $("#pSeg").addEventListener("change", syncSegmentUI);
+    // Yetki belgesi: yalnız emlak + emlak ofisi ilanında sorulur; son girilen hatırlanır
+    function syncLicense() {
+      const on = $("#pSeg").value === "emlak" && $("#pSellerType").value === "ofis";
+      $("#pLicenseWrap").hidden = !on;
+      $("#licenseHint").hidden = !on;
+      if (on && !$("#pLicense").value) { try { $("#pLicense").value = localStorage.getItem("emlakai.license") || ""; } catch (e) { /* depolama kapalı */ } }
+    }
+    $("#pSellerType").addEventListener("change", syncLicense);
+    $("#pSeg").addEventListener("change", syncLicense);
+    $("#pLicense").addEventListener("change", () => { try { localStorage.setItem("emlakai.license", $("#pLicense").value.replace(/\D/g, "")); } catch (e) { /* depolama kapalı */ } });
+    syncLicense();
     syncSegmentUI();
 
     // ── ADIM ADIM KATEGORİ SEÇİCİ ────────────────────────────────────────
@@ -1552,6 +1727,11 @@
     // kategori sorulur (İlan Türü → Kategori → Tür → Durum), sonra YALNIZCA
     // o türe ait alanlarla form açılır. Seçimler gizlenen #pSeg/#pKind/#pCat
     // alanlarına yazılır — formun geri kalanı değişmeden çalışmaya devam eder.
+    // Stüdyo kategoriyi kendisi bulduysa formu doğrudan açar (wizardApi.goForm);
+    // bulamadıysa sihirbazı açar ve seçim bitince stüdyo verisi forma dolar.
+    let wizardApi = null;
+    let pendingStudio = null;
+    let autoPublish = false;     // stüdyodaki "Önizlemeye geç"
     (function katalogSihirbazi() {
       const wiz = $("#catWizard");
       const form = $("#ilanVerForm");
@@ -1609,8 +1789,12 @@
         $("#formCrumbText").innerHTML = $("#wzCrumb").innerHTML;
         wiz.style.display = "none";
         form.style.display = "";
+        setStep(2);
         basMetni(false);
+        const st = $("#studio");
+        if (st) st.style.display = "none";
         window.scrollTo({ top: form.offsetTop - 70, behavior: "smooth" });
+        if (pendingStudio) { const p = pendingStudio; pendingStudio = null; applyStudio(p); }
       }
       // Sayfa açıklaması adıma göre değişir
       const basMetni = (adim1) => {
@@ -1622,15 +1806,37 @@
             ? "Yönetici oturumu açık: yayınladığınız ilanlar onay beklemeden herkese açılır."
             : "Bilgileri girin; dilerseniz fiyatı, başlığı ve açıklamayı yapay zekâ önersin. İlanınız yönetici onayından sonra tüm ziyaretçilere yayınlanır.");
       };
-      basMetni(true);
+      // Açılışta stüdyo görünür; sihirbaz "Formu kendim dolduracağım" ile açılır
+      const ph0 = $(".page-head p");
+      if (ph0) ph0.textContent = "Bilgilerinizi karışık halde AI İlan Stüdyosu'na verin ya da formu adım adım kendiniz doldurun. İlanınız yönetici onayından sonra yayınlanır.";
       $("#wzGo").addEventListener("click", formaGec);
       $("#crumbChange").addEventListener("click", () => {
         form.style.display = "none";
         wiz.style.display = "";
+        setStep(1);
         basMetni(true);
         window.scrollTo({ top: wiz.offsetTop - 70, behavior: "smooth" });
       });
       ciz();
+      wizardApi = {
+        // Kategori biliniyorsa sihirbaz atlanır, form açılır
+        goForm(seg, kind, cat) {
+          const g = D.groupsOf(seg).find((x) => x.kinds.some((k) => k.kind === kind));
+          Object.assign(secim, { segment: seg, group: g ? g.label : "", kind, category: cat });
+          ciz();
+          formaGec();
+        },
+        // Eksik kategori: sihirbaz bilinen kısımla açılır
+        open(seg, kind) {
+          const g = seg && kind ? D.groupsOf(seg).find((x) => x.kinds.some((k) => k.kind === kind)) : null;
+          Object.assign(secim, { segment: seg || "", group: g ? g.label : "", kind: g ? kind : "", category: "" });
+          ciz();
+          form.style.display = "none";
+          wiz.style.display = "";
+          basMetni(true);
+          window.scrollTo({ top: wiz.offsetTop - 70, behavior: "smooth" });
+        },
+      };
     })();
 
     // Hesap bilgileri ön-doldurulur (kullanıcı değiştirebilir)
@@ -1663,24 +1869,47 @@
       photoStatus(errors);
     });
     photoStatus();
+    // Önizleme: ilk fotoğraf KAPAKTIR; oklarla sıra değişir, ★ kapak yapar.
     function renderPhotoPreview() {
       $("#photoPreview").innerHTML = photos.map((p, i) =>
-        `<span style="position:relative;display:inline-block"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}" style="width:90px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
-         <button type="button" data-rm="${i}" aria-label="Fotoğraf ${i + 1}'i kaldır" style="position:absolute;top:-6px;right:-6px;background:var(--over);color:#fff;border:none;border-radius:999px;width:20px;height:20px;font-size:11px;line-height:1">✕</button></span>`).join("");
+        `<figure class="po-item${i === 0 ? " is-cover" : ""}"><img src="${safePhoto(p)}" alt="Fotoğraf ${i + 1}">
+         ${i === 0 ? '<span class="po-cover">Kapak</span>' : ""}
+         <button type="button" class="po-rm" data-rm="${i}" aria-label="Fotoğraf ${i + 1}'i kaldır">✕</button>
+         <div class="po-bar">
+           <button type="button" data-mv="${i}" data-d="-1" aria-label="Sola taşı"${i === 0 ? " disabled" : ""}>◀</button>
+           ${i ? `<button type="button" data-cv="${i}" aria-label="Kapak yap">★</button>` : ""}
+           <button type="button" data-mv="${i}" data-d="1" aria-label="Sağa taşı"${i === photos.length - 1 ? " disabled" : ""}>▶</button>
+         </div></figure>`).join("");
       $$("#photoPreview [data-rm]").forEach((b) => b.addEventListener("click", () => {
         photos.splice(+b.dataset.rm, 1);
         renderPhotoPreview();
         photoStatus();
       }));
+      $$("#photoPreview [data-mv]").forEach((b) => b.addEventListener("click", () => {
+        const i = +b.dataset.mv, j = i + +b.dataset.d;
+        if (j < 0 || j >= photos.length) return;
+        [photos[i], photos[j]] = [photos[j], photos[i]];
+        renderPhotoPreview();
+      }));
+      $$("#photoPreview [data-cv]").forEach((b) => b.addEventListener("click", () => {
+        photos.unshift(photos.splice(+b.dataset.cv, 1)[0]);
+        renderPhotoPreview();
+      }));
     }
 
+    // Alanlar iki kapsayıcıdadır (yapı bilgileri + tapu bölümü); taşınmaz numarası yalnız rakama indirilir
+    function collectDetails() {
+      const d = Object.assign({}, collectKindFields($("#kindFields")), collectKindFields($("#tapuFields")));
+      if (d.tasinmazNo != null) { const c = D.cleanTapuNo(d.tasinmazNo); if (c) d.tasinmazNo = c; else delete d.tasinmazNo; }
+      return d;
+    }
     function collect() {
       const seg = $("#pSeg").value;
       const sellerType = $("#pSellerType").value;
       const sellerName = $("#pSellerName").value.trim() || (sellerType === "ofis" ? "Emlak Ofisi" : "Sahibinden");
       const base = {
         // Türe özel alanlar (config.fieldDefs) — boş bırakılanlar yazılmaz
-        details: collectKindFields($("#kindFields")),
+        details: collectDetails(),
         segment: seg,
         category: $("#pCat").value,
         city: $("#pCity").value, district: $("#pDistrict").value,
@@ -1689,12 +1918,17 @@
         desc: $("#pDesc").value.trim(),
         photos: photos.slice(),
         featured: $("#pFeatured").checked,
-        seller: { name: sellerName, type: sellerType },
+        seller: { name: sellerName, type: sellerType,
+          license: sellerType === "ofis" ? ($("#pLicense").value || "").replace(/\D/g, "") || undefined : undefined },
         phone: normPhone($("#pPhone").value),
+        locality: ($("#pLocality").value || "").trim().slice(0, 120) || undefined,
       };
       if (seg === "vasita") {
+        // Seçilen araç türü korunur (eskiden her araç "Otomobil" kaydediliyordu:
+        // motosiklet, SUV, karavan ilanları yanlış kategoriye düşüyordu)
+        const vKind = $("#pKind").value || "otomobil";
         return Object.assign(base, {
-          kind: "otomobil", kindLabel: "Otomobil",
+          kind: vKind, kindLabel: (D.kinds.find((k) => k.kind === vKind) || {}).label || "Otomobil",
           brand: $("#pBrand").value, model: $("#pModel").value,
           year: +$("#pYear").value || 0, km: +$("#pKm").value || 0,
           fuel: $("#pFuel").value, gear: $("#pGear").value,
@@ -1716,6 +1950,7 @@
       return Object.assign(base, {
         kind, kindLabel,
         m2: +$("#pM2").value || 0,
+        m2Net: LAND.indexOf(kind) >= 0 ? undefined : (+$("#pM2Net").value || undefined),
         rooms: LAND.indexOf(kind) >= 0 ? null : $("#pRooms").value || null,
         // Boş bırakılan bina yaşı null kalır ("Sıfır bina" varsayılmaz,
         // değerlemeye yaş katsayısı uygulanmaz)
@@ -1731,26 +1966,74 @@
       });
     }
 
-    function validate(l) {
-      if (!l.district) return "Lütfen ilçe seçin.";
-      if ($("#pPhone").value.trim() && !l.phone) return "Telefon numarası geçersiz görünüyor (örn. 0543 743 42 09).";
-      if (l.segment === "diger") return null;   // sade form: başlık/fiyat/konum yeterli
-      if (l.segment === "vasita") {
-        if (!l.brand || !l.model) return "Marka ve model seçin.";
-        if (!l.year || l.year < C.vehicles.minYear || l.year > new Date().getFullYear() + 1) return "Geçerli bir model yılı girin.";
-        if (l.km == null || l.km < 0) return "Geçerli bir kilometre girin.";
-        return null;
+    // Doğrulama: ilk hatalı alanı `bad` selector'ıyla işaretler (showError odaklar).
+    // soft=true: AI önerisi / yazarı için yalnız konum ve ölçü bilgisi aranır (zorunlu belgeler değil).
+    let bad = null;
+    function validate(l, soft) {
+      const fail = (msg, sel) => { bad = sel || null; return msg; };
+      bad = null;
+      if (!l.district) return fail("Lütfen ilçe seçin.", "#pDistrict");
+      if (!l.price && !soft) return fail("Fiyat girin (ya da “AI fiyat önerisi al”ı kullanın).", "#pPrice");
+      if (l.segment === "diger") {
+        if ($("#pPhone").value.trim() && !l.phone) return fail("Telefon numarası geçersiz görünüyor (örn. 05XX XXX XX XX).", "#pPhone");
+        return null;   // sade form: başlık/fiyat/konum yeterli
       }
-      if (!l.m2 || l.m2 < 10) return "Geçerli bir m² girin.";
+      if (l.segment === "vasita") {
+        if (!l.brand || !l.model) return fail("Marka ve model seçin.", "#pBrand");
+        if (!l.year || l.year < C.vehicles.minYear || l.year > new Date().getFullYear() + 1) return fail("Geçerli bir model yılı girin.", "#pYear");
+        if (l.km == null || l.km < 0) return fail("Geçerli bir kilometre girin.", "#pKm");
+      } else {
+        if (!l.m2 || l.m2 < 10) return fail(LAND.indexOf(l.kind) >= 0 ? "Geçerli bir yüz ölçümü (m²) girin." : "Geçerli bir m² girin.", "#pM2");
+        if (l.m2Net && l.m2Net > l.m2) return fail("Net alan brüt alandan büyük olamaz.", "#pM2Net");
+        if (soft) return null;
+        // ZORUNLU ALANLAR (config.fieldDefs[].required): taşınmaz numarası vb.
+        for (const f of D.requiredFields(l.kind)) {
+          const el = $("#kf_" + f.key);
+          const raw = el ? (el.value || "").trim() : "";
+          if (!raw) return fail(`${f.label} zorunludur. ${f.hint ? f.hint.split(".")[0] + "." : ""}`, "#kf_" + f.key);
+          if (f.key === "tasinmazNo" && !D.cleanTapuNo(raw)) {
+            return fail("Taşınmaz numarası yalnız rakamlardan oluşmalı ve 5–12 haneli olmalı (örn. 103555719).", "#kf_tasinmazNo");
+          }
+        }
+        // Taşınmaz Ticareti Hakkında Yönetmelik: emlak işletmesi ilanında yetki belgesi no zorunlu
+        if (l.seller.type === "ofis" && !/^\d{5,12}$/.test(l.seller.license || "")) {
+          return fail("Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur (yalnız rakam).", "#pLicense");
+        }
+      }
+      if (soft) return null;
+      if ($("#pPhone").value.trim() && !l.phone) return fail("Telefon numarası geçersiz görünüyor (örn. 05XX XXX XX XX).", "#pPhone");
       return null;
     }
+    // Hata gösterimi: kırmızı bant + ilgili alan işaretlenip odaklanır
+    function showError(msg, box) {
+      const el = $(box || "#ivError");
+      $$(".invalid").forEach((x) => x.classList.remove("invalid"));
+      el.className = "iv-error";
+      el.textContent = msg;
+      el.hidden = false;
+      const f = bad ? $(bad) : null;
+      if (f) { f.classList.add("invalid"); try { f.focus({ preventScroll: true }); } catch (e) { /* odak yok */ } }
+      (f || el).scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    function ivNote(html) {            // olumlu bilgi bandı (stüdyodan aktarıldı vb.)
+      const el = $("#ivError");
+      el.className = "iv-error iv-ok";
+      el.innerHTML = html;
+      el.hidden = false;
+    }
+    document.addEventListener("input", (e) => {
+      if (e.target.classList && e.target.classList.contains("invalid")) e.target.classList.remove("invalid");
+    });
 
     // AI fiyat önerisi
     $("#suggestBtn").addEventListener("click", () => {
       const l = collect();
-      const err = validate(l);
       const out = $("#suggestOut");
-      if (err) { out.innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
+      out.hidden = false;
+      // Fiyat boşken de çalışmalı: yalnız konum ve alan/araç bilgisi gerekir
+      l.price = l.price || 1;
+      const err = validate(l);
+      if (err && bad !== "#pPrice") { out.innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
       const est = AI.estimate(l);
       if (!est) { out.textContent = "Bu seçim için piyasa verisi bulunamadı."; return; }
       out.innerHTML = `AI fiyat önerisi: <b>${fmt(est.low)} – ${fmt(est.high)} ₺${priceSuffix(l)}</b> (orta nokta ${fmt(est.mid)} ₺). Hızlı satış için bandın altını, pazarlık payı için üstünü seçebilirsiniz.`;
@@ -1766,54 +2049,709 @@
     // AI başlık + açıklama
     $("#writeBtn").addEventListener("click", () => {
       const l = collect();
-      const err = validate(l);
-      if (err) { $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
+      const err = validate(l, true);
+      if (err) { showError(err); return; }
       l.id = "TMP" + Date.now();
       $("#pTitle").value = autoTitle(l);
       $("#pDesc").value = AI.describe(l);
     });
 
-    // Yayınla — sunucu varsa oraya gönderilir (onaylı yayın akışı);
-    // statik yayında cihaz-yerel kayda düşer.
+    // ── ADIMLAR: 1 Kategori · 2 İlan Detayları · 3 Önizleme · 4 Yayında ────
+    // 1-2 arası geçişi sihirbaz/stüdyo yönetir; 3 ve 4 burada.
+    function setStep(n) {
+      $$("#ivSteps li").forEach((li) => {
+        const k = +li.dataset.s;
+        li.classList.toggle("on", k === n);
+        li.classList.toggle("done", k < n);
+      });
+      $("#ivPreview").hidden = n !== 3;
+      $("#ivDone").hidden = n !== 4;
+      if (n === 3 || n === 4) $("#ilanVerForm").style.display = "none";
+      else if (n === 2) $("#ilanVerForm").style.display = "";
+    }
+    // Yönetici/yönetici üye: öne çıkarma kutusu yalnız onlara (üye için etkisizdi, karışıklık yaratıyordu)
+    if (adminToken() || (me && me.role === "admin")) $("#pFeaturedWrap").hidden = false;
+
+
+    // Önizleme: ilan sayfasındaki görünümün özeti + hazırlık denetimi (engelleyici değil)
+    function buildPreview(l) {
+      const photos = (l.photos || []).filter((x) => safePhoto(x));
+      const title = l.title || autoTitle(l);
+      const desc = l.desc || (() => { l.id = l.id || "TMP"; return AI.describe(l); })();
+      const catLabel = l.category === "satilik" ? "Satılık" : "Kiralık";
+      const facts = [["İlan Türü", `${catLabel} ${l.kindLabel}`], ["Konum", [l.city, l.district, l.locality].filter(Boolean).join(" / ")]];
+      if (l.segment === "vasita") {
+        facts.push(["Araç", [l.year, l.brand, l.model].filter(Boolean).join(" ")], ["Kilometre", fmt(l.km) + " km"], ["Yakıt / Vites", [l.fuel, l.gear].filter(Boolean).join(" · ")]);
+      } else if (l.segment === "emlak") {
+        facts.push(["Alan", fmt(l.m2) + " m²" + (l.m2Net ? ` (net ${fmt(l.m2Net)} m²)` : "")]);
+        if (l.rooms) facts.push(["Oda", l.rooms]);
+        if (l.age != null) facts.push(["Bina Yaşı", l.age === 0 ? "Sıfır" : String(l.age)]);
+      }
+      Object.keys(l.details || {}).forEach((k) => {
+        const v = l.details[k];
+        facts.push([D.fieldLabel(k), k === "tasinmazNo" ? `Beyan edildi (${D.maskTapuNo(v)})` : v === true ? "Var" : String(v)]);
+      });
+      if ((l.features || []).length) facts.push(["Özellikler", l.features.join(", ")]);
+      facts.push(["İlanı Veren", l.seller.type === "ofis" ? `${l.seller.name} (Emlak Ofisi${l.seller.license ? " · Yetki No " + l.seller.license : ""})` : l.seller.name]);
+      const checks = [
+        [true, "Zorunlu alanlar tamam"],
+        [photos.length >= 4, photos.length >= 4 ? `${photos.length} fotoğraf` : `Fotoğraf ${photos.length}/4 — en az 4 öneririz`],
+        [(l.desc || "").length >= 120, (l.desc || "").length >= 120 ? "Açıklama ayrıntılı" : "Açıklama kısa/boş — otomatik yazılacak"],
+        [!!l.phone || !!(A.user() && A.user().phone), "İletişim telefonu"],
+      ];
+      const b = l.price && l.segment !== "diger" ? AI.priceBadge(Object.assign({}, l, { id: l.id || "TMP" })) : null;
+      if (b) checks.push([b.key !== "ustu", b.key === "ustu" ? `Fiyat piyasanın %${b.pct} üstünde` : "Fiyat piyasa bandında"]);
+      $("#ivPrevBody").innerHTML = `
+        <div class="ivp-media">
+          ${photos[0] ? `<img class="ivp-cover" src="${safePhoto(photos[0])}" alt="Kapak fotoğrafı">` : '<div class="ivp-nophoto">Fotoğraf eklenmedi</div>'}
+          ${photos.length > 1 ? `<div class="ivp-thumbs">${photos.slice(1, 7).map((x, i) => `<img src="${safePhoto(x)}" alt="Fotoğraf ${i + 2}">`).join("")}</div>` : ""}
+        </div>
+        <div class="ivp-info">
+          <div class="ivp-price">${fmt(l.price)} ₺${priceSuffix(l)}</div>
+          <h3>${esc(title)}</h3>
+          <dl class="ivp-facts">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+          <div class="ivp-desc desc-text">${esc(desc)}</div>
+        </div>
+        <aside class="ivp-check"><b>Yayına hazırlık</b>
+          <ul>${checks.map(([ok, t]) => `<li class="${ok ? "ok" : "warn"}">${ok ? "✓" : "!"} ${esc(t)}</li>`).join("")}</ul>
+          <button class="link-ai" id="ivPrevEdit" type="button">Bilgileri düzenle</button>
+        </aside>`;
+      $("#ivPrevEdit").addEventListener("click", () => setStep(2));
+    }
+    $("#toPreview").addEventListener("click", () => {
+      const l = collect();
+      const err = validate(l);
+      if (err) { setStep(2); showError(err); return; }
+      $("#ivError").hidden = true;
+      $("#ivError2").hidden = true;
+      buildPreview(l);
+      setStep(3);
+      window.scrollTo({ top: $("#ivSteps").offsetTop - 20, behavior: "smooth" });
+    });
+    $("#backEdit").addEventListener("click", () => { setStep(2); window.scrollTo({ top: $("#ilanVerForm").offsetTop - 70, behavior: "smooth" }); });
+
+    // Gönder — sunucu varsa oraya gönderilir (onaylı yayın akışı); statik yayında cihaz-yerel kayda düşer.
     $("#publishBtn").addEventListener("click", async () => {
       const l = collect();
-      const err = validate(l) || (!l.price ? "Fiyat girin ya da AI önerisini kullanın." : null);
-      if (err) { $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc(err)}</span>`; return; }
+      const err = validate(l);
+      if (err) { setStep(2); showError(err); return; }
       l.title = l.title || autoTitle(l);
       l.desc = l.desc || null;
+      const e2 = (msg) => { const el = $("#ivError2"); el.className = "iv-error"; el.textContent = msg; el.hidden = false; el.scrollIntoView({ behavior: "smooth", block: "center" }); };
       if (D.hasServer()) {
         const btn = $("#publishBtn");
         btn.disabled = true; btn.textContent = "Gönderiliyor…";
         try {
           const r = await D.submit(l, adminToken());
           if (r && r.ok) {
+            if (r.status === "active" && !r.photoWarning) { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
             // Sunucu bazı fotoğrafları kaydedemediyse SESSİZ kalma, söyle
-            const warn = r.photoWarning ? `<br><span style="color:var(--over)">⚠ ${esc(r.photoWarning)}</span>` : "";
-            if (r.status === "active" && !warn) { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
-            $("#suggestOut").innerHTML = r.status === "active"
-              ? `<b style="color:var(--deal)">İlanınız yayında ✓</b> <a href="ilan.html?id=${encodeURIComponent(r.id)}">İlanı gör →</a>${warn}`
-              : `<b style="color:var(--deal)">İlanınız alındı ✓</b> İlan numaranız <b>${esc(r.id)}</b>${r.photosSaved ? ` · ${r.photosSaved} fotoğraf yüklendi` : ""}. Yönetici onayından sonra yayına girecek; durumunu <a href="hesap.html">Hesabım › İlanlarım</a> sayfasından izleyebilirsiniz.${warn}`;
-            btn.textContent = "İlan Gönderildi ✓";
+            const warn = r.photoWarning ? `<p class="iv-error">⚠ ${esc(r.photoWarning)}</p>` : "";
+            $("#ivDoneBody").innerHTML = `
+              <div class="ivd-check" aria-hidden="true">✓</div>
+              <h2>${r.status === "active" ? "İlanınız yayında" : "İlanınız alındı"}</h2>
+              <p>İlan numaranız <b>${esc(r.id)}</b>${r.photosSaved ? ` · ${r.photosSaved} fotoğraf yüklendi` : ""}.</p>
+              ${r.status === "active" ? "" : "<p>Yönetici onayından sonra yayına girecek. Onay sürecinde Hesabım › İlanlarım'dan önizleyebilir, düzenleyebilirsiniz.</p>"}
+              ${warn}
+              <div class="iv-actions" style="justify-content:center">
+                <a class="btn" href="hesap.html">İlanlarım</a>
+                <a class="btn ghost" href="ilan.html?id=${encodeURIComponent(r.id)}">İlanı ${r.status === "active" ? "gör" : "önizle"}</a>
+                <a class="btn ghost" href="ilan-ver.html">Yeni ilan ver</a>
+              </div>`;
+            setStep(4);
+            window.scrollTo({ top: $("#ivSteps").offsetTop - 20, behavior: "smooth" });
             return;
           }
-          if (r && r.error && /giriş/i.test(r.error)) {
-            location.href = "giris.html?next=ilan-ver.html";
-            return;
-          }
-          $("#suggestOut").innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "İlan gönderilemedi, lütfen tekrar deneyin.")}</span>`;
+          if (r && r.error && /giriş/i.test(r.error)) { location.href = "giris.html?next=ilan-ver.html"; return; }
+          // Sunucu doğrulaması (ör. taşınmaz numarası, yetki belgesi) → formda ilgili alanı göster
+          if (r && r.error && /taşınmaz numarası/i.test(r.error)) { bad = "#kf_tasinmazNo"; setStep(2); showError(r.error); }
+          else if (r && r.error && /yetki belgesi/i.test(r.error)) { bad = "#pLicense"; setStep(2); showError(r.error); }
+          else e2((r && r.error) || "İlan gönderilemedi, lütfen tekrar deneyin.");
         } catch (e) {
-          $("#suggestOut").innerHTML = '<span style="color:var(--over)">Sunucuya ulaşılamadı, lütfen tekrar deneyin.</span>';
+          e2("Sunucuya ulaşılamadı, lütfen tekrar deneyin.");
         }
-        btn.disabled = false; btn.textContent = "İlanı Yayınla";
+        btn.disabled = false; btn.textContent = "İlanı Gönder";
         return;
       }
       const saved = D.saveUserListing(l);
       if (!saved) { // depolama kotası aşıldı (fotoğraflar çok yer kaplıyor)
-        $("#suggestOut").innerHTML = '<span style="color:var(--over)">İlan kaydedilemedi: fotoğraflar cihaz depolamasına sığmadı. Birkaç fotoğrafı kaldırıp yeniden deneyin.</span>';
+        e2("İlan kaydedilemedi: fotoğraflar cihaz depolamasına sığmadı. Birkaç fotoğrafı kaldırıp yeniden deneyin.");
         return;
       }
       location.href = "ilan.html?id=" + encodeURIComponent(saved.id);
     });
+
+    // ── AI İLAN STÜDYOSU ─────────────────────────────────────────────────
+    // Karışık metin + sırasız fotoğraf → analiz (assets/studio.js; sunucuda
+    // ANTHROPIC_API_KEY varsa ayrıca Claude görsel analizi) → sonuç ekranı →
+    // forma aktarma. Yayınlama yine formdan, kullanıcının son kontrolüyle olur.
+    const ST = EMLAK.studio;
+    const SC = C.studio || {};
+    const stIn = [];        // {id, file, prev}
+    let stItems = [];       // analiz edilmiş fotoğraflar
+    let stBase = null;      // metin (+AI) analizi
+    let stWarn = [];
+    let stVision = false;
+    let stSeq = 0;
+    function stDraft() {
+      const b = stBase || {};
+      const det = Object.assign({}, b.details || {});
+      return {
+        id: "TMP" + Date.now(), segment: b.segment || "", kind: b.kind || "",
+        kindLabel: ST.kindLabel(b.kind) || "İlan", category: b.category || "",
+        city: b.city || "", district: b.district || "", locality: b.locality || "",
+        price: b.price || 0, m2: b.m2 || 0, m2Net: b.m2Net || 0, rooms: b.rooms || null,
+        age: b.age == null ? null : b.age, brand: b.brand || "", model: b.model || "",
+        year: b.year || 0, km: b.km == null ? null : b.km, fuel: b.fuel || "", gear: b.gear || "",
+        details: det, features: (b.features || []).slice(), phone: b.phone || "",
+        bath: det.banyoSayisi || null, heating: det.isitma || null,
+        floorPos: floorPosOf(det.katNo), totalFloors: det.binaKat || null,
+        notes: b.notes || [],
+      };
+    }
+    function stSelected() { return stItems.filter((it) => it.selected).sort((a, b) => a.pos - b.pos); }
+    if (ST && $("#studio")) {
+      const MAXIN = SC.maxInputPhotos || 30;
+      $("#stPhotoRule").textContent = `— en fazla ${MAXIN} adet · ${UP_LABEL}`;
+      const setMode = () => {
+        $("#stMode").textContent = stVision
+          ? "✦ Görsel AI açık: fotoğraflar ayrıca yapay zekâyla incelenir"
+          : "Analiz tarayıcınızda yapılır; fotoğraflarınız siz yayınlayana dek hiçbir yere gönderilmez.";
+      };
+      setMode();
+      if (D.hasServer()) {
+        fetch("/api/ai/status").then((r) => r.json()).then((j) => { stVision = !!(j && j.vision); setMode(); }).catch(() => {});
+      }
+      const inStatus = (msgs) => {
+        const el = $("#stInThumbs");
+        el.innerHTML = stIn.map((f, i) =>
+          `<span class="st-in"><img src="${f.prev || ""}" alt="Seçilen fotoğraf ${i + 1}"><button type="button" data-sr="${f.id}" aria-label="Kaldır">✕</button></span>`).join("") +
+          (msgs && msgs.length ? `<ul class="st-errs">${msgs.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : "");
+        $$("[data-sr]", el).forEach((b) => b.addEventListener("click", () => {
+          const i = stIn.findIndex((x) => String(x.id) === b.dataset.sr);
+          if (i >= 0) stIn.splice(i, 1);
+          inStatus();
+        }));
+      };
+      async function stAdd(files) {
+        const msgs = [];
+        for (const file of Array.from(files || [])) {
+          const name = file.name || "dosya";
+          if (stIn.length >= MAXIN) { msgs.push(`En fazla ${MAXIN} fotoğraf; “${name}” ve sonrası alınmadı.`); break; }
+          if (/\.(heic|heif)$/i.test(name) || /heic|heif/i.test(file.type || "")) {
+            msgs.push(`“${name}” iPhone HEIC biçiminde; tarayıcı açamıyor. Ayarlar › Kamera › Biçimler › “En Uyumlu” seçip yeniden çekin.`);
+            continue;
+          }
+          if (UP_TYPES.indexOf((file.type || "").toLowerCase()) < 0 && !/\.(jpe?g|png|webp)$/i.test(name)) {
+            msgs.push(`“${name}” desteklenmeyen biçim (${UP_LABEL}).`); continue;
+          }
+          if (file.size > UP_MAX_MB * 1024 * 1024) { msgs.push(`“${name}” ${UP_MAX_MB} MB sınırını aşıyor.`); continue; }
+          const prev = await ST.preview(file);
+          if (!prev) { msgs.push(`“${name}” açılamadı — dosya bozuk olabilir.`); continue; }
+          stIn.push({ id: ++stSeq, file, prev });
+          inStatus(msgs);
+        }
+        inStatus(msgs);
+        chatPhotosAdded();
+      }
+      $("#stPhotos").addEventListener("change", (e) => { const f = Array.from(e.target.files || []); e.target.value = ""; stAdd(f); });
+      // Kamera: telefonda arka kamerayı doğrudan açar (capture="environment");
+      // masaüstünde dosya seçici olarak davranır. Her çekim bir fotoğraf ekler.
+      $("#stCam").addEventListener("change", (e) => { const f = Array.from(e.target.files || []); e.target.value = ""; stAdd(f); });
+      const drop = $("#stDrop");
+      ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("on"); }));
+      ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("on"); }));
+      drop.addEventListener("drop", (e) => stAdd(e.dataTransfer && e.dataTransfer.files));
+      $("#stSkip").addEventListener("click", () => { if (wizardApi) wizardApi.open(); });
+
+      // ── SOHBETLE İLAN: asistan sorar, kullanıcı yazar ya da konuşur ──────
+      // Her cevap sorunun bağlamıyla birikmiş metne eklenir (ST.chat.contextualize)
+      // ve metin baştan çözümlenir; bilgiler tamamlanınca ilan KENDİLİĞİNDEN
+      // hazırlanır (stRun). Gönderim yine kullanıcının onayıyla olur.
+      const CH = ST.chat;
+      const MINP = SC.minPhotos || 4;
+      const convo = { text: "", asked: new Set(), tries: {}, cur: null, prev: null, started: false, done: false };
+      const chatBox = $("#stChat");
+      const cctx = () => ({ asked: convo.asked, photos: stIn.length, minPhotos: MINP });
+      function bubble(who, text) {
+        const el = document.createElement("div");
+        el.className = "st-msg " + who;
+        el.textContent = text;
+        chatBox.appendChild(el);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return el;
+      }
+      // Sesli soru (speechSynthesis): Türkçe ses varsa o kullanılır
+      let ttsOn = false, voiceMode = false;
+      const canTts = "speechSynthesis" in window && typeof SpeechSynthesisUtterance === "function";
+      function speak(text, then) {
+        if (!ttsOn || !canTts) { if (then) then(); return; }
+        // Bazı cihazlar onend'i hiç göndermez (ses yok / arka plan): döngü
+        // takılmasın diye metin uzunluğuna göre bir güvenlik zamanlayıcısı var.
+        let fired = false;
+        const done = () => { if (fired) return; fired = true; clearTimeout(guard); if (then) then(); };
+        const guard = setTimeout(done, Math.min(20000, 1500 + text.length * 75));
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").replace(/“|”/g, ""));
+          u.lang = "tr-TR";
+          const v = window.speechSynthesis.getVoices().find((x) => /^tr/i.test(x.lang));
+          if (v) u.voice = v;
+          u.onend = done;
+          u.onerror = done;
+          window.speechSynthesis.speak(u);
+        } catch (e) { done(); }
+      }
+      function botSay(text) {
+        bubble("bot", text);
+        speak(text, () => { if (voiceMode && !convo.done) listen(); });
+      }
+      const setTts = (on) => {
+        ttsOn = on && canTts;
+        const b = $("#stTts");
+        b.setAttribute("aria-pressed", String(ttsOn));
+        b.textContent = ttsOn ? "🔊 Sesli soru: açık" : "🔇 Sesli soru: kapalı";
+      };
+      if (!canTts) $("#stTts").hidden = true;
+      $("#stTts").addEventListener("click", () => { setTts(!ttsOn); if (!ttsOn && canTts) window.speechSynthesis.cancel(); });
+
+      function askNext() {
+        const r = ST.analyzeText(convo.text);
+        const q = CH.nextQuestion(r, cctx());
+        convo.cur = q;
+        if (q) { botSay(q.ask(r)); return; }
+        finishChat();
+      }
+      function startChat() {
+        if (convo.started) return;
+        convo.started = true;
+        bubble("bot", "Ben ilan asistanınız. Birkaç soru soracağım; yazarak ya da 🎤 düğmesiyle konuşarak cevaplayabilirsiniz. İsterseniz her şeyi tek seferde de anlatabilirsiniz.");
+        askNext();
+      }
+      function finishChat() {
+        const r = ST.analyzeText(convo.text);
+        const miss = CH.missingRequired(r, cctx());
+        if (miss.length) {
+          // zorunlu bilgi eksikse bir kez daha sorulur
+          const q = miss[0];
+          convo.asked.delete(q.key);
+          convo.cur = q;
+          botSay("Bir bilgi eksik kaldı. " + q.ask(r));
+          return;
+        }
+        convo.done = true;
+        convo.cur = null;
+        stopListening();
+        botSay(stIn.length
+          ? "Harika, her şey hazır! Fotoğrafları analiz edip ilanınızı oluşturuyorum…"
+          : "Bilgiler tamam. Fotoğraf eklemediniz; ilanı şimdilik fotoğrafsız oluşturuyorum, sonra ekleyebilirsiniz…");
+        setTimeout(stRun, 300);
+      }
+      function handleAnswer(raw) {
+        const answer = String(raw || "").trim();
+        if (!answer) return;
+        if (!convo.started) startChat();
+        bubble("me", answer);
+        if (convo.done) {
+          // ilan hazırlandıktan sonra gelen ek bilgi: metne eklenir, ilan yeniden yazılır
+          convo.text += "\n" + CH.normalizeSpeech(answer);
+          $("#stText").value = convo.text.trim();
+          bubble("bot", "Ekledim; ilanı güncelliyorum…");
+          setTimeout(stRun, 200);
+          return;
+        }
+        const q = convo.cur;
+        if (CH.isDone(answer) && (!q || q.photo || answer.split(/\s+/).length <= 2)) {
+          if (q) convo.asked.add(q.key);
+          askNext();
+          return;
+        }
+        const x = CH.contextualize(q, answer);
+        if (x) {
+          convo.text += "\n" + x;
+          $("#stText").value = convo.text.trim();
+        }
+        const r = ST.analyzeText(convo.text);
+        const got = CH.learned(convo.prev, r);
+        convo.prev = r;
+        if (q) {
+          const still = !q.photo && !q.has(r, cctx());
+          // anlaşılmayan zorunlu cevap bir kez yeniden sorulur, sonra geçilir
+          convo.tries[q.key] = (convo.tries[q.key] || 0) + 1;
+          if (!(x && still && q.required && convo.tries[q.key] < 2)) convo.asked.add(q.key);
+        }
+        if (got.length) bubble("bot", "Anladım: " + got.join(" · ") + ".");
+        else if (!x) bubble("bot", "Peki, bunu geçiyorum.");
+        else if (q && !q.photo && !q.has(r, cctx()) && !convo.asked.has(q.key)) bubble("bot", "Tam anlayamadım, bir kez daha söyler misiniz?");
+        else bubble("bot", "Not aldım.");
+        if (convo.cur === q) askNext();
+      }
+      // Fotoğraf eklendiğinde sohbette bildir (aynı anda seçilenler tek mesaj)
+      let photoNoteT = null;
+      function chatPhotosAdded() {
+        if (!convo.started || convo.done) return;
+        clearTimeout(photoNoteT);
+        photoNoteT = setTimeout(() => {
+          const n = stIn.length;
+          bubble("bot", `📷 ${n} fotoğraf hazır.` + (n >= MINP
+            ? " Daha fazla çekebilir ya da “tamam” diyebilirsiniz."
+            : ` En az ${MINP} fotoğraf öneririm; çekmeye devam edin.`));
+        }, 400);
+      }
+
+      // Mikrofon: Web Speech API (Chrome/Android, Safari/iOS 14.5+). Yoksa
+      // klavyedeki dikte tuşu önerilir.
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      let rec = null, listening = false;
+      function stopListening() { voiceMode = false; if (rec && listening) { try { rec.stop(); } catch (e) { /* zaten durdu */ } } }
+      function listen() {
+        if (!SR || listening) return;
+        try {
+          rec = new SR();
+          rec.lang = "tr-TR";
+          rec.interimResults = true;
+          rec.continuous = false;
+          rec.maxAlternatives = 1;
+          let finalText = "";
+          rec.onresult = (e) => {
+            let interim = "";
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+              else interim += e.results[i][0].transcript;
+            }
+            $("#stSay").value = (finalText + " " + interim).trim();
+          };
+          rec.onerror = (e) => {
+            if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+              voiceMode = false;
+              bubble("bot", "Mikrofon izni verilmedi. Tarayıcının adres çubuğundaki kilit simgesinden mikrofona izin verin ya da yazarak devam edin.");
+            }
+          };
+          rec.onend = () => {
+            listening = false;
+            $("#stMic").classList.remove("on");
+            const t = finalText.trim();
+            $("#stSay").value = "";
+            if (t) handleAnswer(t);
+          };
+          rec.start();
+          listening = true;
+          $("#stMic").classList.add("on");
+        } catch (e) { listening = false; }
+      }
+      if (!SR) {
+        $("#stMic").hidden = true;
+        $("#stVoiceNote").textContent = "Bu tarayıcı sesle cevaplamayı desteklemiyor; telefon klavyenizdeki 🎤 dikte tuşuyla konuşarak da yazabilirsiniz.";
+      }
+      $("#stMic").addEventListener("click", () => {
+        if (listening) { stopListening(); return; }
+        if (!convo.started) startChat();
+        voiceMode = true;
+        if (canTts && !ttsOn) setTts(true);     // sesli sohbet: sorular da okunur
+        listen();
+      });
+      const send = () => { const v = $("#stSay").value; $("#stSay").value = ""; handleAnswer(v); };
+      $("#stSend").addEventListener("click", send);
+      $("#stSay").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); send(); } });
+      $("#stMake").addEventListener("click", () => { convo.done = true; stopListening(); stRun(); });
+
+      // Sekmeler: telefonda (dokunmatik/dar ekran) sohbet, masaüstünde metin
+      function setTab(mode) {
+        const chatOn = mode === "chat";
+        $("#stChatPanel").hidden = !chatOn;
+        $("#stPastePanel").hidden = chatOn;
+        $("#stRun").hidden = chatOn;
+        $("#stTabChat").setAttribute("aria-selected", String(chatOn));
+        $("#stTabPaste").setAttribute("aria-selected", String(!chatOn));
+        if (chatOn) {
+          // yapıştırılmış metin varsa sohbet onun üstüne kurulur
+          if (!convo.started && $("#stText").value.trim()) convo.text = $("#stText").value;
+          startChat();
+        } else stopListening();
+      }
+      $("#stTabChat").addEventListener("click", () => setTab("chat"));
+      $("#stTabPaste").addEventListener("click", () => setTab("paste"));
+      $("#stText").addEventListener("input", () => { if (!convo.started) convo.text = $("#stText").value; });
+      const mobile = window.matchMedia && (matchMedia("(pointer: coarse)").matches || matchMedia("(max-width: 760px)").matches);
+      setTab(mobile ? "chat" : "paste");
+
+
+      const prog = (pct, text) => {
+        $("#stProgress").hidden = false;
+        $("#stBar").style.width = Math.round(pct) + "%";
+        $("#stStep").textContent = text;
+      };
+
+      async function stRun() {
+        const text = $("#stText").value || "";
+        if (!text.trim() && !stIn.length) {
+          prog(0, "Analiz için ilan bilgisi yazın ya da fotoğraf ekleyin.");
+          return;
+        }
+        const btn = $("#stRun");
+        btn.disabled = true;
+        stWarn = [];
+        try {
+          prog(4, "Metin çözümleniyor…");
+          stBase = ST.analyzeText(text);
+          stItems = [];
+          const skipped = [];
+          for (let i = 0; i < stIn.length; i++) {
+            prog(6 + (i / Math.max(1, stIn.length)) * 44, `Fotoğraf ${i + 1}/${stIn.length}: ışık, netlik ve çözünürlük ölçülüyor…`);
+            const a = await ST.analyzePhoto(stIn[i].file, stBase.segment);
+            if (!a) { skipped.push(stIn[i].file.name || "fotoğraf"); continue; }
+            stItems.push({ id: stIn[i].id, file: stIn[i].file, prev: stIn[i].prev, analysis: a });
+          }
+          if (skipped.length) stWarn.push(`Açılamayan fotoğraflar atlandı: ${skipped.join(", ")}`);
+
+          // Görsel AI (isteğe bağlı): en iyi puanlı kareler küçültülüp gönderilir
+          if (stVision && (A.token() || adminToken())) {
+            prog(55, "Görsel AI fotoğrafları ve metni inceliyor… (30–60 sn sürebilir)");
+            const pool = stItems.slice().sort((x, y) => y.analysis.score - x.analysis.score).slice(0, SC.aiMaxImages || 12);
+            const images = [];
+            for (const it of pool) images.push(await ST.thumbForAi(it.file));
+            try {
+              const headers = { "Content-Type": "application/json" };
+              if (A.token()) headers["X-User-Token"] = A.token();
+              if (adminToken()) headers["X-Admin-Token"] = adminToken();
+              const hints = Object.assign({}, stBase);
+              delete hints.notes; delete hints.phone;
+              const r = await fetch("/api/ai/studio", { method: "POST", headers, body: JSON.stringify({ text, images, hints }) });
+              const j = await r.json().catch(() => ({}));
+              if (r.ok && j.result) {
+                const ai = j.result;
+                stBase = ST.mergeAi(stBase, ai);
+                (ai.photos || []).forEach((p) => {
+                  const it = pool[p.index];
+                  if (it) it.ai = { label: p.label, caption: p.caption, quality: p.quality, include: p.include, issues: p.issues };
+                });
+                if (Number.isInteger(ai.coverIndex) && pool[ai.coverIndex]) pool[ai.coverIndex].aiCover = true;
+                stWarn = stWarn.concat(ai.warnings || []);
+              } else {
+                stWarn.push((j && j.error) || "Görsel AI şu an yanıt vermedi; tarayıcı analizi kullanıldı.");
+              }
+            } catch (e) {
+              stWarn.push("Görsel AI'ye ulaşılamadı; tarayıcı analizi kullanıldı.");
+            }
+          }
+
+          prog(75, "Kopya kareler ayıklanıyor, kapak seçiliyor…");
+          const chosen = ST.pickPhotos(stItems, stBase.segment, UP_MAX);
+          const aiCover = chosen.find((it) => it.aiCover);
+          if (aiCover && aiCover !== chosen[0]) { chosen.splice(chosen.indexOf(aiCover), 1); chosen.unshift(aiCover); }
+          chosen.forEach((it, i) => { it.pos = i; it.cover = i === 0; });
+          stItems.filter((it) => !it.selected).forEach((it, i) => { it.pos = 1000 + i; });
+
+          let n = 0;
+          const fixList = chosen.filter((it) => it.analysis.needsFix);
+          for (const it of fixList) {
+            prog(80 + (n++ / Math.max(1, fixList.length)) * 18, `Işık ve renk düzeltiliyor (${n}/${fixList.length})…`);
+            await stFix(it);
+          }
+          stCompose(true);
+          prog(100, "Hazır ✓ — aşağıdan kontrol edin.");
+          if (!$("#stChatPanel").hidden) {
+            convo.done = true;
+            const rd = ST.readiness(Object.assign(stDraft(), { desc: $("#stDesc").value }), stSelected());
+            bubble("bot", `İlanınız hazır ✓ Yayına hazırlık puanı ${rd.score}/100. Aşağıda başlığı, açıklamayı ve fotoğraf sırasını görebilirsiniz; uygunsa “Önizlemeye geç”e dokunun. Bir şey eklemek isterseniz buraya yazın ya da söyleyin.`);
+          }
+          $("#stResult").hidden = false;
+          $("#stResult").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) {
+          prog(0, "Analiz sırasında bir sorun oluştu; lütfen tekrar deneyin.");
+        }
+        btn.disabled = false;
+      }
+      async function stFix(it) {
+        const f = await ST.enhancePhoto(it.file, D.hasServer() ? (UPC.maxWidth || 1400) : 900);
+        if (!f) return;
+        it.fixed = f;
+        it.fixedPrev = await ST.preview(f);
+        it.useFixed = true;
+      }
+
+      // Başlık/açıklama üretimi (rewrite=true: kullanıcının düzenlemesini ezer)
+      function stCompose(rewrite) {
+        const l = stDraft();
+        if (rewrite || !$("#stTitle").value.trim()) $("#stTitle").value = stBase.aiTitle || ST.title(l);
+        if (rewrite || !$("#stDesc").value.trim()) $("#stDesc").value = stBase.aiDescription || ST.description(l, l.notes);
+        stRender();
+      }
+
+      const FACTS = [
+        ["Tür", (l) => l.kindLabel !== "İlan" ? l.kindLabel : ""],
+        ["Durum", (l) => l.category === "satilik" ? "Satılık" : l.category === "kiralik" ? "Kiralık" : ""],
+        ["Konum", (l) => [l.city, l.district].filter(Boolean).join(" / ")],
+        ["Mahalle", (l) => l.locality],
+        ["Fiyat", (l) => l.price ? fmt(l.price) + " ₺" : ""],
+        ["Alan", (l) => l.segment === "emlak" && l.m2 ? fmt(l.m2) + " m²" + (l.m2Net ? ` (net ${fmt(l.m2Net)})` : "") : null],
+        ["Oda", (l) => l.segment === "emlak" && LAND.indexOf(l.kind) < 0 ? l.rooms : null],
+        ["Bina yaşı", (l) => l.segment === "emlak" && LAND.indexOf(l.kind) < 0 ? (l.age == null ? "" : l.age === 0 ? "Sıfır" : String(l.age)) : null],
+        ["Araç", (l) => l.segment === "vasita" ? [l.year, l.brand, l.model].filter(Boolean).join(" ") : null],
+        ["Kilometre", (l) => l.segment === "vasita" ? (l.km != null ? fmt(l.km) + " km" : "") : null],
+        ["Yakıt / vites", (l) => l.segment === "vasita" ? [l.fuel, l.gear].filter(Boolean).join(" · ") : null],
+        ["Telefon", (l) => l.phone],
+      ];
+      function stRender() {
+        const l = stDraft();
+        l.title = $("#stTitle").value; l.desc = $("#stDesc").value;
+        const sel = stSelected();
+        // Hazırlık puanı
+        const rd = ST.readiness(l, sel);
+        const sc = $("#stScore");
+        sc.querySelector("b").textContent = rd.score;
+        sc.className = "st-score " + (rd.score >= 80 ? "good" : rd.score >= 55 ? "mid" : "low");
+        sc.style.setProperty("--p", rd.score);
+        $("#stChecks").innerHTML = rd.items.map((x) =>
+          `<li class="${x.ok ? "ok" : "no"}">${x.ok ? "✓" : "!"} ${esc(x.text)}${!x.ok && x.fix ? ` <small>— ${esc(x.fix)}</small>` : ""}</li>`).join("");
+        const warns = stWarn.concat(stBase.categoryGuessed ? ["İlanın satılık/kiralık olduğu metinde yazmıyor; fiyata bakılarak tahmin edildi — kontrol edin."] : []);
+        $("#stWarnings").hidden = !warns.length;
+        $("#stWarnings").innerHTML = warns.length ? "<b>Kontrol etmeniz gerekenler</b><ul>" + warns.map((w) => `<li>${esc(w)}</li>`).join("") + "</ul>" : "";
+        // Çıkarılan bilgiler
+        const facts = FACTS.map(([k, fn]) => [k, fn(l)]).filter(([, v]) => v !== null);
+        const det = Object.keys(l.details).map((k) => [C.fieldDefs[k] ? C.fieldDefs[k].label : k,
+          l.details[k] === true ? "Var" : String(l.details[k])]);
+        $("#stFacts").innerHTML = facts.concat(det).map(([k, v]) =>
+          `<span class="st-fact${v ? "" : " miss"}"><small>${esc(k)}</small>${v ? esc(v) : "eksik"}</span>`).join("") +
+          (l.features.length ? `<span class="st-fact"><small>Özellikler</small>${esc(l.features.join(", "))}</span>` : "");
+        // Fotoğraflar
+        $("#stPhotoSum").textContent = stItems.length
+          ? `— ${stItems.length} fotoğraftan ${sel.length} tanesi seçildi`
+          : "— fotoğraf eklenmedi";
+        const ordered = sel.concat(stItems.filter((it) => !it.selected));
+        $("#stPhotos2").innerHTML = ordered.map((it) => {
+          const a = it.analysis;
+          const label = (it.ai && it.ai.label) || a.scene + (a.sceneGuess && !it.ai ? " (tahmin)" : "");
+          const issues = ((it.ai && it.ai.issues) || []).concat(a.issues).slice(0, 4);
+          const q = it.ai ? Math.round(a.score * 0.5 + it.ai.quality * 5) : a.score;
+          const src = it.useFixed && it.fixedPrev ? it.fixedPrev : it.prev;
+          const i = sel.indexOf(it);
+          return `<figure class="st-ph${it.selected ? "" : " off"}${it.cover ? " cover" : ""}">
+            <div class="st-ph-img"><img src="${src}" alt="${esc(label)}">
+              ${it.cover ? '<span class="st-tag cover">Kapak</span>' : ""}
+              ${it.useFixed ? '<span class="st-tag fix">✨ Düzeltildi</span>' : ""}
+              <span class="st-q ${q >= 75 ? "good" : q >= 50 ? "mid" : "low"}">${q}</span></div>
+            <figcaption><b>${esc(label)}</b>
+              ${it.ai && it.ai.caption ? `<span>${esc(it.ai.caption)}</span>` : ""}
+              ${it.reason ? `<em>${esc(it.reason)}</em>` : issues.length ? `<em>${esc(issues.join(" · "))}</em>` : "<em class=\"ok\">Net ve aydınlık</em>"}
+            </figcaption>
+            <div class="st-ph-bar">
+              ${it.selected ? `<button type="button" data-a="mv" data-d="-1" data-id="${it.id}"${i <= 0 ? " disabled" : ""} aria-label="Öne al">◀</button>
+              ${it.cover ? "" : `<button type="button" data-a="cv" data-id="${it.id}">★ Kapak</button>`}
+              <button type="button" data-a="mv" data-d="1" data-id="${it.id}"${i === sel.length - 1 ? " disabled" : ""} aria-label="Geri al">▶</button>` : ""}
+              ${it.fixed ? `<button type="button" data-a="ba" data-id="${it.id}">${it.useFixed ? "Önce" : "Sonra"}</button>`
+                : it.selected ? `<button type="button" data-a="fx" data-id="${it.id}">✨ Düzelt</button>` : ""}
+              <button type="button" data-a="tg" data-id="${it.id}">${it.selected ? "Çıkar" : "Dahil et"}</button>
+            </div></figure>`;
+        }).join("");
+      }
+      $("#stPhotos2").addEventListener("click", async (e) => {
+        const b = e.target.closest("button[data-a]");
+        if (!b) return;
+        const it = stItems.find((x) => String(x.id) === b.dataset.id);
+        if (!it) return;
+        const sel = stSelected();
+        const reorder = (list) => list.forEach((x, i) => { x.pos = i; x.cover = i === 0; });
+        if (b.dataset.a === "mv") {
+          const i = sel.indexOf(it), j = i + +b.dataset.d;
+          if (j < 0 || j >= sel.length) return;
+          [sel[i], sel[j]] = [sel[j], sel[i]];
+          reorder(sel);
+        } else if (b.dataset.a === "cv") {
+          sel.splice(sel.indexOf(it), 1); sel.unshift(it); reorder(sel);
+        } else if (b.dataset.a === "tg") {
+          if (it.selected) { it.selected = false; it.cover = false; it.pos = 1000; it.reason = it.reason || "Sizin tarafınızdan çıkarıldı"; reorder(sel.filter((x) => x !== it)); }
+          else {
+            if (sel.length >= UP_MAX) { alert(`En fazla ${UP_MAX} fotoğraf seçilebilir; önce birini çıkarın.`); return; }
+            it.selected = true; it.reason = ""; sel.push(it); reorder(sel);
+          }
+        } else if (b.dataset.a === "ba") {
+          it.useFixed = !it.useFixed;
+        } else if (b.dataset.a === "fx") {
+          b.disabled = true; b.textContent = "…";
+          await stFix(it);
+        }
+        stRender();
+      });
+      $("#stRun").addEventListener("click", stRun);
+      $("#stRerun").addEventListener("click", () => { if (stBase) { delete stBase.aiTitle; delete stBase.aiDescription; stCompose(true); } });
+      ["input", "change"].forEach((ev) => {
+        $("#stTitle").addEventListener(ev, () => { if (stBase) stRender(); });
+        $("#stDesc").addEventListener(ev, () => { if (stBase) stRender(); });
+      });
+      $("#stPublish").addEventListener("click", () => { autoPublish = true; $("#stApply").click(); });
+      $("#stApply").addEventListener("click", () => {
+        if (!stBase) return;
+        const l = stDraft();
+        l.title = $("#stTitle").value.trim();
+        l.desc = $("#stDesc").value.trim();
+        l.files = stSelected().map((it) => (it.useFixed && it.fixed ? it.fixed : it.file));
+        if (l.segment && l.kind && l.category && wizardApi) {
+          pendingStudio = l;
+          wizardApi.goForm(l.segment, l.kind, l.category);
+        } else if (wizardApi) {
+          pendingStudio = l;          // kategori seçilince forma dolar
+          wizardApi.open(l.segment, l.kind);
+          $("#wzCrumb").innerHTML = "Stüdyo ilan türünü metinden çıkaramadı — lütfen kategoriyi seçin; diğer bilgiler korunuyor.";
+        }
+      });
+    }
+
+    // Stüdyo sonucunu forma yazar (kategori formaGec ile zaten ayarlanmıştır).
+    async function applyStudio(l) {
+      const setVal = (sel, v) => { const el = $(sel); if (el && v != null && v !== "" && v !== 0) el.value = v; };
+      if (l.city && C.market.cities[l.city]) {
+        $("#pCity").value = l.city;
+        fillDistrictSelect($("#pDistrict"), l.city, false);
+        if (l.district) $("#pDistrict").value = l.district;
+      }
+      setVal("#pLocality", l.locality);
+      setVal("#pPrice", l.price);
+      const seg = $("#pSeg").value;
+      if (seg === "emlak") {
+        setVal("#pM2", l.m2);
+        setVal("#pM2Net", l.m2Net);
+        if (l.rooms) {
+          const r = $("#pRooms");
+          if (![...r.options].some((o) => o.value === l.rooms)) r.insertAdjacentHTML("beforeend", `<option>${esc(l.rooms)}</option>`);
+          r.value = l.rooms;
+        }
+        if (l.age != null) $("#pAge").value = l.age;
+        $$("#featBoxes input").forEach((i) => { if (l.features.indexOf(i.value) >= 0) i.checked = true; });
+      } else if (seg === "vasita") {
+        if (l.brand && D.brands.indexOf(l.brand) >= 0) {
+          $("#pBrand").value = l.brand;
+          $("#pBrand").dispatchEvent(new Event("change"));
+          if (l.model) $("#pModel").value = l.model;
+        }
+        setVal("#pYear", l.year);
+        if (l.km != null) $("#pKm").value = l.km;
+        setVal("#pFuel", l.fuel);
+        setVal("#pGear", l.gear);
+      }
+      // Türe özel alanlar: yalnız bu türün tanımlı alanları dolar
+      // Varsayılanlar (Takaslı = Hayır) stüdyo verisinde yoksa korunur
+      const det = Object.assign({}, l.details);
+      D.fieldsOfKind($("#pKind").value).forEach((f) => { if (f.default !== undefined && det[f.key] === undefined) det[f.key] = f.default; });
+      renderKindFields($("#kindFields"), $("#pKind").value, det, (f) => f.section !== "tapu");
+      renderKindFields($("#tapuFields"), $("#pKind").value, det, (f) => f.section === "tapu");
+      if (l.phone && !$("#pPhone").value.trim()) $("#pPhone").value = l.phone;
+      $("#pTitle").value = l.title || "";
+      $("#pDesc").value = l.desc || "";
+      ivNote("Fotoğraflar hazırlanıyor…");
+      photos.length = 0;
+      const errors = await addPhotoFiles(l.files || [], photos, renderPhotoPreview);
+      renderPhotoPreview();
+      photoStatus(errors);
+      if (autoPublish) {
+        autoPublish = false;
+        // Önizlemeye geç: zorunlu alan (ör. taşınmaz numarası) eksikse form o alanı gösterir
+        $("#toPreview").click();
+        return;
+      }
+      ivNote(`<b>✦ Stüdyodan aktarıldı.</b> Bilgileri ve fotoğraf sırasını kontrol edin; eksik alanları tamamlayıp <b>Önizleme</b>'ye geçin.` +
+        (l.price ? "" : " Fiyat girilmedi — “AI fiyat önerisi al” ile bant görebilirsiniz."));
+    }
   }
 
   // ── Giriş / Üye ol ──────────────────────────────────────────────────────
@@ -1874,11 +2812,12 @@
         out.innerHTML = '<span style="color:var(--over)">Şifre en az 8 karakter olmalı.</span>'; return;
       }
       if (!normPhone(payload.phone)) {
-        out.innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz (örn. 0543 743 42 09).</span>'; return;
+        out.innerHTML = '<span style="color:var(--over)">Telefon numarası geçersiz (örn. 05XX XXX XX XX).</span>'; return;
       }
       if (!$("#rTerms").checked) {
-        out.innerHTML = '<span style="color:var(--over)">Devam etmek için onay kutusunu işaretleyin.</span>'; return;
+        out.innerHTML = '<span style="color:var(--over)">Devam etmek için Kullanım Koşulları ve KVKK Aydınlatma Metni onayını işaretleyin.</span>'; return;
       }
+      payload.consent = true;
       run("#registerSubmit", "#registerOut", () => A.register(payload));
     });
     $("#rPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#registerSubmit").click(); });
@@ -1907,13 +2846,14 @@
       }
       listings = a.listings || [];
       messages = (b && b.messages) || [];
+      sent = (b && b.sent) || [];
       const u = A.user() || {};
       $("#hesapWelcome").textContent = (u.name || "") + " · " + (u.email || "");
       $("#myStats").innerHTML = [
         ["Yayında", listings.filter((l) => l.status === "active").length],
         ["Onay Bekleyen", listings.filter((l) => l.status === "pending").length],
         ["Toplam Görüntülenme", listings.reduce((t, l) => t + (l.views || 0), 0)],
-        ["Mesaj", messages.length],
+        ["Mesaj", messages.length + sent.length],
         ["Kayıtlı Arama", searches.length],
       ].map(([k, v]) => `<div class="stat-box"><b>${fmt(v)}</b><span>${esc(k)}</span></div>`).join("")
         // Fotoğraf alanı: üye kotasını dolmadan görsün.
@@ -1923,7 +2863,7 @@
           return `<div class="stat-box"><b>${mb(a.storage.usedBytes)} / ${mb(a.storage.quotaBytes)} MB</b>` +
             `<span>Fotoğraf Alanı (%${pct})</span></div>`;
         })() : "");
-      $("#myMsgBadge").textContent = messages.length ? "(" + messages.length + ")" : "";
+      updateMsgBadge();
       const yeni = searches.reduce((t, x) => t + (x.newCount || 0), 0);
       $("#mySearchBadge").textContent = yeni ? "(" + yeni + " yeni)" : (searches.length ? "(" + searches.length + ")" : "");
       renderListings();
@@ -1973,16 +2913,68 @@
       }));
     }
 
+    // ── Mesajlarım: gelen (satıcı) + gönderdiklerim (alıcı) tek konuşma listesinde
+    let sent = [], openMid = null;
+    const convos = () => messages.map((m) => ({ m, role: "seller", unread: m.sellerRead !== true }))
+      .concat(sent.map((m) => ({ m, role: "buyer", unread: m.buyerRead === false })))
+      .sort((x, y) => new Date(lastAt(y.m)) - new Date(lastAt(x.m)));
+    const lastAt = (m) => ((m.thread || []).slice(-1)[0] || m).date;
+    const lastText = (m) => ((m.thread || []).slice(-1)[0] || { text: m.message }).text;
     function renderMessages() {
-      $("#myMsgTable").innerHTML = '<tr><th>Gönderen</th><th>Mesaj</th><th style="text-align:right">İşlem</th></tr>' +
-        (messages.length ? messages.map((m) => `<tr>
-          <td><b>${esc(m.name)}</b><br><a href="tel:${esc(String(m.phone).replace(/[^\d+]/g, ""))}">${esc(m.phone)}</a>
-            ${m.email ? `<br><a href="mailto:${esc(m.email)}">${esc(m.email)}</a>` : ""}
-            <br><small style="color:var(--muted)">${new Date(m.date).toLocaleString("tr-TR")}</small></td>
-          <td>${esc(m.message)}<br><small style="color:var(--muted)">İlan: ${esc(m.listingTitle || m.listingId)}</small></td>
-          <td style="text-align:right"><a class="btn sm" style="background:#25d366" target="_blank" rel="noopener"
-            href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}">WhatsApp</a></td></tr>`).join("")
-          : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">Henüz mesajınız yok.</td></tr>');
+      const list = convos();
+      $("#convoList").innerHTML = list.length ? list.map(({ m, role, unread }) => `
+        <button type="button" class="convo-item${unread ? " unread" : ""}${m.mid === openMid ? " on" : ""}" data-mid="${esc(m.mid)}">
+          <span class="convo-who">${role === "seller" ? "📥 " + esc(m.name || "Ziyaretçi") : "📤 Satıcıya"}${unread ? ' <i class="dot"></i>' : ""}</span>
+          <span class="convo-title">${esc(m.listingTitle || m.listingId)}</span>
+          <span class="convo-last">${esc(String(lastText(m)).slice(0, 80))}</span>
+          <small>${new Date(lastAt(m)).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}</small>
+        </button>`).join("") : '<p class="convo-empty">Henüz mesajınız yok. İlan sayfalarındaki “Satıcıya Mesaj Gönder” ile yazışma başlatabilirsiniz.</p>';
+      $$("#convoList .convo-item").forEach((bt) => bt.addEventListener("click", () => openConvo(bt.dataset.mid)));
+      if (openMid) drawThread();
+    }
+    function drawThread() {
+      const c = convos().find((x) => x.m.mid === openMid);
+      const box = $("#convoThread");
+      if (!c) { box.innerHTML = '<p class="convo-empty">Bir konuşma seçin.</p>'; return; }
+      const { m, role } = c;
+      // İlk mesaj alıcıdandır; thread girdileri sırayla
+      const items = [{ from: "buyer", text: m.message, date: m.date }].concat(m.thread || []);
+      const canReply = role === "buyer" || !!m.buyerId;
+      box.innerHTML = `
+        <div class="convo-head"><a href="ilan.html?id=${encodeURIComponent(m.listingId)}"><b>${esc(m.listingTitle || m.listingId)}</b></a>
+          ${role === "seller" ? `<small>${esc(m.name || "")}${m.phone ? ` · <a href="tel:${esc(String(m.phone).replace(/[^\d+]/g, ""))}">${esc(m.phone)}</a>` : ""}</small>` : ""}</div>
+        <div class="convo-msgs" id="convoMsgs">${items.map((it) => `
+          <div class="cmsg ${it.from === role ? "me" : "them"}">${esc(it.text)}<small>${new Date(it.date).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}</small></div>`).join("")}</div>
+        ${canReply ? `<div class="convo-reply"><textarea id="convoText" rows="2" maxlength="1200" placeholder="Yanıtınızı yazın…"></textarea>
+          <button class="btn sm" id="convoSend" type="button">Gönder</button></div>`
+          : `<p class="notice">Bu kişi üye olmadan yazdı; telefon ya da WhatsApp ile dönebilirsiniz.
+             ${m.phone ? `<a class="btn sm" style="background:#25d366;margin-top:8px" target="_blank" rel="noopener" href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}">WhatsApp</a>` : ""}</p>`}`;
+      const msgsEl = $("#convoMsgs");
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      const send = $("#convoSend");
+      if (send) send.addEventListener("click", async () => {
+        const t = $("#convoText").value.trim();
+        if (!t) return;
+        send.disabled = true;
+        const r = await A.myReply(m.mid, t);
+        send.disabled = false;
+        if (r && r.ok) { m.thread = r.thread; renderMessages(); }
+        else alert((r && r.error) || "Gönderilemedi.");
+      });
+    }
+    async function openConvo(mid) {
+      openMid = mid;
+      const c = convos().find((x) => x.m.mid === mid);
+      if (c && c.unread) {
+        if (c.role === "seller") c.m.sellerRead = true; else c.m.buyerRead = true;
+        A.myMsgRead(mid);
+        updateMsgBadge();
+      }
+      renderMessages();
+    }
+    function updateMsgBadge() {
+      const n = convos().filter((x) => x.unread).length;
+      $("#myMsgBadge").textContent = n ? "(" + n + " yeni)" : (convos().length ? "(" + convos().length + ")" : "");
     }
 
     $$("#myTabs .tab-btn").forEach((b) => b.addEventListener("click", () => {
@@ -1993,6 +2985,8 @@
       $("#mySearchesTab").style.display = b.dataset.tab === "searches" ? "" : "none";
       $("#myProfileTab").style.display = b.dataset.tab === "profile" ? "" : "none";
     }));
+    if (location.hash === "#mesajlar") { const t = $('#myTabs [data-tab="messages"]'); if (t) t.click(); }
+
 
     // Kayıtlı aramalar tablosu
     function renderSearches() {
@@ -2256,6 +3250,7 @@
 
   // ── Yönetim paneli (admin.html) ─────────────────────────────────────────
   function pageAdmin() {
+    let reports = [];          // şikayetler (refresh doldurur)
     if (!D.hasServer()) {
       $("#staticWrap").style.display = "block";
       $("#loginWrap").style.display = "none";
@@ -2335,6 +3330,11 @@
         const uu = await api("api/admin/users", { method: "GET" });
         users = uu.users || [];
       } catch (e) { users = []; }
+      try {
+        const rr = await api("api/admin/reports", { method: "GET" });
+        reports = rr.reports || [];
+      } catch (e) { reports = []; }
+      renderReports();
       const unread = msgs.filter((m) => !m.read).length;
       const stats = [
         ["Yayında", rows.filter((l) => l.status === "active").length],
@@ -2370,7 +3370,10 @@
           const [sl, sc] = STATUS[l.status] || ["—", "var(--muted)"];
           return `<tr>
             <td><a href="ilan.html?id=${encodeURIComponent(l.id)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b></a><br>
-              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${esc(ownerLabel(l))} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small></td>
+              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${esc(ownerLabel(l))} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small>
+              ${(l.details || {}).tasinmazNo ? `<br><small>🪪 Taşınmaz No: <b>${esc(l.details.tasinmazNo)}</b>${(l.seller || {}).license ? " · Yetki No: <b>" + esc(l.seller.license) + "</b>" : ""}</small>` : (l.segment || "emlak") === "emlak" ? '<br><small style="color:var(--over)">⚠ Taşınmaz numarası yok</small>' : ""}
+              ${(l.dupOf || []).length ? `<br><small style="color:var(--over);font-weight:700">⚠ Aynı taşınmaz numarası başka ilanda: ${esc(l.dupOf.join(", "))} — onaylamadan önce kontrol edin</small>` : ""}
+              ${l.reported ? '<br><small style="color:var(--over);font-weight:700">🚩 Şikayetler nedeniyle incelemede</small>' : ""}</td>
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
@@ -2475,7 +3478,30 @@
       $("#tabListings").style.display = b.dataset.tab === "listings" ? "" : "none";
       $("#tabMessages").style.display = b.dataset.tab === "messages" ? "" : "none";
       $("#tabUsers").style.display = b.dataset.tab === "users" ? "" : "none";
+      $("#tabReports").style.display = b.dataset.tab === "reports" ? "" : "none";
     }));
+    // ── Şikayetler
+    function renderReports() {
+      const open = reports.filter((r) => r.status === "open");
+      $("#repBadge").textContent = open.length ? "(" + open.length + ")" : "";
+      const ST = { active: "Yayında", pending: "İncelemede", rejected: "Kaldırıldı" };
+      $("#repTable").innerHTML = '<tr><th>İlan</th><th>Neden</th><th>Durum</th><th style="text-align:right">İşlem</th></tr>' +
+        (reports.length ? reports.map((r) => `<tr${r.status === "open" ? "" : ' style="opacity:.55"'}>
+          <td><a href="ilan.html?id=${encodeURIComponent(r.listingId)}" target="_blank" rel="noopener"><b>${esc(r.listingTitle || r.listingId)}</b></a>
+            <br><small style="color:var(--muted)">${esc(r.listingId)} · ${new Date(r.date).toLocaleString("tr-TR")}${r.uid ? " · üye" : ""}</small></td>
+          <td>${esc(r.reason)}${r.note ? `<br><small>${esc(r.note)}</small>` : ""}</td>
+          <td>${r.status === "open" ? '<b style="color:var(--over)">Açık</b>' : "Kapandı"}<br><small>İlan: ${esc(ST[r.listingStatus] || r.listingStatus)}</small></td>
+          <td style="text-align:right;white-space:nowrap">${r.status === "open" ? `
+            <button class="btn ghost sm" data-rep="dismiss" data-id="${esc(r.rid)}">Asılsız</button>
+            <button class="btn ghost sm" data-rep="reject" data-id="${esc(r.rid)}" style="color:var(--over);border-color:var(--over)">Yayından Kaldır</button>` : ""}</td></tr>`).join("")
+          : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Şikayet yok.</td></tr>');
+      $$("#repTable [data-rep]").forEach((bt) => bt.addEventListener("click", async () => {
+        if (bt.dataset.rep === "reject" && !confirm("İlan yayından kaldırılacak. Emin misiniz?")) return;
+        const r = await api("api/admin/report", { method: "POST", body: JSON.stringify({ rid: bt.dataset.id, action: bt.dataset.rep }) });
+        if (r && r.error) alert(r.error);
+        refresh();
+      }));
+    }
     $("#userSearch").addEventListener("input", renderUsers);
 
     $("#adminFilter").addEventListener("change", render);

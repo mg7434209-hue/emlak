@@ -5,20 +5,23 @@
 ## Proje
 EmlakAI: **yapay zekâ destekli, iki segmentli ilan platformu** — taşınmaz
 (`segment: "emlak"`) + araç (`segment: "vasita"`), her ikisi satılık/kiralık.
-Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, bağımlılıksız Node statik
-sunucu (`server.js`, Railway uyumlu). AI özellikleri istemcide çalışır; sunucu
+Çok sayfalı statik site: saf HTML + CSS + Vanilla JS, Node statik sunucu
+(`server.js`, Railway uyumlu; tek bağımlılık `@anthropic-ai/sdk` — yalnız AI
+İlan Stüdyosu'nun görsel analizi için, anahtar yoksa hiç yüklenmez). AI özellikleri istemcide çalışır; sunucu
 üyelik/ilan API'si ve SEO ön işlemesi yapar.
-TASARIM: ana sayfa **premium keşif + portal** kurgusudur — güçlü hero ve doğal
-dil araması, ardından ilan vitrinleri (son eklenenler, AI seçkisi, fırsatlar,
-fiyat düşüşleri, koleksiyonlar) ve portal blokları (kategori ağacı, bölge
-kartları, popüler aramalar). Eski "Google sadeliği" ilkesi bırakılmıştır.
+TASARIM: ana sayfa **GOOGLE SADELİĞİNDEDİR** (27 Eki 2026, kullanıcı kararı;
+"premium keşif + portal" kurgusu bırakıldı). İlk ekran: büyük logo + tek
+arama kutusu (yazı ya da 🎤 sesle) + segment sekmeleri + birkaç örnek +
+"Ücretsiz ilan ver" / "Evim ne eder?". Altında YALNIZ iki bölüm: tek ilan
+akışı (`#homeFeed`) ve kategori/bölge bağlantıları. Yeni vitrin bölümü
+EKLEME — yeni sinyal (fırsat, fiyat düşüşü…) akışa rozetle girer.
 
 Sayfalar (kök dizinde):
-`index.html` (premium hero + doğal dil arama + keşif vitrinleri `home.js` ile;
-ARDINDAN portal blokları: `#statStrip` istatistik şeridi, `#catTree` sayaçlı
-kategori ağacı (SEO rotalarına bağlanır), `#regionGrid` bölge kartları,
-`#popularTags` popüler aramalar — bunları `app.js pageIndex()` doldurur ve
-sunucu `renderHomeHtml()` ile bot görünümüne basar) · `ilanlar.html`
+`index.html` (Google sadeliği: `.g-hero` arama — form `ilanlar.html?q=` ile
+JS'siz de çalışır, `app.js pageIndex()` doğal dili filtreye çevirir; tek akış
+`#homeFeed` = `home.js feedOf()`: günün önerisi → AI fırsat fiyatı → fiyatı
+düşenler → en yeni, tekrarsız en çok 8 kart; sunucu `renderHomeHtml()` AYNI
+sırayı botlar için basar; `#catGrid` + `#regionGrid` bağlantıları) · `ilanlar.html`
 (segment seçicili filtreli liste; `?q=` doğal dil sorgusunu da ayrıştırır;
 araçta marka/model/yıl/km/yakıt/vites filtreleri; sayfa başına 24 ilan +
 `.pager` sayfalama — filtre/sıralama değişince 1. sayfaya döner) · `ilan.html?id=`
@@ -353,7 +356,7 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
 `server.js` statik sunucuya ek olarak ilan API'si taşır (bağımlılıksız):
 - Açık uçlar: `GET/POST /api/listings`, `GET /api/listing?id=` (ilan takibi),
   `POST /api/view` (görüntülenme), `POST /api/messages` (ilana talep/mesaj),
-  `POST /api/login`.
+  `POST /api/report` (ilan şikayeti), `POST /api/login`.
 - Admin uçları (`X-Admin-Token`): `GET /api/admin/listings`,
   `POST /api/admin/action` (`approve|reject|remove|feature|unfeature|price|edit`),
   `GET /api/admin/messages`, `POST /api/admin/message`, `POST /api/admin/import`.
@@ -385,7 +388,7 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
   listesinden tohumlanır — Volume yoksa her dağıtımda sıfırlanır; panel bunu
   kırmızı uyarıyla söyler (`persistent:false`). Kalıcı ilan = Volume bağla ya
   da REAL'e işleyip commit'le; panelden JSON yedek al / yedekten yükle.
-- Şifre: `ADMIN_PASS` ortam değişkeni (yoksa `config.admin.pass` — değiştir!).
+- Şifre: YALNIZ `ADMIN_PASS` ortam değişkeni (yoksa açılışta rastgele geçici şifre günlüğe yazılır).
   `admin.html` girişi İKİ SEKMELİDİR: "Yönetici Şifresi" ve "Hesabımla Giriş"
   (yalnız `role:"admin"` üyeler). Panelden çıkış `emlakai.adminPanelClosed`
   bayrağıyla işaretlenir — yönetici üyenin site oturumu düşmez.
@@ -397,27 +400,142 @@ Sahibinden mantığı: **ilan vermek üyelik ister** (yönetici oturumu hariç).
 - İstemci: `data.js` `init()` API'yi yoklar; yoksa (GitHub Pages) REAL +
   localStorage'a düşer, `admin.html` "statik yayın" uyarısı gösterir.
 
-## Ana sayfa (index.html) — canlı tasarım + portal blokları
-Ana sayfa iki katmandır; İKİSİNİ DE koru:
-1. **Keşif katmanı** (`assets/home.js` + `assets/home.css`): kompakt hero,
-   arama paneli, Son Eklenen İlanlar rayı, AI'nin Seçtikleri, Fırsat İlanları,
-   Son Fiyatı Düşenler, Koleksiyonlar, AI Günün Önerisi, yayınla CTA'sı.
-2. **Portal katmanı** (`app.js pageIndex()` + `style.css`): `#statStrip`
-   istatistikler, `#catGrid` kategori kartları (SEO rotalarına), `#regionGrid`
-   bölge kartları, `#popularTags` popüler doğal dil aramaları. Her blok
-   VARSA çizilir (`if (el)`) — düzen değişse de sayfa kırılmaz.
-Hero'daki kategori etiketleri gerçek bağlantıdır (`/satilik-daire` vb.).
+## Ana sayfa (index.html) — Google sadeliği
+Üç parça, başka bölüm YOK: (1) `.g-hero` arama (style.css `.g-*`; sesli arama
+`#aiMic` Web Speech API, yoksa gizlenir), (2) tek ilan akışı `#homeFeed`
+(`home.js`), (3) `#catGrid` + `#regionGrid` (`app.js pageIndex()` + sunucu).
+`home.css` yalnız akış kartlarını ve bağlantı ızgarasını taşır; ana sayfada
+başlık çubuğunun logosu gizlidir (büyük logo aramanın üstündedir).
 `npm start` artık `visitor-server.js` üzerinden çalışır (ziyaretçi sayacı
 `/api/site-stats`'ı ekler, sonra `server.js`'i yükler).
 TUZAK: `<link rel="icon" href="data:image/svg+xml,<svg …>">` satırındaki
 kapanış tırnağı BOZULURSA tarayıcı `<body data-page="index">` özniteliğini
 yutar; sayfa kimliği kaybolur, JSON-LD gövdede düz metin olarak görünür.
 
+## AI İLAN STÜDYOSU — karma bilgi → yayına hazır ilan (`ilan-ver.html`)
+İlan verme sayfası STÜDYOYLA açılır (kategori sihirbazı "Formu kendim
+dolduracağım" ile açılır). Kullanıcı metni karışık yapıştırır, fotoğrafları
+sırasız bırakır (en çok `config.studio.maxInputPhotos`):
+- `assets/studio.js` (`EMLAK.studio`, tarayıcıda): `analyzeText` serbest
+  metinden tür/konum/mahalle/fiyat/m² (brüt-net, dönüm)/oda/yaş/kat/ısıtma/
+  aidat/tapu/ada-parsel/imar/araç alanlarını çıkarır ve satıcı notlarını
+  temizler (telefon, bağlantı, emoji, BÜYÜK HARF, "kaçırmayın" atılır; alanlara
+  zaten giren cümle notlara GİRMEZ). `analyzePhoto` ışık/kontrast/netlik
+  (Laplace)/çözünürlük/renk kayması ölçer, belge-ekran görüntüsü yakalar,
+  dHash üretir. `pickPhotos` belgeyi ve benzer kareyi (`dupDistance`) ayıklar,
+  en iyi `upload.maxPhotos` kareyi seçer, kapak + sahne sırası verir.
+  `enhancePhoto` seviye + yarım beyaz dengesi + gama + canlılık + hafif
+  keskinleştirme yapar (DOĞAL kalsın; abartılı HDR güveni düşürür).
+  `title`/`description` bölümlü metin üretir (ÖNE ÇIKANLAR · SATICININ NOTLARI),
+  `readiness` 0-100 hazırlık puanı + eksik listesi verir.
+- KONUM TUZAĞI: il/ilçe SÖZCÜK SINIRIYLA aranır — "pazarlık" Pazar (Rize)
+  sanılıyordu. `ai.js parseQuery` de aynı düzeltmeyi aldı.
+- `ai-studio.js` (sunucu): `ANTHROPIC_API_KEY` varsa `POST /api/ai/studio`
+  fotoğrafları Claude'a (`STUDIO_MODEL`, varsayılan claude-opus-5-5,
+  yapılandırılmış JSON çıktı) GÖRDÜRÜR: oda etiketi, alt yazı, kalite, uygunluk,
+  kapak, açıklama. Anahtar yoksa `/api/ai/status` → `vision:false`, site
+  tarayıcı analiziyle çalışır. Uç üyelik ister + saatlik sınır (`aiPerHour`).
+  GÜVEN SINIRI: modelin her değeri config'e göre doğrulanır (`validate()`):
+  tanımsız tür/ilçe/özellik/fieldDefs seçeneği ATILIR, açıklamadan telefon ve
+  bağlantı silinir. Fotoğraflar diske yazılmaz. Model tapu/kimlik görürse
+  `include:false` + uyarı döner.
+- Sonuç ekranında kullanıcı fotoğrafları dahil eder/çıkarır, sıralar, kapak
+  seçer, "Önce/Sonra" ile düzeltmeyi karşılaştırır; "Forma Aktar" kategoriyi
+  biliyorsa `wizardApi.goForm()` ile formu açar, bilmiyorsa sihirbazı açar ve
+  seçim bitince `applyStudio()` formu doldurur. YAYIN yine formdan, kullanıcının
+  son kontrolüyle olur — stüdyo hiçbir şeyi kendiliğinden yayınlamaz.
+- SOHBETLE İLAN (mobilde varsayılan sekme, `#stChatPanel`): asistan eksik
+  bilgiyi TEK TEK sorar (`studio.js` `chat.QUESTIONS` sırası: tür → satılık/
+  kiralık → konum → m² → oda → yaş → kat → ısıtma → (araç: marka, yıl/km) →
+  fiyat → ek özellik → fotoğraf). Cevap sorunun bağlamıyla metne eklenir
+  (`contextualize`: "140" → "140 m2", "3 5" → "3. kat 5 katlı") ve metin
+  BAŞTAN çözümlenir — yazı, ses ve yapıştırma aynı çözümleyiciden geçer.
+  Zorunlu bilgi anlaşılmazsa bir kez daha sorulur; "geç/bilmiyorum" atlar;
+  "tamam" fotoğraf adımını bitirir. Sorular bitince ilan KENDİLİĞİNDEN
+  hazırlanır (`stRun`); "✓ Onayla ve İlanı Gönder" forma aktarıp yayın
+  düğmesine basar (eksik alan varsa form hatayı gösterir).
+- SES: mikrofon Web Speech API (`SpeechRecognition`, tr-TR; Chrome/Android,
+  Safari/iOS 14.5+). Desteklenmezse 🎤 gizlenir, klavye diktesi önerilir.
+  Mikrofona basınca "sesli mod" açılır: sorular `speechSynthesis` ile okunur,
+  okuma bitince yeniden dinlenir. TUZAK: bazı cihazlar `onend` göndermez —
+  `speak()` metin uzunluğuna göre güvenlik zamanlayıcısıyla devam eder.
+  Konuşma sayıları `normalizeSpeech()` ile rakama döner ("dört milyon yedi
+  yüz elli bin" → 4750000, "yüz kırk yüz yirmi" → 140 120, "üç artı bir" →
+  3+1, "5 milyon altı" sayı DEĞİLDİR); `analyzeText` de bunu kullanır.
+- KAMERA: `#stCam` = `accept="image/*" capture="environment"` → telefonda
+  arka kamera doğrudan açılır, her çekim bir fotoğraf ekler. Galeri `#stPhotos`.
+  ≤760 px'te tanıtım metinleri ve AI Asistan FAB'ı gizlenir (sohbet ilk ekrana sığsın).
+- Form fotoğraf önizlemesi `.photo-order`: ilk kare kapaktır, ◀ ▶ ★ ile sıralanır.
+- Açıklamalar `.desc-text` (`white-space: pre-line`) ile basılır; madde ve
+  satır sonları detay sayfasında korunur.
+
+## GÜVEN & İLETİŞİM — sahibinden karşılığı (27 Eki 2026)
+- MESAJLAŞMA (iki yönlü): üye alıcının mesajı `buyerId` ile konuşma olur
+  (`thread[]`, `sellerRead`/`buyerRead`). Satıcı ve alıcı `Hesabım ›
+  Mesajlarım` (`#convo`, `hesap.html#mesajlar`) ekranında yazışır:
+  `POST /api/my/reply`, `/api/my/msgread`. Üye olmadan yazan ziyaretçiye
+  site içinden yanıt verilemez (telefon/WhatsApp). Alıcı tarafına satıcının
+  iletişim bilgisi DÖNMEZ. Okunmamış sayısı `unreadFor()` → `/api/auth/me`
+  `unread` → menüde `.nav-badge`. Kendi ilanına mesaj 400.
+- ŞİKAYET: ilan detayında "🚩 Bu ilanı şikayet et" (`POST /api/report`,
+  nedenler `config.moderation.reportReasons`, IP başına 5/saat). Ham IP
+  SAKLANMAZ — HMAC özeti (`who`), panele de gitmez. Farklı kişilerden
+  `reportThreshold` (3) açık şikayet → ilan kendiliğinden `pending` +
+  `reported`. Panel "🚩 Şikayetler": Asılsız (kapatır; başka açık şikayet
+  yoksa ilan geri yayına) · Yayından Kaldır (rejected + tüm şikayetler kapanır).
+  Depo `DATA_DIR/reports.json`.
+- EMLAKÇI YETKİ BELGESİ: Taşınmaz Ticareti Hakkında Yönetmelik gereği emlak
+  segmentinde "Emlak Ofisi" ilanı `seller.license` (5-12 rakam) OLMADAN
+  kabul edilmez — istemci `validate()`, sunucu ilan ekleme + üye düzenleme
+  (yönetici hariç). Beyandır; ilan sayfasında "🪪 Yetki Belge No", künyede ve
+  bot görünümünde yazılır. Son girilen no `emlakai.license`'ta hatırlanır.
+- TELEFONU GÖSTER: ilan detayında numara ilk dokunuşta açılır (`#callBtn`
+  `data-tel`), ikinci dokunuş arar.
+- GÜVENLİ ALIŞVERİŞ kutusu: segment başına uyarılar `config.safety`.
+- İLAN NO İLE ARAMA: ana sayfa araması ve `ilanlar.html?q=` "EA…" biçimini
+  görünce doğrudan ilana gider.
+- FAVORİ FİYAT ALARMI: `favPriceAlert()` (initChrome) favorilerin fiyat
+  anlık görüntüsünü `emlakai.favPrices`'ta tutar; düşüş varsa bir kez `.toast`.
+
+## CANLIYA ALMA VE İLAN KURALLARI (31 Eki 2026)
+- YAYIN DALI: GitHub'ın varsayılan dalı `claude/ai-real-estate-platform-89ai1h`'dır ve Railway oradan
+  yayın yapar; özellik dalları birleştirilmeden canlıya çıkmaz (canlı site bu yüzden eski tasarımı gösteriyordu).
+- TAŞINMAZ NUMARASI ZORUNLU (sahibinden kuralı): emlak ilanında `details.tasinmazNo` olmadan ilan
+  kabul edilmez (yönetici hariç). Tek kural `config.fieldDefs.tasinmazNo.required` + `digits [5,12]`;
+  istemci `validate()`, sunucu `needsTapuNo()`, studio sohbeti (`tapuno` sorusu) ve `readiness` aynı
+  alanı okur. Yalnız RAKAM saklanır (`D.cleanTapuNo`); noktalı yazım kabul edilir. HERKESE AÇIK
+  yanıtlarda (`/api/listings`, `/api/seller`, ilan künyesi, SSR) TAM GÖSTERİLMEZ — `pub()` /
+  `D.maskTapuNo` yalnız son 3 hane ("•••••719"); tam hâli sahibine (`/api/my/*`) ve yöneticiye döner.
+  Açıklamaya/notlara SIZDIRMA (studio `cleanNotes`, `ai-studio.js` bunu siler).
+  Yeni bir public çıktı eklersen `pub()`'dan geçir. Aynı üye + aynı numara + aynı kategori → 409;
+  başka üye → ilan alınır, `dupOf` ile yönetici panelinde kırmızı uyarı.
+  Doğrulama BEYANDIR: TKGM erişimi yok, otomatik doğrulama iddia etme.
+- ZORUNLU ALAN MEKANİZMASI: `fieldDefs[].required` → `D.requiredFields(kind)`; `section: "tapu"` alanlar
+  formda "Tapu ve belgeler" bölümünde (`#tapuFields`), kalanlar `#kindFields`'ta çizilir. `default` (Takaslı =
+  Hayır) yalnız yeni ilanda uygulanır. Enerji Kimlik Belgesi (`enerjiSinifi`) konut/iş yeri/bina için opsiyonel.
+- İLAN VER AKIŞI: 4 adım (`#ivSteps`): Kategori (stüdyo/sihirbaz) → İlan Detayları (bölümlü form, `.fs`
+  fieldset'leri) → Önizleme (`#ivPreview`, hazırlık denetimi) → Yayında (`#ivDone`). `setStep(n)` yönetir;
+  hata `showError()` ile ilgili alana odaklanır. "Öne çıkar" kutusu yalnız yöneticiye görünür.
+- YÖNETİCİ ŞİFRESİ repoda YOK: yalnız `ADMIN_PASS` env; tanımsızsa açılışta rastgele geçici şifre
+  üretilip günlüğe yazılır. `config.admin`'e şifre YAZMA (repo açık olabilir; eski `emlak2026` bu yüzden kaldırıldı).
+- KVKK/YASAL: `kvkk.html`, `kullanim-kosullari.html`, `cerez-politikasi.html` (taslak, hukukçu onayı gerekir).
+  Site ÇEREZ KULLANMAZ (yalnız localStorage) → çerez bandı yok. Kayıtta onay zorunlu (`consent:true`,
+  `LEGAL_VERSION` ile kayda geçer). Ziyaretçi sayacı ham IP SAKLAMAZ (tuzlu özet). Yeni veri toplarsan
+  KVKK metnini de güncelle (özellikle yurt dışı aktarım: Railway, isteğe bağlı Anthropic).
+- TEST: `npm test` = `tests/smoke.js` (geçici veri klasörüyle sunucuyu açar). Birleştirmeden önce yeşil olmalı.
+
+## YAYIN İZİN LİSTESİ (server.js `isPublicPath`) — tekrar düşme
+Statik sunucu eskiden kökteki HER dosyayı veriyordu: `data/session.key`
+(oturum imza anahtarı → sahte yönetici jetonu), `.git/`, `server.js`,
+`node_modules/`. Artık yalnız kökteki `.html .txt .xml .ico .webmanifest`
+dosyaları ve `assets/` servis edilir; nokta ile başlayan yol parçası reddedilir.
+Yeni yayın klasörü/uzantısı eklersen izin listesine yaz.
+
 ## Ağ Kısıtı (ÖNEMLİ)
 Buluttaki Claude Code dış sitelere erişemez (egress izin listesi). Dış veri
 gerekiyorsa dosya olarak repoya ekle.
 
 ## Çalıştırma & Test (commit öncesi)
-- `npm run build` → SEO çıktıları; `npm start` → build + sunucu (http://localhost:3000).
+- `npm test` → uçtan uca duman testi; `npm run build` → SEO çıktıları; `npm start` → build + sunucu (http://localhost:3000).
 - `node -c assets/app.js && node -c assets/ai.js && node -c assets/data.js && node -c assets/config.js && node -c server.js && node -c build-seo.js`
 - Sunucuyu başlatıp ana sayfaların 200 döndüğünü doğrula.

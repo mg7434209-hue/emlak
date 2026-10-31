@@ -1,9 +1,43 @@
 # 🏠 EmlakAI — AI Destekli Taşınmaz & Araç İlan Platformu
 
-**premium keşif deneyimi** sunan, iki segmentli (taşınmaz + araç,
-satılık/kiralık) ilan platformu. Tamamı istemci tarafında çalışan yapay zekâ
-özellikleri; saf HTML + CSS + Vanilla JS, bağımlılık yok, API anahtarı yok,
-çevrimdışı bile çalışır.
+## 🚀 Canlıya alma kontrol listesi
+
+**1. Yayın dalı.** Railway, GitHub'daki *varsayılan dal*dan yayın yapar. Değişiklikler
+başka bir daldaysa canlı site eski kalır: önce o dalı varsayılan dala birleştirin (merge).
+
+**2. Railway › Variables** (hiçbiri koda yazılmaz, repo açık olabilir):
+
+| Değişken | Zorunlu | Ne işe yarar |
+|---|---|---|
+| `ADMIN_PASS` | **Evet** | Yönetici paneli şifresi. Tanımsızsa açılışta RASTGELE geçici şifre üretilir ve günlüğe yazılır (kalıcı değildir). |
+| `ADMIN_EMAIL` | Önerilir | Bu e-postayla kayıt olan/giren hesap otomatik yönetici olur. |
+| `SESSION_SECRET` | Önerilir | Oturum imza anahtarı. Yoksa Volume'daki `session.key` kullanılır; Volume yoksa her dağıtımda üyeler çıkış yapar. |
+| `DATA_DIR` | Volume ile | Kalıcı veri klasörü (aşağıya bakın). |
+| `ANTHROPIC_API_KEY` | İsteğe bağlı | Açılırsa İlan Stüdyosu fotoğrafları yapay zekâyla da inceler. KVKK metni bunu belirtir; kapalıysa analiz yalnızca tarayıcıda yapılır. |
+
+**3. Kalıcı depolama (Volume).** Servise bir Volume ekleyin (örn. `/data`) ve `DATA_DIR=/data`
+verin. Yoksa üyeler, ilanlar, fotoğraflar, mesajlar ve şikayetler **her dağıtımda silinir**.
+
+**4. Firma bilgileri.** `assets/config.js` › `company` (unvan, adres, telefon, e-posta) gerçek
+bilgilerle doldurulmalı: KVKK Aydınlatma Metni ve Kullanım Koşulları veri sorumlusu olarak bunu gösterir.
+Yasal metinler (`kvkk.html`, `kullanim-kosullari.html`, `cerez-politikasi.html`) taslaktır; yayından önce
+bir hukukçuya okutun. Metinleri değiştirirseniz `server.js` › `LEGAL_VERSION`'ı güncelleyin.
+
+**5. Alan adı.** Alan adını Railway › Settings › Domains'e ekleyip DNS'e CNAME'i girin; sonra
+`assets/config.js` › `seo.siteUrl`'i yeni adrese çevirip `npm run build` çalıştırın. Sunucunun tanıdığı
+adresler `server.js` › `HOST_OK`.
+
+**6. Doğrulama.** `npm test` (15 uçtan uca denetim: zorunlu taşınmaz numarası, maskeleme, tekrar ilan engeli,
+mesajlaşma, şikayet, güvenlik) ve `npm run build`. Birleştirmeden önce ikisi de yeşil olmalı.
+
+**Bilinen sınırlar:** taşınmaz numarası ve yetki belgesi numarası ilan verenin *beyanıdır* — Tapu ve Kadastro (TKGM) /
+Ticaret Bakanlığı Emlak Bilgi Sistemi ile otomatik doğrulama yoktur (resmî erişim gerekir). Yönetici, ilanı onaylarken
+numaraları panelde görür; aynı numara başka ilanda geçiyorsa satır kırmızı uyarı taşır. Ziyaretçi sayacı
+`visitors` tabanından başlar (rozet toplamı `visitor-server.js` içindeki 1000 başlangıcını içerir).
+
+Google sadeliğinde, iki segmentli (taşınmaz + araç, satılık/kiralık) ilan platformu.
+Yapay zekâ özellikleri tarayıcıda çalışır (API anahtarı gerekmez); saf HTML + CSS + Vanilla JS,
+Node sunucu. Tek bağımlılık `@anthropic-ai/sdk` yalnızca isteğe bağlı görsel analiz içindir.
 
 ## 🤖 AI Özellikleri
 
@@ -56,7 +90,7 @@ alan adı değişince `config.seo.siteUrl` güncellenip `npm run build` çalış
 
 ## Sayfalar
 
-- `index.html` — premium hero + doğal dil AI araması, otomatik ilan vitrinleri
+- `index.html` — Google sadeliğinde tek arama kutusu (yazı/ses) + tek ilan akışı
   (son eklenenler, AI seçkisi, fırsatlar, fiyat düşüşleri, koleksiyonlar) ve
   portal blokları: canlı istatistikler, sayaçlı kategori ağacı, bölge kartları,
   popüler aramalar

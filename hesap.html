@@ -6,7 +6,7 @@
   <title>Hesabım | EmlakAI</title>
   <meta name="description" content="İlanlarınız, mesajlarınız ve hesap bilgileriniz.">
   <meta name="robots" content="noindex, nofollow">
-  <link rel="stylesheet" href="assets/style.css?v=30add926">
+  <link rel="stylesheet" href="assets/style.css?v=b0e9be0b">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
 <body data-page="hesap">
@@ -54,8 +54,10 @@
       </div>
 
       <div id="myMessagesTab" style="display:none">
-        <div class="detail-card" style="margin-top:12px">
-          <table class="spec-table admin-table" id="myMsgTable"></table>
+        <!-- Konuşmalar: solda liste (gelen + gönderdiklerim), sağda yazışma -->
+        <div class="convo" id="convo">
+          <div class="convo-list" id="convoList"></div>
+          <div class="convo-thread" id="convoThread"><p class="convo-empty">Bir konuşma seçin.</p></div>
         </div>
       </div>
 
@@ -103,17 +105,18 @@
         <a href="bolge-fiyatlari.html">Bölge Fiyatları</a>
         <a href="rehber.html">Rehber</a>
         <a href="asistan.html">AI Asistan</a>
-        <a data-c-tel href="#">—</a>
+        <a data-c-tel href="#" hidden>—</a>
         <a data-c-mail href="#">—</a>
       </div>
+      <div class="footer-legal"><a href="kvkk.html">KVKK Aydınlatma Metni</a><a href="kullanim-kosullari.html">Kullanım Koşulları</a><a href="cerez-politikasi.html">Çerez ve Cihaz Depolama</a></div>
       <div class="copyright">© 2026 EmlakAI — AI analizleri bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
     </div>
   </footer>
 
   <a class="fab" href="asistan.html" aria-label="AI Asistan">✦<span class="fab-txt"> AI Asistan</span></a>
-  <script src="assets/config.js?v=913660bf"></script>
-  <script src="assets/data.js?v=309e9aed"></script>
-  <script src="assets/ai.js?v=844d60e8"></script>
-  <script src="assets/app.js?v=9953afa2"></script>
+  <script src="assets/config.js?v=ed013792"></script>
+  <script src="assets/data.js?v=21f5b8b4"></script>
+  <script src="assets/ai.js?v=35951508"></script>
+  <script src="assets/app.js?v=f09a0440"></script>
 </body>
 </html>

@@ -74,6 +74,7 @@
       }
       const sv = String(v).slice(0, def.max || 60);
       if (def.type === "select") { if ((def.options || []).indexOf(sv) >= 0) out[key] = sv; return; }
+      if (def.pattern && !new RegExp(def.pattern).test(sv)) return;   // ör. taşınmaz no: yalnız rakam / maske
       out[key] = sv;
     });
     return Object.keys(out).length ? out : undefined;
@@ -125,7 +126,11 @@
       fuel: str(l.fuel, 20) || undefined, gear: str(l.gear, 20) || undefined,
       features: (Array.isArray(l.features) ? l.features : []).map((f) => str(f, 40)).filter(Boolean).slice(0, 20),
       photos: (Array.isArray(l.photos) ? l.photos : []).filter((p) => typeof p === "string" && SAFE_PHOTO.test(p)).slice(0, 8),
-      seller: { name: str(seller.name, 80) || "Sahibinden", type: seller.type === "ofis" ? "ofis" : "sahibinden" },
+      seller: {
+        name: str(seller.name, 80) || "Sahibinden", type: seller.type === "ofis" ? "ofis" : "sahibinden",
+        // Emlakçı Yetki Belgesi No (Taşınmaz Ticareti Hakkında Yönetmelik): yalnız rakam, beyan
+        license: seller.type === "ofis" ? (String(seller.license || "").replace(/\D/g, "").slice(0, 12) || undefined) : undefined,
+      },
       phone,
       // İsteğe bağlı detay alanları (detay sayfası varsa gösterir)
       locality: str(l.locality, 120) || undefined,
@@ -227,11 +232,18 @@
     } catch (e) { return null; }
   }
   // İlana mesaj/talep bırakma (yönetim panelinde görünür)
+  // Üye oturumu varsa jeton gönderilir: mesaj konuşma olarak hesaba bağlanır
   async function sendMessage(payload) {
-    const r = await fetch("api/messages", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const headers = { "Content-Type": "application/json" };
+    if (auth.token()) headers["X-User-Token"] = auth.token();
+    const r = await fetch("api/messages", { method: "POST", headers, body: JSON.stringify(payload) });
+    return r.json();
+  }
+  // İlan şikayeti
+  async function report(payload) {
+    const headers = { "Content-Type": "application/json" };
+    if (auth.token()) headers["X-User-Token"] = auth.token();
+    const r = await fetch("api/report", { method: "POST", headers, body: JSON.stringify(payload) });
     return r.json();
   }
   async function submit(l, adminToken) {
@@ -285,7 +297,7 @@
     async refresh() {
       if (!auth.token()) return null;
       const j = await authApi("api/auth/me", { method: "GET" });
-      if (j && j.user) { writeSession({ token: auth.token(), user: j.user }); return j.user; }
+      if (j && j.user) { writeSession({ token: auth.token(), user: j.user }); auth.unread = j.unread || 0; return j.user; }
       return null;
     },
     async update(payload) {
@@ -295,6 +307,9 @@
     },
     myListings: () => authApi("api/my/listings", { method: "GET" }),
     myMessages: () => authApi("api/my/messages", { method: "GET" }),
+    myReply: (mid, text) => authApi("api/my/reply", { method: "POST", body: JSON.stringify({ mid, text }) }),
+    myMsgRead: (mid) => authApi("api/my/msgread", { method: "POST", body: JSON.stringify({ mid }) }),
+    unread: 0,
     myAction: (id, action, value) => authApi("api/my/action", { method: "POST", body: JSON.stringify({ id, action, value }) }),
     // Kayıtlı aramalar (yeni ilan sayacıyla)
     mySearches: () => authApi("api/my/searches", { method: "GET" }),
@@ -310,6 +325,7 @@
     previewListing,
     countView,
     sendMessage,
+    report,
     hasServer: () => remote !== null,
     all: () => {
       const base = remote || REAL;
@@ -333,6 +349,13 @@
     canValue: (kind) => (KINDS.find((k) => k.kind === kind) || { valuation: true }).valuation !== false,
     // Türe özel alan tanımları: [{key, label, type, options, max}]
     fieldsOfKind: (kind) => (FIELDS_OF[kind] || []).map((key) => Object.assign({ key }, FIELD_DEFS[key])),
+    // Bu türde ZORUNLU alanlar (ör. emlakta taşınmaz numarası) — istemci ve sunucu aynı kuralı okur
+    requiredFields: (kind) => (FIELDS_OF[kind] || []).filter((key) => FIELD_DEFS[key].required)
+      .map((key) => Object.assign({ key }, FIELD_DEFS[key])),
+    // Taşınmaz numarası: yalnız rakam; geçerli uzunlukta değilse "" döner
+    cleanTapuNo: (v) => { const d = String(v == null ? "" : v).replace(/\D/g, ""); const r = FIELD_DEFS.tasinmazNo; return r && d.length >= r.digits[0] && d.length <= r.digits[1] ? d : ""; },
+    // Herkese açık gösterim: son 3 hane
+    maskTapuNo: (v) => { const d = String(v == null ? "" : v).replace(/\D/g, ""); return d.length >= 5 ? "•".repeat(Math.min(12, d.length - 3)) + d.slice(-3) : ""; },
     fieldLabel: (key) => (FIELD_DEFS[key] || {}).label || key,
     brands: brandNames,
     modelsOf: (brand) => (C.vehicles.brands[brand] ? Object.keys(C.vehicles.brands[brand]) : []),

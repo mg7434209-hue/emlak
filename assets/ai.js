@@ -107,11 +107,13 @@
     const sayac = {};
     iller.forEach((city) => Object.keys(C.market.cities[city].districts)
       .forEach((d) => { sayac[d] = (sayac[d] || 0) + 1; }));
+    // Sözcük SINIRIYLA: "pazarlık" Pazar ilçesi, "merkezi ısıtma" Merkez değildir.
+    const gecer = (ad) => new RegExp("(?:^|[^a-z0-9])" + strip(ad) + "(?![a-z0-9])").test(q);
     for (const city of iller) {
-      const sehirVar = q.includes(strip(city));
+      const sehirVar = gecer(city);
       if (sehirVar) f.city = city;
       for (const d of Object.keys(C.market.cities[city].districts)) {
-        if (!q.includes(strip(d))) continue;
+        if (!gecer(d)) continue;
         if (sayac[d] > 1 && !sehirVar) continue;   // belirsiz ilçe adı, il yok
         f.city = city; f.district = d;
       }
@@ -623,7 +625,9 @@
     }
     if (/iletisim|telefon|ulasabilir|whatsapp/.test(q)) {
       const co = C.company;
-      return { reply: `Bize ${co.phone.display} numarasından ya da WhatsApp üzerinden ulaşabilirsiniz. E-posta: ${co.email}` };
+      return { reply: co.phone
+        ? `Bize ${co.phone.display} numarasından ya da WhatsApp üzerinden ulaşabilirsiniz. E-posta: ${co.email}`
+        : `Bize e-posta ile ulaşabilirsiniz: ${co.email}. İlan sahibine ulaşmak için ilan sayfasındaki mesaj formunu kullanın.` };
     }
 
     // Varsayılan niyet: ilan arama

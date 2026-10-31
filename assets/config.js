@@ -17,10 +17,14 @@ EMLAK.config = {
     vasita: { label: "Araç" },
   },
   company: {
-    title: "EmlakAI Teknoloji Ltd. Şti.",
-    phone: { display: "0543 743 42 09", intl: "+905437434209", wa: "905437434209" },
+    // Gerçek ticari unvan öğrenilince buraya yazılır; o zamana dek yalnız marka adı görünür.
+    title: "EmlakAI",
+    // Şimdilik İLETİŞİM YALNIZCA E-POSTA. 0800 hattı alınınca şu satırı doldurmak yeterli:
+    //   phone: { display: "0800 000 00 00", intl: "+908000000000", wa: "" }  (wa boşsa WhatsApp düğmesi çıkmaz)
+    // Boş (null/"") alanlar sitede, JSON-LD'de ve llms.txt'te HİÇ görünmez.
+    phone: null,
     email: "gesmarketim@gmail.com",
-    address: "Örnek Mah. 1551 Sok. No:10/1, Manavgat / Antalya",
+    address: "",
   },
 
   // ── SEO / AEO — canonical, sitemap, JSON-LD ve llms.txt buradan üretilir ─
@@ -49,10 +53,10 @@ EMLAK.config = {
       hint: "Belediyeden alınan imar durum belgesine göre.", options: [
       "Konut İmarlı", "Ticari İmarlı", "Turizm İmarlı", "Sanayi İmarlı", "Tarla",
       "Bağ & Bahçe", "Zeytinlik", "Villa İmarlı", "İmarsız", "Belirtilmemiş"] },
-    adaNo: { label: "Ada No", type: "text", max: 20, placeholder: "örn. 1453",
+    adaNo: { label: "Ada No", type: "text", max: 20, placeholder: "örn. 1453", section: "tapu",
       hint: "Tapu belgesinde ya da e-Devlet tapu bilgilerinde yazar." },
-    parselNo: { label: "Parsel No", type: "text", max: 20, placeholder: "örn. 27" },
-    paftaNo: { label: "Pafta No", type: "text", max: 20, placeholder: "örn. K24" },
+    parselNo: { label: "Parsel No", type: "text", max: 20, placeholder: "örn. 27", section: "tapu" },
+    paftaNo: { label: "Pafta No", type: "text", max: 20, placeholder: "örn. K24", section: "tapu" },
     kaks: { label: "KAKS (Emsal)", type: "text", max: 20, placeholder: "örn. 0.30",
       hint: "İmar durum belgesindeki emsal oranı." },
     gabari: { label: "Gabari", type: "text", max: 20, placeholder: "örn. 6.50 m",
@@ -78,16 +82,24 @@ EMLAK.config = {
     // — Bina —
     daireSayisi: { label: "Daire Sayısı", type: "number", max: 500 },
     // — Ortak (emlak) —
-    tapuDurumu: { label: "Tapu Durumu", type: "select", options: [
+    tapuDurumu: { label: "Tapu Durumu", type: "select", section: "tapu", options: [
       "Kat Mülkiyetli", "Kat İrtifaklı", "Müstakil Tapulu", "Hisseli Tapu",
       "Arsa Tapulu", "Tarla Tapulu", "Bilinmiyor"] },
-    krediyeUygun: { label: "Krediye Uygunluk", type: "select", options: ["Evet", "Hayır", "Bilinmiyor"] },
-    takas: { label: "Takaslı", type: "select", options: ["Evet", "Hayır"] },
-    // Tapunun üzerindeki "Taşınmaz Kimlik No" — alıcı için güven işareti;
-    // e-Devlet "Tapu Bilgilerim" ekranında da görünür.
-    tasinmazNo: { label: "Taşınmaz (Tapu) Numarası", type: "text", max: 30,
-      placeholder: "örn. 31163394",
-      hint: "Tapunuzun üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar. Alıcıya güven verir, zorunlu değildir." },
+    krediyeUygun: { label: "Krediye Uygunluk", type: "select", section: "tapu", options: ["Evet", "Hayır", "Bilinmiyor"] },
+    // Yeni ilanda "Hayır" hazır gelir (sahibinden gibi): çoğu ilan takassızdır, bir karar eksilir.
+    takas: { label: "Takaslı", type: "select", section: "tapu", options: ["Evet", "Hayır"], default: "Hayır" },
+    // Binalarda Enerji Performansı Yönetmeliği: satış/kiralamada Enerji Kimlik Belgesi sınıfı.
+    enerjiSinifi: { label: "Enerji Kimlik Belgesi", type: "select", section: "tapu",
+      options: ["A", "B", "C", "D", "E", "F", "G", "Belgesi yok"],
+      hint: "Belgenizdeki enerji sınıfı. Belge yoksa “Belgesi yok” seçin." },
+    // TAŞINMAZ NUMARASI — ZORUNLU (sahibinden.com ile aynı kural). Tapu senedinin
+    // üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar. YALNIZ RAKAM.
+    // Herkese açık yanıtlarda TAM GÖSTERİLMEZ (yalnız son 3 hane): numara açık olursa
+    // başkasının taşınmazı için sahte ilan vermek kolaylaşır. pattern: rakam ya da
+    // maskeleme noktası (•) — public liste maskeli geri okunabilsin diye.
+    tasinmazNo: { label: "Taşınmaz Numarası", type: "text", max: 20, required: true, section: "tapu",
+      pattern: "^[0-9•]{5,20}$", digits: [5, 12], inputmode: "numeric", placeholder: "örn. 103555719",
+      hint: "Tapu senedinizin üzerinde ya da e-Devlet › Tapu Bilgilerim ekranında yazar. Yalnız rakam. Alıcılara tam görünmez (yalnız son 3 hane)." },
     // — Vasıta —
     renk: { label: "Renk", type: "select", options: [
       "Beyaz", "Siyah", "Gri", "Gümüş", "Kırmızı", "Mavi", "Lacivert", "Yeşil",
@@ -116,8 +128,8 @@ EMLAK.config = {
         { label: "Konut",
           // NOT: Balkon / Eşyalı / Site İçi "Özellikler" kutucuklarında zaten var,
           // burada TEKRAR edilmez.
-          fields: ["katNo", "binaKat", "banyoSayisi", "isitma", "siteAdi", "aidat",
-                   "kullanimDurumu", "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
+          fields: ["katNo", "binaKat", "banyoSayisi", "isitma", "siteAdi", "aidat", "kullanimDurumu",
+                   "tapuDurumu", "tasinmazNo", "krediyeUygun", "takas", "enerjiSinifi"],
           kinds: [
           { kind: "daire", label: "Daire" },
           { kind: "residence", label: "Rezidans" },
@@ -126,9 +138,8 @@ EMLAK.config = {
           { kind: "yazlik", label: "Yazlık" },
         ] },
         { label: "İş Yeri",
-          fields: ["katNo", "binaKat", "bolumSayisi", "banyoSayisi", "isitma",
-                   "aidat", "kullanimDurumu", "tapuDurumu", "krediyeUygun", "takas",
-                   "tasinmazNo"],
+          fields: ["katNo", "binaKat", "bolumSayisi", "banyoSayisi", "isitma", "aidat", "kullanimDurumu",
+                   "tapuDurumu", "tasinmazNo", "krediyeUygun", "takas", "enerjiSinifi"],
           kinds: [
           { kind: "dukkan", label: "Dükkan" },
           { kind: "ofis", label: "Ofis" },
@@ -137,8 +148,8 @@ EMLAK.config = {
         ] },
         { label: "Arsa & Arazi",
           // sahibinden.com arsa formundaki alanlar: imar, ada/parsel/pafta, kaks, gabari
-          fields: ["imarDurumu", "adaNo", "parselNo", "paftaNo", "kaks", "gabari",
-                   "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
+          fields: ["imarDurumu", "kaks", "gabari", "adaNo", "parselNo", "paftaNo",
+                   "tapuDurumu", "tasinmazNo", "krediyeUygun", "takas"],
           kinds: [
           { kind: "arsa", label: "Arsa" },
           { kind: "tarla", label: "Tarla" },
@@ -146,7 +157,7 @@ EMLAK.config = {
         ] },
         { label: "Diğer Gayrimenkul",
           fields: ["binaKat", "daireSayisi", "isitma", "kullanimDurumu",
-                   "tapuDurumu", "krediyeUygun", "takas", "tasinmazNo"],
+                   "tapuDurumu", "tasinmazNo", "krediyeUygun", "takas", "enerjiSinifi"],
           kinds: [
           { kind: "bina", label: "Komple Bina" },
           { kind: "devremulk", label: "Devre Mülk" },
@@ -902,6 +913,35 @@ EMLAK.config = {
   moderation: {
     seedStatus: "pending",
     adminAutoPublish: true,
+    // İLAN ŞİKAYETİ: farklı kişilerden bu kadar açık şikayet gelince ilan
+    // kendiliğinden yayından çekilip yönetici incelemesine ("pending") düşer.
+    reportThreshold: 3,
+    reportReasons: [
+      "Dolandırıcılık şüphesi / kapora istiyor",
+      "İlan gerçek değil / satılmış",
+      "Yanlış fiyat ya da yanıltıcı bilgi",
+      "Fotoğraflar başka ilandan / alakasız",
+      "Yanlış kategori",
+      "Uygunsuz içerik",
+      "Diğer",
+    ],
+  },
+  // İlan detayındaki güvenli alışveriş uyarıları (segment başına)
+  safety: {
+    emlak: [
+      "Görmediğiniz taşınmaz için kapora ya da ön ödeme GÖNDERMEYİN.",
+      "Tapu bilgisini e-Devlet › Tapu Bilgilerim ya da tapu müdürlüğünden doğrulayın.",
+      "Ödemeyi tapu devri sırasında, resmî kanallardan yapın.",
+    ],
+    vasita: [
+      "Görmediğiniz araç için kapora ya da ön ödeme GÖNDERMEYİN.",
+      "Satın almadan önce bağımsız ekspertiz yaptırın ve hasar kaydını sorgulayın.",
+      "Satışı noterde yapın; ödemeyi noter işlemi sırasında gerçekleştirin.",
+    ],
+    diger: [
+      "Görmediğiniz ürün için ön ödeme GÖNDERMEYİN; elden teslimde kontrol edin.",
+      "Kargo ile alımda güvenli ödeme yöntemlerini tercih edin.",
+    ],
   },
 
   // ── Fotoğraf yükleme kuralları (ilan-ver + yönetim düzenleyicisi) ───────
@@ -913,7 +953,7 @@ EMLAK.config = {
   //     sert sınır uygular; sınır aşılırsa fotoğraf yazılmaz ve kullanıcıya
   //     nedeni söylenir.
   upload: {
-    maxPhotos: 6,
+    maxPhotos: 12,          // profesyonel ilan: dış cephe + her oda + manzara
     maxFileMB: 15,          // seçilebilecek ham dosya sınırı
     maxWidth: 1400,         // küçültme sonrası en fazla genişlik (px)
     quality: 0.82,          // başlangıç sıkıştırma kalitesi
@@ -924,16 +964,37 @@ EMLAK.config = {
     accept: ["image/jpeg", "image/png", "image/webp"],
     acceptLabel: "JPG · PNG · WEBP",
     quota: {
-      perListingMB: 5,      // tek ilanın tüm fotoğrafları
+      perListingMB: 6,      // tek ilanın tüm fotoğrafları (12 × ~320 KB + pay)
       perUserMB: 40,        // bir üyenin tüm ilanları toplamı
       totalGB: 2,           // sitenin tamamı (disk/Volume koruması)
       warnPct: 80,          // panelde uyarı eşiği (%)
     },
   },
 
+  // ── AI İlan Stüdyosu (ilan-ver.html · assets/studio.js · ai-studio.js) ──
+  // Karışık metin + sıralanmamış fotoğraf → yayına hazır ilan. Tarayıcı
+  // analizi her zaman çalışır; sunucuda ANTHROPIC_API_KEY varsa fotoğraflar
+  // ayrıca Claude ile "görülerek" etiketlenir (oda, kalite, kapak, açıklama).
+  studio: {
+    maxInputPhotos: 30,     // stüdyoya bırakılabilecek ham fotoğraf
+    minPhotos: 4,           // hazırlık puanında "yeterli fotoğraf" eşiği
+    dupDistance: 6,         // dHash farkı ≤ bu ise "benzer kare" sayılır
+    vibrance: 0.18,         // iyileştirme: canlılık (doğal kalsın, abartma)
+    sharpen: 0.35,          // iyileştirme: keskinleştirme miktarı
+    saleMinPrice: 250000,   // kategori yazılmadıysa: bu tutar üstü "satılık" tahmini
+    maxNotes: 8,            // açıklamaya taşınacak satıcı notu sayısı
+    maxTextChars: 6000,
+    aiImageMax: 896,        // Claude'a gönderilen kopyanın uzun kenarı (px)
+    aiMaxImages: 12,
+    aiPerHour: 12,          // üye başına saatlik AI analizi
+    aiBodyMB: 8,
+    aiEffort: "medium",
+  },
+
   // ── AI asistan ayarları ─────────────────────────────────────────────────
   assistant: { name: "EVA", maxResults: 6 },
 
   // ── Yönetim paneli (admin.html) ─────────────────────────────────────────
-  admin: { pass: "emlak2026" },
+  // Yönetici şifresi BURADA TUTULMAZ (repo açık olabilir): Railway ortam değişkeni ADMIN_PASS.
+  admin: {},
 };

@@ -14,7 +14,6 @@
   const $ = (selector, root) => (root || document).querySelector(selector);
   const $$ = (selector, root) => Array.from((root || document).querySelectorAll(selector));
   const FAV_KEY = "emlakai.favs";
-  let latestTimer = null;
 
   function esc(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, (c) => ({
@@ -128,12 +127,12 @@
     const date = dateInfo(l.date);
     const drop = priceDrop(l);
     const price = AI && typeof AI.priceBadge === "function" ? AI.priceBadge(l) : null;
+    if (options && options.daily) badges.push('<span class="home-card-badge ai">✦ Günün önerisi</span>');
     if (options && options.latest && date.today) badges.push('<span class="home-card-badge today">Bugün eklendi</span>');
     else if (options && options.latest && date.fresh) badges.push('<span class="home-card-badge new">Yeni ilan</span>');
     if (options && options.drop && drop) badges.push('<span class="home-card-badge drop">Fiyatı düştü · %' + drop.pct + '</span>');
     if (l.featured) badges.push('<span class="home-card-badge featured">⭐ Öne çıkan</span>');
     if (options && options.deal && price && price.key === "firsat") badges.push('<span class="home-card-badge ai">AI fırsat fiyatı</span>');
-    if (options && options.ai) badges.push('<span class="home-card-badge ai">AI ' + aiScore(l) + '/100</span>');
     return badges.join("");
   }
 
@@ -191,129 +190,40 @@
     return '<div class="home-empty"><span class="home-empty-icon">✦</span><b>' + esc(title) + '</b><span>' + esc(text) + '</span></div>';
   }
 
-  function renderGrid(element, items, options, emptyTitle, emptyText) {
-    if (!element) return;
-    element.innerHTML = items.length ? items.map((l) => card(l, options)).join("") : emptyState(emptyTitle, emptyText);
-  }
-
-  function renderLatest(list) {
-    const track = $("#latestTrack");
-    const viewport = $("#latestViewport");
-    if (!track || !viewport) return;
-    const items = list.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
-    track.innerHTML = items.length
-      ? items.map((l) => card(l, { latest: true, deal: true })).join("")
-      : emptyState("İlk ilanlar burada görünecek", "Yayınlanan gerçek ilanlar geldikçe bu vitrin otomatik güncellenecek.");
-    const controls = $$(".home-rail-control[data-rail=\"latest\"]");
-    controls.forEach((button) => { button.style.display = items.length > 1 ? "grid" : "none"; });
-    if (latestTimer) clearInterval(latestTimer);
-    if (items.length > 1) {
-      latestTimer = setInterval(() => {
-        const end = viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 10;
-        viewport.scrollTo({ left: end ? 0 : viewport.scrollLeft + viewport.clientWidth * .84, behavior: "smooth" });
-      }, 5200);
+  // TEK AKIŞ (Google sadeliği): ayrı "AI seçkisi / fırsatlar / fiyatı düşenler /
+  // son eklenenler" bölümleri yerine tek ızgara. Sıra: günün önerisi → AI fırsat
+  // fiyatı → fiyatı düşenler → en yeni; tekrar yok, en çok FEED_MAX kart.
+  // server.js renderHomeHtml bot görünümü için AYNI sırayı basar.
+  const FEED_MAX = 8;
+  function feedOf(list) {
+    const safeList = (Array.isArray(list) ? list : []).filter((l) => l && l.id);
+    // Piyasa verisi olmayan "diğer" segmenti AI sıralamasına girmez, yeni ilanlara girer
+    const valuable = safeList.filter((l) => (l.segment || "emlak") !== "diger");
+    const byDate = (a, b) => new Date(b.updated || b.date) - new Date(a.updated || a.date);
+    const isDeal = (l) => { const b = AI && AI.priceBadge ? AI.priceBadge(l) : null; return !!(b && b.key === "firsat"); };
+    const out = [];
+    const tag = new Map();
+    const push = (l, why) => { if (out.length < FEED_MAX && !tag.has(l.id)) { out.push(l); tag.set(l.id, why); } };
+    if (valuable.length) {
+      const ranked = valuable.slice().sort((a, b) => aiScore(b) - aiScore(a) || new Date(b.date) - new Date(a.date));
+      push(ranked[Math.floor(Date.now() / 86400000) % ranked.length], "daily");
     }
-  }
-
-  function collectionDefinitions() {
-    const has = (l, words) => {
-      const text = [l.title, l.desc, ...(l.features || [])].filter(Boolean).join(" ").toLocaleLowerCase("tr-TR");
-      return words.some((word) => text.includes(word));
-    };
-    return [
-      { icon: "🏝️", name: "Antalya Villaları", query: "segment=emlak&city=Antalya&kind=villa", test: (l) => l.city === "Antalya" && l.kind === "villa" },
-      { icon: "🌊", name: "Deniz Manzaralı", query: "segment=emlak&feature=Deniz%20Manzaras%C4%B1", test: (l) => has(l, ["deniz", "sahil", "akdeniz"]) },
-      { icon: "☀️", name: "Yazlıklar", query: "segment=emlak&category=satilik", test: (l) => has(l, ["yazlık", "yazlik", "sezonluk"]) },
-      { icon: "💎", name: "Lüks Konutlar", query: "segment=emlak&kind=villa", test: (l) => Number(l.price) >= 10000000 || has(l, ["lüks", "lux", "akıllı ev", "özel havuz"]) },
-      { icon: "⚡", name: "Acil Satılık", query: "segment=emlak&category=satilik", test: (l) => has(l, ["acil", "hemen satılık", "ivedi"]) },
-      { icon: "📈", name: "Yatırımlık Arsalar", query: "segment=emlak&kind=arsa", test: (l) => l.kind === "arsa" || has(l, ["yatırımlık arsa", "yatirimlik arsa"]) },
-      { icon: "🏢", name: "Ticari Gayrimenkuller", query: "segment=emlak&kind=ofis", test: (l) => ["ofis", "dukkan"].includes(l.kind) || has(l, ["ticari", "dükkan", "ofis"]) },
-    ];
-  }
-
-  function renderCollections(list) {
-    const root = $("#collectionsGrid");
-    if (!root) return;
-    root.innerHTML = collectionDefinitions().map((collection) => {
-      const count = list.filter(collection.test).length;
-      return '<a class="home-collection" href="ilanlar.html?' + collection.query + '">' +
-        '<span class="home-collection-icon">' + collection.icon + '</span>' +
-        '<span class="home-collection-name">' + esc(collection.name) + '</span>' +
-        '<span class="home-collection-count">' + count + (count === 1 ? " ilan" : " ilan") + (count ? "" : " · yakında") + '</span>' +
-      '</a>';
-    }).join("");
-  }
-
-  function recommendationReason(l) {
-    const price = AI && typeof AI.priceBadge === "function" ? AI.priceBadge(l) : null;
-    if (price && price.key === "firsat") return "Piyasa tahminine göre avantajlı";
-    if (l.featured) return "Öne çıkarılan ilan";
-    if ((l.features || []).length >= 3) return "Özellikleri güçlü eşleşme";
-    return "Veri kapsamı yüksek ilan";
-  }
-
-  function renderRecommendation(list) {
-    const root = $("#dailyRecommendation");
-    if (!root) return;
-    if (!list.length) {
-      root.innerHTML = emptyState("Günün önerisi hazırlanıyor", "Her gün yayınlanan ilanlar arasından veri kapsamı ve piyasa sinyalleri güçlü olan bir ilan seçilecek.");
-      return;
-    }
-    const ranked = list.slice().sort((a, b) => aiScore(b) - aiScore(a) || new Date(b.date) - new Date(a.date));
-    const day = Math.floor(Date.now() / 86400000);
-    const l = ranked[day % ranked.length];
-    root.innerHTML = '<div class="home-recommendation-card">' +
-      '<div class="home-card-media">' + thumb(l) + '</div>' +
-      '<div class="home-card-body">' +
-        '<span class="home-ai-reason">✦ ' + esc(recommendationReason(l)) + '</span>' +
-        '<div class="home-card-price">' + priceText(l) + '</div>' +
-        '<div class="home-card-title">' + esc(l.title || "Başlıksız ilan") + '</div>' +
-        '<div class="home-card-meta"><span>AI ' + aiScore(l) + '/100</span><span>·</span><span>' + esc(l.kindLabel || "Taşınmaz") + '</span></div>' +
-        '<div class="home-card-location">📍 ' + esc([l.city, l.district].filter(Boolean).join(" / ")) + '</div>' +
-        '<a class="btn sm" href="ilan.html?id=' + encodeURIComponent(l.id) + '">İlanı İncele →</a>' +
-      '</div>' +
-    '</div>';
+    valuable.filter(isDeal).sort((a, b) => aiScore(b) - aiScore(a)).forEach((l) => push(l, "deal"));
+    safeList.filter(priceDrop).sort(byDate).forEach((l) => push(l, "drop"));
+    safeList.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).forEach((l) => push(l, "new"));
+    return { items: out, tag };
   }
 
   function renderAll(list) {
-    const safeList = (Array.isArray(list) ? list : []).filter((l) => l && l.id);
-    // AI vitrinleri (seçki, fırsat, günün önerisi) piyasa verisine dayanır;
-    // "Diğer" segmentinde değerleme yoktur → bu bloklara girmez. Son eklenenler
-    // ve kategori listelerinde görünmeye devam eder.
-    const valuable = safeList.filter((l) => (l.segment || "emlak") !== "diger");
-    renderLatest(safeList);
-    renderGrid($("#aiPicksGrid"), valuable.slice().sort((a, b) => aiScore(b) - aiScore(a) || Number(b.featured) - Number(a.featured)).slice(0, 6), { ai: true }, "AI seçkisi hazırlanıyor", "İlan verisi geldikçe güçlü fiyat ve özellik sinyalleri taşıyan ilanlar burada sıralanacak.");
-    renderGrid($("#dealGrid"), valuable.filter((l) => {
-      const badge = AI && typeof AI.priceBadge === "function" ? AI.priceBadge(l) : null;
-      return badge && badge.key === "firsat";
-    }).sort((a, b) => aiScore(b) - aiScore(a)).slice(0, 6), { deal: true }, "Fırsat sinyali bekleniyor", "AI fiyat karşılaştırması piyasanın altında kalan bir ilan tespit ettiğinde burada gösterecek.");
-    renderGrid($("#dropGrid"), safeList.filter((l) => priceDrop(l)).sort((a, b) => new Date(b.updated || b.date) - new Date(a.updated || a.date)).slice(0, 6), { drop: true }, "Fiyat değişikliği bekleniyor", "Fiyatı güncellenen ilanlar eski fiyatı ve indirim oranıyla burada görünecek.");
-    renderCollections(safeList);
-    renderRecommendation(valuable);
-    const status = $("#homeDataStatus");
-    if (status) status.textContent = safeList.length ? safeList.length + " gerçek ilan · vitrinler veri geldikçe otomatik güncellenir." : "Henüz yayınlanmış ilan yok · ilk ilanı siz verebilirsiniz.";
-  }
-
-  function bindRailControls() {
-    $$(".home-rail-control[data-rail=\"latest\"]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const viewport = $("#latestViewport");
-        if (!viewport) return;
-        const direction = button.dataset.direction === "prev" ? -1 : 1;
-        viewport.scrollBy({ left: direction * viewport.clientWidth * .84, behavior: "smooth" });
-      });
-    });
-  }
-
-  function bindQueryChips() {
-    $$(".home-query-chip[data-home-query]").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        const input = $("#aiQuery");
-        if (!input) return;
-        input.value = chip.dataset.homeQuery || chip.textContent.trim();
-        input.focus();
-      });
-    });
+    const root = $("#homeFeed");
+    if (!root) return;
+    const feed = feedOf(list);
+    root.innerHTML = feed.items.length
+      ? feed.items.map((l) => {
+          const why = feed.tag.get(l.id);
+          return card(l, { latest: why === "new", deal: why === "deal", drop: why === "drop", daily: why === "daily" });
+        }).join("")
+      : emptyState("İlk ilanlar burada görünecek", "Yayınlanan ilanlar geldikçe bu akış kendiliğinden dolar — ilk ilanı siz verebilirsiniz.");
   }
 
   document.addEventListener("click", (event) => {
@@ -327,8 +237,6 @@
   });
 
   async function boot() {
-    bindRailControls();
-    bindQueryChips();
     updateFavCount();
     if (!D || typeof D.init !== "function") {
       renderAll([]);
