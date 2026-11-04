@@ -52,6 +52,7 @@ function chrome(body, { title, desc, canonical, jsonld }) {
       <nav class="main-nav" id="mainNav">
         <a href="index.html">Ana Sayfa</a>
         <a href="ilanlar.html">İlanlar</a>
+        <a href="ihaleler.html">İhale</a>
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
       </nav>
@@ -215,6 +216,7 @@ fs.readdirSync(__dirname)
 const staticPages = [
   ["", "1.0", "daily"],
   ["ilanlar.html", "0.9", "daily"],
+  ["ihaleler.html", "0.8", "daily"],
   ["rehber.html", "0.8", "weekly"],
   ["ilan-ver.html", "0.7", "monthly"],
   ["giris.html", "0.4", "monthly"],

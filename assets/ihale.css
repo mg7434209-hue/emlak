@@ -1,0 +1,53 @@
+/* İhale (açık artırma) sayfaları — yalnız style.css değişkenleri */
+.auc-h { font-size: 1.25rem; margin: 26px 0 14px; letter-spacing: -.01em; }
+.auc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.auc-card { display: block; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); transition: transform .2s, box-shadow .2s; }
+.auc-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.auc-media { position: relative; aspect-ratio: 16 / 10; background: var(--surface-2); }
+.auc-media img { width: 100%; height: 100%; object-fit: cover; }
+.auc-noimg { display: grid; place-items: center; width: 100%; height: 100%; font-size: 3rem; color: var(--muted); }
+.auc-badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: .74rem; font-weight: 800; background: var(--surface-2); color: var(--text); }
+.auc-media .auc-badge { position: absolute; top: 10px; left: 10px; }
+.auc-badge.live { background: var(--over); color: var(--surface); }
+.auc-badge.soon { background: var(--accent); color: var(--surface); }
+.auc-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
+.auc-title { font-weight: 700; line-height: 1.3; }
+.auc-loc { color: var(--muted); font-size: .88rem; }
+.auc-price small { display: block; color: var(--muted); font-size: .76rem; }
+.auc-price b { font-size: 1.25rem; letter-spacing: -.02em; }
+.auc-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: .84rem; font-variant-numeric: tabular-nums; }
+.auc-how { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 20px 24px; }
+.auc-how ol { margin: 12px 0 16px 20px; display: grid; gap: 8px; }
+.auc-detail { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.auc-hero { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 16px; background: var(--surface-2); }
+.auc-left h1 { font-size: 1.6rem; margin: 16px 0 6px; letter-spacing: -.02em; }
+.auc-rules { margin-top: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 14px 18px; }
+.auc-rules ul { margin: 8px 0 0 18px; display: grid; gap: 6px; color: var(--muted); }
+.auc-panel { position: sticky; top: 84px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 18px; display: grid; gap: 14px; box-shadow: var(--shadow); }
+.auc-cdbox small, .auc-cur small { display: block; color: var(--muted); font-size: .8rem; }
+.auc-cd { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.auc-cd.hot { color: var(--over); }
+.auc-cur b { display: block; font-size: 2rem; letter-spacing: -.03em; }
+.auc-box { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; background: var(--bg); }
+.auc-box p { color: var(--muted); font-size: .92rem; }
+.auc-box.ok { border-color: var(--deal); }
+.auc-box.warn { border-color: var(--accent); }
+.auc-ref { background: var(--surface-2); padding: 2px 8px; border-radius: 6px; font-family: ui-monospace, monospace; }
+.auc-pre { white-space: pre-line; }
+.auc-leading { font-weight: 700; }
+.auc-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.auc-form { display: flex; gap: 8px; }
+.auc-form input { flex: 1; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 1.1rem; font-weight: 700; }
+.auc-flash { border-radius: 10px; padding: 10px 12px; background: color-mix(in srgb, var(--accent) 18%, var(--surface)); font-size: .92rem; }
+.auc-bids h3 { font-size: .95rem; margin-bottom: 6px; }
+.auc-bid { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 6px 0; border-top: 1px solid var(--border); font-size: .92rem; }
+.auc-bid.mine { font-weight: 700; }
+.auc-bid small { color: var(--muted); }
+.auc-admin { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 14px 16px; margin-bottom: 14px; display: grid; gap: 8px; }
+.auc-admin-act { display: flex; gap: 8px; flex-wrap: wrap; }
+.muted { color: var(--muted); }
+@media (max-width: 900px) {
+  .auc-detail { grid-template-columns: minmax(0, 1fr); }
+  .auc-panel { position: static; }
+  .auc-right { order: -1; }
+}

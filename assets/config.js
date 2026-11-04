@@ -917,6 +917,17 @@ EMLAK.config = {
   },
 
   // ── Yayın onayı (moderasyon) ────────────────────────────────────────────
+  // İHALE (açık artırma): UYAP usulü süre uzatma + iade edilebilir teminat.
+  // Teminat parası PİLOTTA sitede tutulmaz; yönetici havale/EFT'yi görünce onaylar.
+  auction: {
+    extendMin: 3,            // bitişe bu kadar dakikadan az kala gelen teklif süreyi tamamlar
+    maxExtendMin: 60,        // toplam uzatma üst sınırı (1 saat)
+    depositPctMin: 5,        // teminat = başlangıç bedelinin %5–%10'u
+    depositPctMax: 10,
+    minDurationHours: 1,
+    maxDurationDays: 30,
+    depositInfo: "",         // havale/EFT bilgisi (IBAN, alıcı). Boşsa yönetici size iletir.
+  },
   moderation: {
     seedStatus: "pending",
     adminAutoPublish: true,

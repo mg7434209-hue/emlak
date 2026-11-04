@@ -549,3 +549,18 @@ Nav 4 öğe: Ana Sayfa · İlanlar · Favoriler · İlan Ver. Yardım: `rehber.h
 Gerçek, kaynaklı veri gelmeden `enabled:true` YAPMA; açınca sayfa/menü/öneri düğmesi de geri eklenmeli.
 
 ## MARKA ADI (31 Eki 2026): site adı **İlan AI** (eski EmlakAI). localStorage anahtarları (`emlakai.*`) ve global `EMLAK` bilerek DEĞİŞMEDİ (oturum/favori kaybolmasın). Alan adı alınınca `config.seo.siteUrl` + server.js HOST_OK + `npm run build`.
+
+## İHALE (açık artırma) — auctions.js + assets/ihale.js (4 Kas 2026)
+Sayfalar: `ihaleler.html` (liste) · `ihale.html?id=` (canlı detay, 2,5 sn yoklama) · `ihale-olustur.html`
+(satıcı formu) · `ihale-yonetim.html` (yönetici: onay, teminat). Menüde "İhale". Depo `DATA_DIR/auctions.json`.
+- UYAP USULÜ UZATMA: bitişe `extendMin` (3) dk'dan az kala gelen teklif süreyi bitişten itibaren 3 dk'ya
+  tamamlar; toplam uzatma `maxExtendMin` (60). Sunucu saati esastır (istemci `serverNow` farkıyla sayar).
+- TEMİNAT = başlangıç bedelinin %5–%10'u (satıcı seçer), İADE EDİLEBİLİR: kaybedene iade (`refund_due`),
+  kazanana mahsup (`applied_pending`), kazanıp vazgeçene irat (`forfeited`). Teminatsız (yönetici onaysız) teklif yok.
+- PİLOT: teminat parası SİTEDE TUTULMAZ; üye "teminat talebi" açar (referans kodu `TMN-…`), yönetici havaleyi
+  görünce "Ödeme alındı" der. GERÇEK PARA için lisanslı ödeme kuruluşu (emanet/pazar yeri) + hukuk danışmanlığı şart;
+  `config.auction.depositInfo` havale bilgisi. Sonuç, tapu devri ve ödeme siteden DIŞARIDA yürür.
+- Kurallar: satıcı kendi ihalesine teklif veremez; önde olan kendini artıramaz; artış adımı; isteğe bağlı GİZLİ
+  asgari fiyat (karşılandı/karşılanmadı gösterilir, tutar sızmaz); teklif verenler maskeli ("A***t").
+  Yeni ihale yönetici onayına düşer (yönetici açarsa doğrudan yayında). İlan `active` olmalı.
+- Test için env: `AUCTION_EXT_MIN`, `AUCTION_MIN_HOURS` (yalnız tests/smoke.js kullanır).
