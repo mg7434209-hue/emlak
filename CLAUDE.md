@@ -564,3 +564,12 @@ Sayfalar: `ihaleler.html` (liste) · `ihale.html?id=` (canlı detay, 2,5 sn yokl
   asgari fiyat (karşılandı/karşılanmadı gösterilir, tutar sızmaz); teklif verenler maskeli ("A***t").
   Yeni ihale yönetici onayına düşer (yönetici açarsa doğrudan yayında). İlan `active` olmalı.
 - Test için env: `AUCTION_EXT_MIN`, `AUCTION_MIN_HOURS` (yalnız tests/smoke.js kullanır).
+- İHALE BİÇİMİ + BELGELER (4 Kas 2026): ihale sayfasında "İhale biçimi ve satış koşulları" kutusu. Kazanan, ihale
+  bitiminden itibaren `config.auction.payDays` (10) gün içinde kalan bedeli (tutar − teminat) öder ve tapu/devir
+  yapılır; ödenmezse teminat irat (`sale`: awaiting_payment → paid | defaulted). Yönetici "Kalan bedel ödendi / tapu tamam".
+  SATICI BELGELERİ ZORUNLU (`config.auction.docs`, segmente göre: tapu/ruhsat, takyidat/haciz-rehin, icra durumu).
+  Satıcı beyan kutusunu işaretler, ihale `pending` açılır, belgeleri yükler (PDF/JPG/PNG/WEBP ≤ 5 MB, imza denetimli),
+  yönetici hepsini görüp "Belgeleri onayla ve yayınla" der (eksik belgeyle onay 400). Belgeler `DATA_DIR/ihale-docs/`
+  altındadır, HERKESE AÇIK DEĞİL: yalnız satıcı ve yönetici `GET /api/auction/doc` ile (yetki başlığıyla) görür; onaydan
+  sonra değişmez. Herkese yalnız "belgeler incelenmiştir" rozeti görünür. Bu bir belge kontrolüdür, tapu/UYAP
+  sorgusu DEĞİL — otomatik doğrulama iddia etme. Volume yoksa belgeler de her dağıtımda silinir.

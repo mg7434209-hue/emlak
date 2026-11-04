@@ -27,6 +27,11 @@ function create(ctx) {
   const MIN_HOURS = +process.env.AUCTION_MIN_HOURS || AC.minDurationHours || 1;
   const MAX_DAYS = AC.maxDurationDays || 30;
   const STORE = path.join(DATA_DIR, "auctions.json");
+  const DOC_DIR = path.join(DATA_DIR, "ihale-docs");          // herkese AÇIK DEĞİL
+  const PAY_DAYS = AC.payDays || 10;
+  const DOC_MAX = (AC.docMaxMB || 5) * 1048576;
+  const DOC_TYPES = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  const DOC_DEFS = (seg) => ((AC.docs || {})[seg] || (AC.docs || {}).diger || []);
 
   function load() { try { return JSON.parse(fs.readFileSync(STORE, "utf8")); } catch (e) { return []; } }
   let AUCTIONS = load();
@@ -64,7 +69,8 @@ function create(ctx) {
     const top = topBid(a);
     const reserveMet = !a.reservePrice || (top && top.amount >= a.reservePrice);
     a.result = top
-      ? { winnerUid: top.uid, amount: top.amount, reserveMet: !!reserveMet, at: new Date().toISOString() }
+      ? { winnerUid: top.uid, amount: top.amount, reserveMet: !!reserveMet, at: new Date().toISOString(),
+          payDeadline: new Date(ms(a.endsAt) + PAY_DAYS * 86400000).toISOString(), sale: reserveMet ? "awaiting_payment" : "reserve_not_met" }
       : { winnerUid: null, amount: 0, reserveMet: false, at: new Date().toISOString() };
     Object.keys(a.deposits).forEach((uid) => {
       const d = a.deposits[uid];
@@ -93,9 +99,11 @@ function create(ctx) {
       depositPct: a.depositPct, depositAmount: a.depositAmount,
       hasReserve: !!a.reservePrice, reserveMet: a.reservePrice ? !!(top && top.amount >= a.reservePrice) : true,
       extended: a.extendedMin || 0, maxExtend: MAX_EXT_MIN, ext: EXT_MIN,
+      docsVerified: !!a.docsVerified, payDays: PAY_DAYS,
+      docLabels: DOC_DEFS(a.segment || (ctx.listing(a.listingId) || {}).segment).map((d) => d.label),
       serverNow: new Date().toISOString(),
     };
-    if (ph === "ended" && a.result) out.result = { amount: a.result.amount, reserveMet: a.result.reserveMet, hasWinner: !!a.result.winnerUid, winner: a.result.winnerUid ? mask((a.bids[a.bids.length - 1] || {}).name) : "" };
+    if (ph === "ended" && a.result) out.result = { payDeadline: a.result.payDeadline, sale: a.result.sale, amount: a.result.amount, reserveMet: a.result.reserveMet, hasWinner: !!a.result.winnerUid, winner: a.result.winnerUid ? mask((a.bids[a.bids.length - 1] || {}).name) : "" };
     if (full) {
       out.bids = a.bids.slice(-50).reverse().map((b) => ({ n: b.n, amount: b.amount, at: b.at, who: mask(b.name), mine: !!(u && b.uid === u.uid) }));
       out.depositInfo = AC.depositInfo || "";
@@ -105,15 +113,32 @@ function create(ctx) {
         out.myDeposit = d ? { status: d.status, ref: d.ref, amount: d.amount } : null;
         out.leading = !!(top && top.uid === u.uid);
         out.won = ph === "ended" && a.result && a.result.winnerUid === u.uid && a.result.reserveMet;
+        if (out.won) out.remaining = Math.max(0, a.result.amount - ((a.deposits[u.uid] || {}).amount || 0));
+      }
+      // Belgeler: yalnız satıcı ve yönetici görür
+      if (u && (u.uid === a.ownerId || u.role === "admin")) {
+        out.docs = docState(a);
+        out.docNote = a.docNote || "";
       }
     }
     return out;
   }
 
+  function docState(a) {
+    const seg = a.segment || (ctx.listing(a.listingId) || {}).segment;
+    return DOC_DEFS(seg).map((d) => {
+      const f = (a.docs || {})[d.key];
+      return { key: d.key, label: d.label, uploaded: !!f, name: f ? f.name : "", size: f ? f.size : 0, at: f ? f.at : "" };
+    });
+  }
+  const docsComplete = (a) => docState(a).every((d) => d.uploaded);
+
   const adminView = (a) => Object.assign(view(a, null, true), {
     state: a.state, ownerId: a.ownerId, ownerName: a.ownerName, reservePrice: a.reservePrice || 0, created: a.created,
     deposits: Object.keys(a.deposits).map((uid) => Object.assign({ uid }, a.deposits[uid])),
     winnerUid: a.result ? a.result.winnerUid : null,
+    docs: docState(a), docNote: a.docNote || "", sale: a.result ? a.result.sale : "", payDeadline: a.result ? a.result.payDeadline : "",
+    declared: !!a.declaration,
   });
 
   const intIn = (v, lo, hi) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= lo && n <= hi ? n : NaN; };
@@ -162,6 +187,7 @@ function create(ctx) {
       if (AUCTIONS.some((a) => a.listingId === l.id && a.state !== "ended" && a.state !== "cancelled")) {
         return sendJson(res, 409, { error: "Bu ilan için zaten açık bir ihale var." });
       }
+      if (b.declare !== true) return sendJson(res, 400, { error: "İhaleye çıkmak için, konunun üzerinde icra, haciz veya ihtiyati tedbir bulunmadığını ve satmaya yetkili olduğunuzu beyan etmeniz gerekir." });
       const startPrice = intIn(b.startPrice, 1000, 1e11);
       const minStep = intIn(b.minStep, 100, 1e10);
       const depositPct = intIn(b.depositPct, PCT_MIN, PCT_MAX);
@@ -180,11 +206,55 @@ function create(ctx) {
         city: l.city, district: l.district, segment: l.segment,
         startPrice, minStep, depositPct, depositAmount: Math.round(startPrice * depositPct / 100), reservePrice: reserve || 0,
         startsAt: new Date(s).toISOString(), endsAt: new Date(e).toISOString(), extendedMin: 0,
-        state: admin ? "approved" : "pending", bids: [], deposits: {}, created: new Date().toISOString(),
+        state: "pending", docs: {}, docsVerified: false, declaration: { at: new Date().toISOString(), by: u.uid },
+        bids: [], deposits: {}, created: new Date().toISOString(),
       };
       AUCTIONS.unshift(a);
       save();
-      return sendJson(res, 200, { ok: true, aid: a.aid, pending: a.state === "pending" });
+      return sendJson(res, 200, { ok: true, aid: a.aid, pending: true, needDocs: true });
+    }
+
+    // POST /api/auction/doc {id, key, name, data:"data:...;base64,..."} — satıcı belge yükler (yalnız onay öncesi)
+    if (urlPath === "/api/auction/doc" && req.method === "POST") {
+      const u = currentUser(req);
+      if (!u) return sendJson(res, 401, { error: "Giriş yapın." });
+      if (!rateLimit(req, "aucdoc", 30, 60 * 60 * 1000)) return sendJson(res, 429, { error: "Çok fazla yükleme. Biraz sonra tekrar deneyin." });
+      let b; try { b = await readBody(req, Math.ceil(DOC_MAX * 1.4) + 4096); } catch (e) { return sendJson(res, 413, { error: "Dosya çok büyük (en fazla " + (AC.docMaxMB || 5) + " MB)." }); }
+      const a = AUCTIONS.find((x) => x.aid === b.id);
+      if (!a || (a.ownerId !== u.uid && !isAdminReq(req))) return sendJson(res, 403, { error: "Yetkisiz." });
+      if (a.state !== "pending") return sendJson(res, 400, { error: "Onaylanmış ihalenin belgeleri değiştirilemez." });
+      const def = docState(a).find((d) => d.key === b.key);
+      if (!def) return sendJson(res, 400, { error: "Geçersiz belge türü." });
+      const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/.exec(String(b.data || ""));
+      if (!m || !DOC_TYPES[m[1]]) return sendJson(res, 400, { error: "Yalnızca PDF, JPG, PNG ya da WEBP yükleyebilirsiniz." });
+      const buf = Buffer.from(m[2], "base64");
+      if (!buf.length || buf.length > DOC_MAX) return sendJson(res, 413, { error: "Dosya çok büyük (en fazla " + (AC.docMaxMB || 5) + " MB)." });
+      // içerik imzası: uzantı/MIME yalan söylemesin
+      const sig = buf.slice(0, 4).toString("latin1");
+      const okSig = (m[1] === "application/pdf" && sig.startsWith("%PDF")) || (m[1] === "image/png" && buf[0] === 0x89 && sig.slice(1, 4) === "PNG") ||
+        (m[1] === "image/jpeg" && buf[0] === 0xff && buf[1] === 0xd8) || (m[1] === "image/webp" && sig === "RIFF");
+      if (!okSig) return sendJson(res, 400, { error: "Dosya içeriği seçilen biçimle uyuşmuyor." });
+      fs.mkdirSync(DOC_DIR, { recursive: true });
+      const file = a.aid + "-" + b.key + "." + DOC_TYPES[m[1]];
+      const old = (a.docs || {})[b.key];
+      if (old && old.file !== file) { try { fs.unlinkSync(path.join(DOC_DIR, old.file)); } catch (e) { /* yok */ } }
+      fs.writeFileSync(path.join(DOC_DIR, file), buf);
+      a.docs = a.docs || {};
+      a.docs[b.key] = { file, mime: m[1], name: str(b.name, 80) || file, size: buf.length, at: new Date().toISOString() };
+      a.docNote = "";
+      save();
+      return sendJson(res, 200, { ok: true, docs: docState(a) });
+    }
+    // GET /api/auction/doc?id=&key= — belgeyi yalnız satıcı ve yönetici indirir
+    if (urlPath === "/api/auction/doc" && req.method === "GET") {
+      const u = currentUser(req);
+      const a = AUCTIONS.find((x) => x.aid === q.get("id"));
+      if (!a || !((u && u.uid === a.ownerId) || isAdminReq(req))) return sendJson(res, 403, { error: "Yetkisiz." });
+      const f = (a.docs || {})[q.get("key")];
+      if (!f) return sendJson(res, 404, { error: "Belge yok." });
+      let data; try { data = fs.readFileSync(path.join(DOC_DIR, path.basename(f.file))); } catch (e) { return sendJson(res, 404, { error: "Dosya bulunamadı." }); }
+      res.writeHead(200, { "Content-Type": f.mime, "Content-Length": data.length, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Disposition": "inline" });
+      return res.end(data);
     }
 
     // POST /api/auction/deposit {id} — teminat talebi (referans kodu üretir)
@@ -257,7 +327,16 @@ function create(ctx) {
       if (!a) return sendJson(res, 404, { error: "İhale bulunamadı." });
       const dep = b.uid ? a.deposits[b.uid] : null;
       switch (b.action) {
-        case "approve": if (a.state === "pending") a.state = "approved"; break;
+        case "approve":
+          if (a.state !== "pending") break;
+          if (!docsComplete(a)) return sendJson(res, 400, { error: "Zorunlu belgelerin tümü yüklenmeden ihale onaylanamaz." });
+          a.state = "approved"; a.docsVerified = true; a.docNote = ""; break;
+        case "reject-docs": a.docNote = str(b.note, 400) || "Belgeler yetersiz; lütfen yeniden yükleyin."; break;
+        case "sale-paid":
+          if (!a.result || a.result.sale !== "awaiting_payment") return sendJson(res, 400, { error: "Ödeme bekleyen satış yok." });
+          a.result.sale = "paid";
+          { const w = a.deposits[a.result.winnerUid]; if (w && w.status === "applied_pending") w.status = "applied"; }
+          break;
         case "cancel":
           if (a.bids.length && phase(a) === "live") return sendJson(res, 400, { error: "Teklif almış canlı ihale iptal edilemez." });
           a.state = "cancelled";
@@ -267,7 +346,7 @@ function create(ctx) {
         case "deposit-refunded": if (dep && dep.status === "refund_due") dep.status = "refunded"; break;
         case "deposit-applied": if (dep && dep.status === "applied_pending") dep.status = "applied"; break;
         // Kazanan vazgeçti: teminat irat, ihale sonucu boşa düşer
-        case "deposit-forfeit": if (dep && dep.status === "applied_pending") { dep.status = "forfeited"; if (a.result) a.result.defaulted = true; } break;
+        case "deposit-forfeit": if (dep && dep.status === "applied_pending") { dep.status = "forfeited"; if (a.result) { a.result.defaulted = true; a.result.sale = "defaulted"; } } break;
         default: return sendJson(res, 400, { error: "Geçersiz işlem." });
       }
       save();
