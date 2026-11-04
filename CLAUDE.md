@@ -573,3 +573,8 @@ Sayfalar: `ihaleler.html` (liste) · `ihale.html?id=` (canlı detay, 2,5 sn yokl
   altındadır, HERKESE AÇIK DEĞİL: yalnız satıcı ve yönetici `GET /api/auction/doc` ile (yetki başlığıyla) görür; onaydan
   sonra değişmez. Herkese yalnız "belgeler incelenmiştir" rozeti görünür. Bu bir belge kontrolüdür, tapu/UYAP
   sorgusu DEĞİL — otomatik doğrulama iddia etme. Volume yoksa belgeler de her dağıtımda silinir.
+- GERÇEK DEĞER VE MALİYET (4 Kas 2026): ihale açarken satıcı ürünün gerçek (piyasa/ekspertiz) değerini, değer dayanağını,
+  KDV / tapu harcı / emlakçı komisyonu oranlarını (%) girer. İhale sayfası "başlangıç gerçek değerin %X altında",
+  güncel tekliften tahmini KDV+harç+komisyon ve toplam maliyeti gösterir; liste kartında indirim yüzdesi çıkar.
+  Bunlar SATICI BEYANIDIR, doğrulanmaz — sayfada öyle yazılır; "piyasa fiyatı" diye kesin iddia etme. Oranlar için
+  mevzuat bilgisi koda gömülmez (tapu harcı varsayılanı 2 yalnız form ön değeri, satıcı değiştirir).

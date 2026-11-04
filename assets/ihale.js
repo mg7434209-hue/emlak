@@ -47,6 +47,14 @@
     const p = (n) => String(n).padStart(2, "0");
     return (d ? d + " gün " : "") + p(h) + ":" + p(m) + ":" + p(x);
   }
+  // "Gerçek değere göre yüzde kaç altında" (satıcı beyanı)
+  function discText(a, price) {
+    if (!a.marketValue) return "";
+    const pct = Math.round((1 - price / a.marketValue) * 1000) / 10;
+    if (pct > 0) return "Gerçek değerin %" + String(pct).replace(".", ",") + " altında";
+    if (pct < 0) return "Beyan edilen değerin %" + String(-pct).replace(".", ",") + " üzerinde";
+    return "Beyan edilen değere eşit";
+  }
   const PHASE = { live: ["Canlı", "live"], scheduled: ["Yaklaşan", "soon"], ended: ["Sona erdi", "end"], pending: ["Onay bekliyor", "soon"], cancelled: ["İptal", "end"] };
 
   // ── Liste ───────────────────────────────────────────────────────────────
@@ -59,6 +67,7 @@
       '<span class="auc-badge ' + ph[1] + '">' + ph[0] + '</span></div>' +
       '<div class="auc-body"><div class="auc-title">' + esc(a.title) + '</div>' +
       '<div class="auc-loc">📍 ' + esc([a.city, a.district].filter(Boolean).join(" / ") || "—") + '</div>' +
+      (a.marketValue ? '<div class="auc-disc">' + discText(a, a.startPrice) + "</div>" : "") +
       '<div class="auc-price"><small>' + (a.bidCount ? "Güncel teklif" : "Başlangıç bedeli") + '</small><b>' + money(a.current) + '</b></div>' +
       '<div class="auc-meta"><span>' + a.bidCount + ' teklif</span><span data-cd="' + esc(target) + '" data-phase="' + a.phase + '"></span></div></div></a>';
   }
@@ -98,6 +107,21 @@
       if (!j.__ok) { root.innerHTML = '<div class="home-empty"><b>İhale bulunamadı</b><a class="btn" href="ihaleler.html">İhalelere dön</a></div>'; return false; }
       syncClock(j.serverNow); a = j; return true;
     };
+    function valueBox() {
+      if (!a.marketValue) return "";
+      const p = a.current, fee = (pct) => Math.round(p * pct / 100);
+      const rows = [["KDV (%" + a.vatPct + ")", fee(a.vatPct), a.vatPct], ["Tapu harcı (%" + a.deedPct + ")", fee(a.deedPct), a.deedPct], ["Emlakçı komisyonu (%" + a.commissionPct + ")", fee(a.commissionPct), a.commissionPct]];
+      const extra = rows.reduce((t, r) => t + r[1], 0);
+      return '<div class="auc-format auc-value"><h3>Değer ve tahmini maliyet</h3>' +
+        '<div class="auc-vrow"><span>Gerçek (piyasa) değer' + (a.valueBasis ? ' <small class="muted">(' + esc(a.valueBasis) + ')</small>' : "") + '</span><b>' + money(a.marketValue) + '</b></div>' +
+        '<div class="auc-vrow"><span>Başlangıç bedeli</span><b>' + money(a.startPrice) + '</b></div>' +
+        '<div class="auc-disc big">' + discText(a, a.startPrice) + ' <small>(başlangıçta)</small></div>' +
+        (a.bidCount ? '<div class="auc-disc big">' + discText(a, a.current) + ' <small>(güncel teklifle)</small></div>' : "") +
+        '<h4>' + (a.bidCount ? "Güncel teklifle" : "Başlangıç bedeliyle") + " tahmini ek giderler</h4>" +
+        rows.map((r) => '<div class="auc-vrow"><span>' + r[0] + '</span><b>' + (r[2] ? money(r[1]) : "yok") + "</b></div>").join("") +
+        '<div class="auc-vrow tot"><span>Tahmini toplam maliyet</span><b>' + money(p + extra) + "</b></div>" +
+        '<small class="muted">Gerçek değer ve oranlar satıcı beyanıdır; İlan AI doğrulamaz. Oranlar tutar üzerinden hesaplanmıştır, güncel mevzuata ve işleme göre değişebilir; işlem öncesi noter/tapu/vergi danışmanınızla teyit edin.</small></div>';
+    }
     function formatBox() {
       return '<div class="auc-format"><h3>İhale biçimi ve satış koşulları</h3><ol>' +
         '<li><b>Açık artırma:</b> Teklifler herkese açık, en yüksek teklif kazanır. Son ' + a.ext + ' dakikada gelen teklif süreyi uzatır.</li>' +
@@ -167,7 +191,7 @@
         '<li>Teminat: başlangıç bedelinin %' + a.depositPct + '’i (' + money(a.depositAmount) + '), iade edilebilir.</li>' +
         (a.hasReserve ? '<li>Gizli asgari satış fiyatı vardır: ' + (a.reserveMet ? "karşılandı" : "henüz karşılanmadı") + '.</li>' : "") +
         '<li>Teklifler bağlayıcıdır; kazanıp vazgeçenin teminatı irat kaydedilir.</li></ul></div>' +
-        formatBox() + '</div>' +
+        valueBox() + formatBox() + '</div>' +
         '<div class="auc-right"><div class="auc-panel"><span class="auc-badge ' + ph[1] + '">' + ph[0] + '</span>' +
         '<div class="auc-cdbox"><small>' + (a.phase === "scheduled" ? "Açılışa kalan" : a.phase === "live" ? "Kalan süre" : "") + '</small>' +
         '<div class="auc-cd" id="aucCd" data-cd="' + esc(target) + '" data-phase="' + a.phase + '"></div>' + (a.extended ? '<small class="muted">Toplam ' + Math.round(a.extended) + ' dk uzatıldı</small>' : "") + '</div>' +
@@ -238,6 +262,8 @@
     root.innerHTML =
       '<div class="form-grid">' +
       '<div class="full"><label for="aListing">İhaleye çıkacak ilan</label><select id="aListing">' + ls.map((l) => '<option value="' + esc(l.id) + '" data-price="' + (l.price || 0) + '"' + (l.id === pre ? " selected" : "") + ">" + esc(l.title) + " — " + money(l.price) + "</option>").join("") + "</select></div>" +
+      '<div><label for="aMarket">Gerçek (piyasa / ekspertiz) değeri (₺)</label><input id="aMarket" type="text" inputmode="numeric"><small id="aDisc" class="muted"></small></div>' +
+      '<div><label for="aBasis">Değer dayanağı <small>isteğe bağlı</small></label><input id="aBasis" type="text" maxlength="80" placeholder="Örn. ekspertiz raporu, emsal satışlar"></div>' +
       '<div><label for="aStart">Başlangıç bedeli (₺)</label><input id="aStart" type="text" inputmode="numeric"></div>' +
       '<div><label for="aStep">Teklif artış adımı (₺)</label><input id="aStep" type="text" inputmode="numeric"></div>' +
       '<div><label for="aPct">Teminat oranı</label><select id="aPct">' + [5, 6, 7, 8, 9, 10].map((p) => '<option value="' + p + '">%' + p + "</option>").join("") + "</select><small id=\"aDep\" class=\"muted\"></small></div>" +
@@ -246,6 +272,9 @@
       '<div><label for="aDur">İhale süresi</label><select id="aDur"><option value="3" selected>3 gün</option><option value="4">4 gün</option><option value="5">5 gün</option><option value="0">Özel tarih seç…</option></select>' +
       '<input id="aTo" type="datetime-local" value="' + lt(end0) + '" hidden><small id="aEnd" class="muted"></small></div>' +
       '<div class="full"><p class="muted">Son 3 dakikada gelen teklifler süreyi uzatır (toplam en çok 1 saat). İhale yönetici onayından sonra yayınlanır. Teklif verenler başlangıç bedelinin seçtiğiniz oranı kadar iade edilebilir teminat yatırır.</p></div>' +
+      '<div><label for="aVat">KDV oranı (%)</label><input id="aVat" type="text" inputmode="decimal" value="0"><small class="muted">Satışa KDV uygulanmıyorsa 0</small></div>' +
+      '<div><label for="aDeed">Tapu harcı oranı (%)</label><input id="aDeed" type="text" inputmode="decimal" value="2"><small class="muted">Alıcıya düşen pay; mevzuattan teyit edin</small></div>' +
+      '<div><label for="aComm">Emlakçı komisyonu (%)</label><input id="aComm" type="text" inputmode="decimal" value="0"><small class="muted">Yoksa 0</small></div>' +
       '<div class="full"><label class="auc-check"><input type="checkbox" id="aDecl"> Konu üzerinde icra, haciz veya ihtiyati tedbir bulunmadığını ve satmaya yetkili olduğumu beyan ederim.</label>' +
       '<p class="muted">İhale oluşturduktan sonra tapu/ruhsat, takyidat ve icra durumu belgelerini yükleyeceksiniz. Yönetici belgeleri inceleyip onaylamadan ihale yayına girmez. Kazanan, ihale bitiminden itibaren 10 gün içinde kalan bedeli öder ve tapu/devir yapılır.</p></div>' +
       '<div class="full"><div id="aErr" class="auc-flash" hidden></div><button class="btn" id="aSend">İhaleyi oluştur</button></div></div>';
@@ -255,7 +284,12 @@
       $("#aStart").value = fmt(price || 0); $("#aStep").value = fmt(Math.max(1000, Math.round(price * 0.01 / 1000) * 1000));
       dep();
     };
-    const dep = () => { $("#aDep").textContent = "Teminat: " + money(num("#aStart") * (+$("#aPct").value) / 100); };
+    const disc = () => {
+      const m = num("#aMarket"), sp = num("#aStart");
+      const pct = m ? Math.round((1 - sp / m) * 1000) / 10 : 0;
+      $("#aDisc").textContent = m && sp ? (pct > 0 ? "Başlangıç bedeli gerçek değerin %" + String(pct).replace(".", ",") + " altında" : pct < 0 ? "Başlangıç bedeli gerçek değerin üzerinde" : "") : "";
+    };
+    const dep = () => { disc(); $("#aDep").textContent = "Teminat: " + money(num("#aStart") * (+$("#aPct").value) / 100); };
     const endOf = () => {
       const days = +$("#aDur").value;
       const from = new Date($("#aFrom").value);
@@ -267,12 +301,13 @@
       $("#aEnd").textContent = Number.isFinite(e.getTime()) ? "Kapanış: " + dt(e.toISOString()) : "";
     };
     $("#aDur").onchange = showEnd; $("#aFrom").onchange = showEnd; $("#aTo").onchange = showEnd; showEnd();
-    $("#aListing").onchange = fill; $("#aPct").onchange = dep; $("#aStart").oninput = dep; fill();
+    $("#aListing").onchange = fill; $("#aMarket").oninput = dep; $("#aPct").onchange = dep; $("#aStart").oninput = dep; fill();
     $("#aSend").onclick = async () => {
       const err = $("#aErr"); err.hidden = true;
       const r = await post("api/auction/create", {
         listingId: $("#aListing").value, startPrice: num("#aStart"), minStep: num("#aStep"), depositPct: +$("#aPct").value,
-        declare: $("#aDecl").checked, reservePrice: num("#aRes") || 0, startsAt: new Date($("#aFrom").value).toISOString(), endsAt: endOf().toISOString(),
+        declare: $("#aDecl").checked, marketValue: num("#aMarket"), valueBasis: $("#aBasis").value,
+        vatPct: $("#aVat").value.trim(), deedPct: $("#aDeed").value.trim(), commissionPct: $("#aComm").value.trim(), reservePrice: num("#aRes") || 0, startsAt: new Date($("#aFrom").value).toISOString(), endsAt: endOf().toISOString(),
       });
       if (!r.__ok) { err.textContent = r.error || "İhale oluşturulamadı."; err.hidden = false; return; }
       root.innerHTML = '<div class="home-empty"><b>İhaleniz oluşturuldu — şimdi belgeleri yükleyin</b><span>Zorunlu belgeler yüklenip yönetici onayladığında ihale yayına girer.</span><a class="btn" href="ihale.html?id=' + encodeURIComponent(r.aid) + '">Belgeleri yükle</a></div>';

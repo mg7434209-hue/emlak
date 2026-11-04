@@ -60,3 +60,9 @@
 .auc-up { cursor: pointer; padding: 6px 12px; white-space: nowrap; }
 .auc-check { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; }
 .auc-check input { margin-top: 4px; }
+
+.auc-disc { color: var(--deal); font-weight: 700; font-size: .86rem; }
+.auc-disc.big { font-size: 1.05rem; }
+.auc-vrow { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); font-size: .94rem; }
+.auc-vrow.tot { font-size: 1.05rem; border-top: 2px solid var(--text); margin-top: 4px; }
+.auc-value h4 { margin: 12px 0 2px; font-size: .92rem; }

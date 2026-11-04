@@ -100,6 +100,7 @@ function create(ctx) {
       hasReserve: !!a.reservePrice, reserveMet: a.reservePrice ? !!(top && top.amount >= a.reservePrice) : true,
       extended: a.extendedMin || 0, maxExtend: MAX_EXT_MIN, ext: EXT_MIN,
       docsVerified: !!a.docsVerified, payDays: PAY_DAYS,
+      marketValue: a.marketValue || 0, valueBasis: a.valueBasis || "", vatPct: a.vatPct || 0, deedPct: a.deedPct || 0, commissionPct: a.commissionPct || 0,
       docLabels: DOC_DEFS(a.segment || (ctx.listing(a.listingId) || {}).segment).map((d) => d.label),
       serverNow: new Date().toISOString(),
     };
@@ -191,6 +192,11 @@ function create(ctx) {
       const startPrice = intIn(b.startPrice, 1000, 1e11);
       const minStep = intIn(b.minStep, 100, 1e10);
       const depositPct = intIn(b.depositPct, PCT_MIN, PCT_MAX);
+      const marketValue = intIn(b.marketValue, 1000, 1e11);
+      if (!marketValue) return sendJson(res, 400, { error: "Ürünün gerçek (piyasa / ekspertiz) değerini yazın." });
+      const pctIn = (v, hi) => { if (v === "" || v == null) return 0; const n = Number(String(v).replace(",", ".")); return Number.isFinite(n) && n >= 0 && n <= hi ? Math.round(n * 100) / 100 : NaN; };
+      const vatPct = pctIn(b.vatPct, 30), deedPct = pctIn(b.deedPct, 10), commissionPct = pctIn(b.commissionPct, 10);
+      if ([vatPct, deedPct, commissionPct].some(Number.isNaN)) return sendJson(res, 400, { error: "KDV, tapu harcı ve komisyon oranları geçersiz." });
       const reserve = b.reservePrice ? intIn(b.reservePrice, startPrice || 0, 1e11) : 0;
       if (!startPrice) return sendJson(res, 400, { error: "Başlangıç bedeli geçersiz." });
       if (!minStep) return sendJson(res, 400, { error: "Teklif artış adımı en az 100 ₺ olmalı." });
@@ -204,6 +210,7 @@ function create(ctx) {
       const a = {
         aid: rid("IH"), listingId: l.id, ownerId: l.ownerId || u.uid, ownerName: u.name, title: str(l.title, 120),
         city: l.city, district: l.district, segment: l.segment,
+        marketValue, valueBasis: str(b.valueBasis, 80), vatPct, deedPct, commissionPct,
         startPrice, minStep, depositPct, depositAmount: Math.round(startPrice * depositPct / 100), reservePrice: reserve || 0,
         startsAt: new Date(s).toISOString(), endsAt: new Date(e).toISOString(), extendedMin: 0,
         state: "pending", docs: {}, docsVerified: false, declaration: { at: new Date().toISOString(), by: u.uid },

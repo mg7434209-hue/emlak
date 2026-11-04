@@ -161,11 +161,13 @@ const daire = (over) => Object.assign({
   });
   await t("İHALE: teminat şart, adım/uzatma kuralları, kendi ihalene teklif yok, maskeli isim", async () => {
     const soon = (m) => new Date(Date.now() + m * 60000).toISOString();
-    const base = { declare: true, listingId: id1, startPrice: 1000000, minStep: 10000, depositPct: 5, startsAt: soon(0), endsAt: soon(0.8) };
+    const base = { declare: true, marketValue: 1250000, vatPct: "0", deedPct: "2", commissionPct: "2", listingId: id1, startPrice: 1000000, minStep: 10000, depositPct: 5, startsAt: soon(0), endsAt: soon(0.8) };
     assert.strictEqual((await post("api/auction/create", base, hA)).s, 403, "başkasının ilanı");
     assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { declare: false }), hS)).s, 400, "beyan şart");
     assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { depositPct: 3 }), hS)).s, 400, "teminat %5 altı");
     assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { depositPct: 11 }), hS)).s, 400, "teminat %10 üstü");
+    assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { marketValue: 0 }), hS)).s, 400, "gerçek değer şart");
+    assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { deedPct: "55" }), hS)).s, 400, "oran sınırı");
     const c = await post("api/auction/create", base, hS);
     assert.strictEqual(c.s, 200, JSON.stringify(c.j)); assert.ok(c.j.pending);
     const aid = c.j.aid;
@@ -198,6 +200,7 @@ const daire = (over) => Object.assign({
     assert.ok(!JSON.stringify(det).includes("deposits") && !JSON.stringify(det).includes("ownerId"), "iç alan sızdı");
     assert.ok(!det.docs, "belgeler başkasına görünüyor");
     assert.strictEqual(det.docsVerified, true);
+    assert.strictEqual(det.marketValue, 1250000); assert.strictEqual(det.deedPct, 2); assert.strictEqual(det.commissionPct, 2);
     assert.ok((await call("api/auction/doc?id=" + aid + "&key=tapu", {}, { "X-Admin-Token": adm })).s === 200, "yönetici belgeyi göremiyor");
   });
   await t("yetkisiz yönetici uçları kapalı", async () => {
