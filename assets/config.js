@@ -968,8 +968,8 @@ EMLAK.config = {
     targetKB: 320,          // istemcinin hedeflediği fotoğraf başına boyut
     preferWebp: true,       // destekleniyorsa WebP (JPEG'e göre ~%40 küçük)
     maxStoredKB: 900,       // sunucunun kabul ettiği fotoğraf başına üst sınır
-    accept: ["image/jpeg", "image/png", "image/webp"],
-    acceptLabel: "JPG · PNG · WEBP",
+    accept: ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/x-ms-bmp"],
+    acceptLabel: "JPG · PNG · WEBP · BMP",
     quota: {
       perListingMB: 6,      // tek ilanın tüm fotoğrafları (12 × ~320 KB + pay)
       perUserMB: 40,        // bir üyenin tüm ilanları toplamı

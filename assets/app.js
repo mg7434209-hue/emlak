@@ -224,8 +224,8 @@
   // Kurallar TEK KAYNAK config.upload'tan gelir (adet, biçim, boyut, çözünürlük).
   const UPC = C.upload || {};
   const UP_MAX = UPC.maxPhotos || 6;
-  const UP_TYPES = UPC.accept || ["image/jpeg", "image/png", "image/webp"];
-  const UP_LABEL = UPC.acceptLabel || "JPG · PNG · WEBP";
+  const UP_TYPES = UPC.accept || ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/x-ms-bmp"];
+  const UP_LABEL = UPC.acceptLabel || "JPG · PNG · WEBP · BMP";
   const UP_MAX_MB = UPC.maxFileMB || 15;
   const LISTING_KB = ((UPC.quota && UPC.quota.perListingMB) || 5) * 1024; // ilan başına depolama bütçesi
   const photoAccept = () => UP_TYPES.join(",");
@@ -320,7 +320,7 @@
         continue;
       }
       const type = (file.type || "").toLowerCase();
-      const extOk = /\.(jpe?g|png|webp)$/i.test(name);
+      const extOk = /\.(jpe?g|png|webp|bmp)$/i.test(name);
       if (type ? UP_TYPES.indexOf(type) < 0 : !extOk) {
         errors.push(`“${name}” desteklenmeyen bir biçimde. İzin verilenler: ${UP_LABEL}.`);
         continue;
@@ -2249,7 +2249,7 @@
             msgs.push(`“${name}” iPhone HEIC biçiminde; tarayıcı açamıyor. Ayarlar › Kamera › Biçimler › “En Uyumlu” seçip yeniden çekin.`);
             continue;
           }
-          if (UP_TYPES.indexOf((file.type || "").toLowerCase()) < 0 && !/\.(jpe?g|png|webp)$/i.test(name)) {
+          if (UP_TYPES.indexOf((file.type || "").toLowerCase()) < 0 && !/\.(jpe?g|png|webp|bmp)$/i.test(name)) {
             msgs.push(`“${name}” desteklenmeyen biçim (${UP_LABEL}).`); continue;
           }
           if (file.size > UP_MAX_MB * 1024 * 1024) { msgs.push(`“${name}” ${UP_MAX_MB} MB sınırını aşıyor.`); continue; }
