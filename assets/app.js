@@ -2276,7 +2276,7 @@
       // ve metin baştan çözümlenir; bilgiler tamamlanınca ilan KENDİLİĞİNDEN
       // hazırlanır (stRun). Gönderim yine kullanıcının onayıyla olur.
       const CH = ST.chat;
-      const MINP = SC.minPhotos || 4;
+      const MINP = SC.minPhotos || 2;
       const convo = { text: "", asked: new Set(), tries: {}, cur: null, prev: null, started: false, done: false };
       const chatBox = $("#stChat");
       const cctx = () => ({ asked: convo.asked, photos: stIn.length, minPhotos: MINP });

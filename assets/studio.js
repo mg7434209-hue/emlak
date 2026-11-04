@@ -62,7 +62,10 @@
 
   // Fiyat: anahtar sözcük yakınındaki tutar önce; aidat/depozito/kira geliri hariç.
   function findPrice(q) {
-    const clean = q.replace(/aidat[^\n.;,]{0,25}/g, " ").replace(/depozito[^\n.;,]{0,25}/g, " ")
+    // "m² fiyatı: 2.059 TL/m2" birim fiyattır, ilan fiyatı değil
+    const clean = q.replace(/(?:m2|m²|metrekare|birim)\s*fiyat[a-z]*\s*[:=]?\s*\d+(?:[.,]\d+)?\s*(?:tl|try|lira|₺)?\s*(?:\/\s*m2)?/g, " ")
+      .replace(/\d+(?:[.,]\d+)?\s*(?:tl|try|lira|₺)\s*\/\s*m2/g, " ")
+      .replace(/aidat[^\n.;,]{0,25}/g, " ").replace(/depozito[^\n.;,]{0,25}/g, " ")
       .replace(/kira getirisi[^\n.;,]{0,25}/g, " ").replace(/\d+(?:[.,]\d+)?\s*(?:m2|m²|metrekare|km|donum|dekar)\b/g, " ");
     const AMT = "(\\d+(?:[.,]\\d+)?)\\s*(milyon|myn|bin|m|k)?(?![a-z0-9])";
     const near = clean.match(new RegExp("(?:fiyat[a-z]*|satis bedeli|kira bedeli|kirasi|bedel)\\s*[:=]?\\s*" + AMT));
@@ -172,6 +175,16 @@
     const loc = findLocation(q);                         // konum: sözcük sınırıyla
     const r = { segment: f.segment || "", kind: f.kind || "", category: f.category || "",
       city: loc.city || "", district: loc.district || "", details: {}, features: (f.features || []).slice() };
+    // Taşınmaz ipuçları araç sözcüğünden (ör. "araç takası") güçlüdür:
+    // "villa arsası" villa DEĞİL arsadır; km/model yılı yoksa araç ilanı sayılmaz.
+    const estateHint = /\b(arsa\w*|tarla\w*|daire\w*|villa\w*|dukkan\w*|imar\w*|parsel\w*|tapu\w*|kat mulkiyet\w*)\b/.test(q);
+    const vehicleHard = /\b\d[\d.]*\s*km\b|\b(?:19|20)\d\d\s*model\b/.test(q);
+    if (estateHint && !vehicleHard) {
+      r.segment = "emlak";
+      ["brand", "model", "fuel", "gear"].forEach((k) => { f[k] = ""; });
+      if (/\b(arsa\w*|parsel\w*)\b/.test(q) && !/\b(daire|dukkan|ofis)\b/.test(q)) r.kind = /\btarla\b/.test(q) ? "tarla" : "arsa";
+      else if (r.kind && (kindsOf().find((k) => k.kind === r.kind) || {}).segment === "vasita") r.kind = "";
+    }
     if (!r.segment && r.kind) r.segment = (kindsOf().find((k) => k.kind === r.kind) || {}).segment || "";
     if (/\b(kiralik|kiraya|aylik kira|kira bedeli)\b/.test(q)) r.category = "kiralik";
     else if (/\b(satilik|satiyorum|satisa|satis bedeli|satilir)\b/.test(q)) r.category = "satilik";
@@ -222,6 +235,8 @@
       if (brut) r.m2 = +brut[1];
       if (net) r.m2Net = +net[1];
       if (!r.m2 && any) r.m2 = +any[1];
+      const lead = q.match(/(?:m2|m²|yuz olcumu|alan)\s*[:]?\s*(\d{2,7})\b/);   // "m²442", "Alan: 442"
+      if (!r.m2 && lead) r.m2 = +lead[1];
       if (!r.m2 && r.m2Net) r.m2 = r.m2Net;
       if (don && (!r.m2 || LAND.indexOf(r.kind) >= 0)) r.m2 = Math.round(parseFloat(don[1].replace(",", ".")) * 1000);
       if (don && !r.kind) { r.kind = "tarla"; r.segment = "emlak"; }
@@ -242,6 +257,7 @@
       if (bath) r.details.banyoSayisi = +bath[1];
       else if (/cift banyo|ebeveyn banyo/.test(q)) r.details.banyoSayisi = 2;
 
+      if (LAND.indexOf(r.kind) >= 0) { delete r.details.katNo; delete r.details.binaKat; }   // "2 kat" arsada imar bilgisidir
       if (/yerden isitma/.test(q)) r.details.isitma = "Yerden Isıtma";
       else if (/kombi|dogalgaz|dogal gaz/.test(q)) r.details.isitma = "Kombi (Doğalgaz)";
       else if (/pay olcer/.test(q)) r.details.isitma = "Merkezi (Pay Ölçer)";
@@ -643,7 +659,7 @@
       add(l.brand && l.model, 5, "Marka / model", "Marka ve modeli seçin.");
     } else add(true, 15, "Sade ilan formu", "");
     const good = photos.filter((p) => p.analysis.score >= 60).length;
-    const minP = SC.minPhotos || 4;
+    const minP = SC.minPhotos || 2;
     add(photos.length >= minP, 15, `En az ${minP} fotoğraf (${photos.length} seçildi)`, "Farklı odalardan daha fazla fotoğraf ekleyin.");
     add(photos[0] && photos[0].analysis.score >= 70, 10, "Kapak fotoğrafı net ve aydınlık", "Gün ışığında, yatay çekilmiş bir kapak fotoğrafı ekleyin.");
     add(good >= Math.min(3, photos.length || 3), 5, "Fotoğrafların çoğu kaliteli", "Bulanık/karanlık kareleri yeniden çekin.");
