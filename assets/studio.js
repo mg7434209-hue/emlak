@@ -670,7 +670,7 @@
     add(photos[0] && photos[0].analysis.score >= 70, 10, "Kapak fotoğrafı net ve aydınlık", "Gün ışığında, yatay çekilmiş bir kapak fotoğrafı ekleyin.");
     add(good >= Math.min(3, photos.length || 3), 5, "Fotoğrafların çoğu kaliteli", "Bulanık/karanlık kareleri yeniden çekin.");
     add((l.desc || "").length >= 250, 5, "Açıklama yeterince ayrıntılı", "Metne birkaç ayrıntı daha ekleyin (manzara, ulaşım, yapılan tadilat…).");
-    add(l.phone, 5, "İletişim telefonu", "Telefon boşsa hesabınızdaki numara kullanılır.");
+    add(l.phone || l.accountPhone, 5, "İletişim telefonu", "Hesabınızda kayıtlı telefon yoksa ilana telefon ekleyin.");
     const est = l.segment !== "diger" && l.price ? AI.estimate(l) : null;
     if (est) {
       const b = AI.priceBadge(l);
