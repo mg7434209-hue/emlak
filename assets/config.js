@@ -984,7 +984,7 @@ EMLAK.config = {
   // ayrıca Claude ile "görülerek" etiketlenir (oda, kalite, kapak, açıklama).
   studio: {
     maxInputPhotos: 30,     // stüdyoya bırakılabilecek ham fotoğraf
-    minPhotos: 4,           // hazırlık puanında "yeterli fotoğraf" eşiği
+    minPhotos: 2,           // hazırlık puanında "yeterli fotoğraf" eşiği
     dupDistance: 6,         // dHash farkı ≤ bu ise "benzer kare" sayılır
     vibrance: 0.18,         // iyileştirme: canlılık (doğal kalsın, abartma)
     sharpen: 0.35,          // iyileştirme: keskinleştirme miktarı
