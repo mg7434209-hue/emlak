@@ -181,6 +181,12 @@ const daire = (over) => Object.assign({
     for (const key of ["tapu", "takyidat", "icra"]) assert.strictEqual((await post("api/auction/doc", { id: aid, key, name: key + ".png", data: png }, hS)).s, 200);
     assert.strictEqual((await call("api/auction/doc?id=" + aid + "&key=tapu", {}, hA)).s, 403, "belgeyi başkası indirdi");
     assert.strictEqual((await call("api/auction/doc?id=" + aid + "&key=tapu", {}, hS)).s, 200);
+    assert.strictEqual((await post("api/admin/auction", { aid, action: "approve" }, hAdm)).s, 400, "değer onayı olmadan yayın");
+    const adminList = (await call("api/admin/auctions", {}, hAdm)).j.auctions.find((x) => x.aid === aid);
+    assert.ok(adminList.comparables && Array.isArray(adminList.comparables.list), "yönetici emsal listesi yok");
+    assert.strictEqual(adminList.declaredValue, 1250000);
+    assert.strictEqual((await post("api/admin/auction", { aid, action: "set-value", value: 0 }, hAdm)).s, 400);
+    assert.strictEqual((await post("api/admin/auction", { aid, action: "set-value", value: 1200000, ids: [], note: "emsal yok" }, hAdm)).s, 200);
     assert.strictEqual((await post("api/admin/auction", { aid, action: "approve" }, hAdm)).s, 200);
     assert.strictEqual((await post("api/auction/doc", { id: aid, key: "tapu", name: "x.png", data: png }, hS)).s, 400, "onaydan sonra belge değişmez");
     assert.strictEqual((await post("api/auction/bid", { id: aid, amount: 1000000 }, hA)).s, 403, "teminatsız teklif");
@@ -200,7 +206,7 @@ const daire = (over) => Object.assign({
     assert.ok(!JSON.stringify(det).includes("deposits") && !JSON.stringify(det).includes("ownerId"), "iç alan sızdı");
     assert.ok(!det.docs, "belgeler başkasına görünüyor");
     assert.strictEqual(det.docsVerified, true);
-    assert.strictEqual(det.marketValue, 1250000); assert.strictEqual(det.deedPct, 2); assert.strictEqual(det.commissionPct, 2);
+    assert.strictEqual(det.marketValue, 1200000); assert.strictEqual(det.valueVerified, true); assert.strictEqual(det.deedPct, 2); assert.strictEqual(det.commissionPct, 2);
     assert.ok((await call("api/auction/doc?id=" + aid + "&key=tapu", {}, { "X-Admin-Token": adm })).s === 200, "yönetici belgeyi göremiyor");
   });
   await t("yetkisiz yönetici uçları kapalı", async () => {
