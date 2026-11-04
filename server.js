@@ -542,6 +542,7 @@ function readBody(req, limit) {
 const AUCTIONS = require("./auctions.js").create({
   DATA_DIR, CONF, sendJson, readBody, currentUser, isAdminReq, rateLimit, str,
   listing: (id) => LISTINGS.find((x) => x.id === id),
+  listings: () => LISTINGS,
 });
 
 async function handleApi(req, res, urlPath) {

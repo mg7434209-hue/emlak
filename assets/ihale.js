@@ -108,19 +108,23 @@
       syncClock(j.serverNow); a = j; return true;
     };
     function valueBox() {
-      if (!a.marketValue) return "";
+      if (!a.marketValue) {
+        return a.declaredValue ? '<div class="auc-format auc-value"><h3>Değer</h3><p class="muted">Satıcının beyan ettiği değer: <b>' + money(a.declaredValue) + '</b>. Yönetici, site içi emsal ilanlara göre onaylayınca gerçek değer ve indirim yüzdesi burada yayınlanır.</p></div>' : "";
+      }
       const p = a.current, fee = (pct) => Math.round(p * pct / 100);
       const rows = [["KDV (%" + a.vatPct + ")", fee(a.vatPct), a.vatPct], ["Tapu harcı (%" + a.deedPct + ")", fee(a.deedPct), a.deedPct], ["Emlakçı komisyonu (%" + a.commissionPct + ")", fee(a.commissionPct), a.commissionPct]];
       const extra = rows.reduce((t, r) => t + r[1], 0);
       return '<div class="auc-format auc-value"><h3>Değer ve tahmini maliyet</h3>' +
-        '<div class="auc-vrow"><span>Gerçek (piyasa) değer' + (a.valueBasis ? ' <small class="muted">(' + esc(a.valueBasis) + ')</small>' : "") + '</span><b>' + money(a.marketValue) + '</b></div>' +
+        '<div class="auc-vrow"><span>Gerçek değer <small class="ok-badge">✓ Yönetici onaylı</small>' + (a.valueBasis ? ' <small class="muted">(satıcı dayanağı: ' + esc(a.valueBasis) + ')</small>' : "") + '</span><b>' + money(a.marketValue) + '</b></div>' +
+        (a.valueNote ? '<small class="muted">' + esc(a.valueNote) + "</small>" : "") +
         '<div class="auc-vrow"><span>Başlangıç bedeli</span><b>' + money(a.startPrice) + '</b></div>' +
         '<div class="auc-disc big">' + discText(a, a.startPrice) + ' <small>(başlangıçta)</small></div>' +
         (a.bidCount ? '<div class="auc-disc big">' + discText(a, a.current) + ' <small>(güncel teklifle)</small></div>' : "") +
         '<h4>' + (a.bidCount ? "Güncel teklifle" : "Başlangıç bedeliyle") + " tahmini ek giderler</h4>" +
         rows.map((r) => '<div class="auc-vrow"><span>' + r[0] + '</span><b>' + (r[2] ? money(r[1]) : "yok") + "</b></div>").join("") +
         '<div class="auc-vrow tot"><span>Tahmini toplam maliyet</span><b>' + money(p + extra) + "</b></div>" +
-        '<small class="muted">Gerçek değer ve oranlar satıcı beyanıdır; İlan AI doğrulamaz. Oranlar tutar üzerinden hesaplanmıştır, güncel mevzuata ve işleme göre değişebilir; işlem öncesi noter/tapu/vergi danışmanınızla teyit edin.</small></div>';
+        (a.comps && a.comps.length ? '<h4>Değerin dayandığı emsal ilanlar (site içi)</h4>' + a.comps.map((c) => '<div class="auc-vrow"><span><a href="ilan.html?id=' + encodeURIComponent(c.id) + '">' + esc(c.title) + '</a>' + (c.district ? ' <small class="muted">' + esc(c.district) + "</small>" : "") + '</span><b>' + money(c.price) + (c.perM2 ? ' <small class="muted">· ' + fmt(c.perM2) + " ₺/m²</small>" : "") + "</b></div>").join("") : "") +
+        '<small class="muted">Gerçek değer, yönetici tarafından İlan AI’da yayınlanan benzer ilanlara bakılarak onaylanmıştır; ekspertiz raporu değildir. KDV, tapu harcı ve komisyon oranları satıcı beyanıdır; mevzuata ve işleme göre değişebilir, işlem öncesi noter/tapu/vergi danışmanınızla teyit edin.</small></div>';
     }
     function formatBox() {
       return '<div class="auc-format"><h3>İhale biçimi ve satış koşulları</h3><ol>' +
@@ -262,7 +266,7 @@
     root.innerHTML =
       '<div class="form-grid">' +
       '<div class="full"><label for="aListing">İhaleye çıkacak ilan</label><select id="aListing">' + ls.map((l) => '<option value="' + esc(l.id) + '" data-price="' + (l.price || 0) + '"' + (l.id === pre ? " selected" : "") + ">" + esc(l.title) + " — " + money(l.price) + "</option>").join("") + "</select></div>" +
-      '<div><label for="aMarket">Gerçek (piyasa / ekspertiz) değeri (₺)</label><input id="aMarket" type="text" inputmode="numeric"><small id="aDisc" class="muted"></small></div>' +
+      '<div><label for="aMarket">Ürünün değeri — sizin beyanınız (₺)</label><input id="aMarket" type="text" inputmode="numeric"><small id="aDisc" class="muted"></small><small class="muted">Yönetici bu değeri sitedeki emsal ilanlara bakarak onaylar; yayınlanan değer onaylı değerdir.</small></div>' +
       '<div><label for="aBasis">Değer dayanağı <small>isteğe bağlı</small></label><input id="aBasis" type="text" maxlength="80" placeholder="Örn. ekspertiz raporu, emsal satışlar"></div>' +
       '<div><label for="aStart">Başlangıç bedeli (₺)</label><input id="aStart" type="text" inputmode="numeric"></div>' +
       '<div><label for="aStep">Teklif artış adımı (₺)</label><input id="aStep" type="text" inputmode="numeric"></div>' +
@@ -318,11 +322,23 @@
   async function pageAdmin() {
     const root = $("#auctionAdmin");
     const DS = { requested: "talep edildi", paid: "yatırıldı", refund_due: "İADE EDİLECEK", refunded: "iade edildi", applied_pending: "KAZANAN — mahsup bekliyor", applied: "mahsup edildi", forfeited: "irat" };
+    function valueAdmin(a) {
+      const c = a.comparables || { list: [] };
+      return '<div class="auc-box warn"><b>Gerçek değer onayı</b>' +
+        '<div class="auc-vrow"><span>Satıcının beyan ettiği değer</span><b>' + money(a.declaredValue) + '</b></div>' +
+        (c.list.length ? '<small class="muted">Aynı türde, aynı ilde yayındaki ' + c.list.length + ' emsal ilan' + (c.avgPerM2 ? " · ortalama " + fmt(c.avgPerM2) + " ₺/m²" : "") + (c.suggested ? " · emsallere göre öneri: <b>" + money(c.suggested) + "</b>" : "") + '</small>' +
+          c.list.map((x) => '<label class="auc-doc"><span><input type="checkbox" data-comp="' + a.aid + '" value="' + esc(x.id) + '" checked> <a href="ilan.html?id=' + encodeURIComponent(x.id) + '" target="_blank">' + esc(x.title) + '</a> <small class="muted">' + esc(x.district) + (x.sameDistrict ? " (aynı ilçe)" : "") + '</small></span><b>' + money(x.price) + (x.perM2 ? " · " + fmt(x.perM2) + " ₺/m²" : "") + "</b></label>").join("")
+          : '<small class="muted">Sitede emsal ilan yok; değeri kendi araştırmanıza göre girin.</small>') +
+        '<div class="auc-form"><input type="text" inputmode="numeric" id="val-' + a.aid + '" value="' + fmt(a.verifiedValue || c.suggested || a.declaredValue) + '" aria-label="Onaylanan gerçek değer (₺)"><input type="text" id="vnote-' + a.aid + '" placeholder="Not (isteğe bağlı)" maxlength="200">' +
+        '<button class="btn" data-setval="' + a.aid + '">Değeri onayla</button></div>' +
+        (a.verifiedValue ? '<small class="muted">✓ Onaylanan değer: ' + money(a.verifiedValue) + "</small>" : "") + "</div>";
+    }
     const draw = async () => {
       const j = await api("api/admin/auctions", null, true);
       if (!j.__ok) { root.innerHTML = '<div class="home-empty"><b>Yetki gerekli</b><span>Önce <a href="admin.html">yönetim panelinden</a> giriş yapın.</span></div>'; return; }
       root.innerHTML = (j.auctions || []).map((a) =>
         '<div class="auc-admin"><div class="auc-admin-h"><b>' + esc(a.title) + '</b> <span class="auc-badge ' + (PHASE[a.phase] || PHASE.ended)[1] + '">' + (PHASE[a.phase] || PHASE.ended)[0] + "</span> <small>" + esc(a.aid) + " · satıcı: " + esc(a.ownerName) + "</small></div>" +
+        (a.state === "pending" ? valueAdmin(a) : "") +
         (a.state === "pending" ? '<div class="auc-box warn"><b>Belgeler' + (a.declared ? " (satıcı icra/haciz beyanı verdi)" : "") + '</b>' +
           a.docs.map((d) => '<div class="auc-doc"><span>' + (d.uploaded ? "✓ " : "○ ") + esc(d.label) + "</span>" + (d.uploaded ? '<button class="btn ghost" data-view="' + a.aid + '|' + d.key + '">Görüntüle</button>' : "<small>yüklenmedi</small>") + "</div>").join("") +
           (a.docNote ? "<small>Son not: " + esc(a.docNote) + "</small>" : "") + "</div>" : "") +
@@ -335,6 +351,13 @@
           ({ requested: '<button class="btn" data-a="deposit-paid" data-id="' + a.aid + '" data-u="' + d.uid + '">Ödeme alındı</button>',
             refund_due: '<button class="btn" data-a="deposit-refunded" data-id="' + a.aid + '" data-u="' + d.uid + '">İade edildi</button>',
             applied_pending: '<button class="btn" data-a="deposit-applied" data-id="' + a.aid + '" data-u="' + d.uid + '">Bedele mahsup</button> <button class="btn ghost" data-a="deposit-forfeit" data-id="' + a.aid + '" data-u="' + d.uid + '">Vazgeçti: irat</button>' }[d.status] || "") + "</td></tr>").join("") + "</table>" : "<small class=\"muted\">Teminat talebi yok.</small>") + "</div>").join("") || '<div class="home-empty">İhale yok.</div>';
+      $$("[data-setval]", root).forEach((b) => (b.onclick = async () => {
+        const aid = b.dataset.setval;
+        const value = parseInt(($("#val-" + aid).value || "").replace(/\D/g, ""), 10) || 0;
+        const ids = $$('[data-comp="' + aid + '"]:checked', root).map((x) => x.value);
+        const r = await post("api/admin/auction", { aid, action: "set-value", value, ids, note: $("#vnote-" + aid).value }, true);
+        if (!r.__ok) alert(r.error || "Kaydedilemedi."); else draw();
+      }));
       $$("[data-view]", root).forEach((b) => (b.onclick = () => { const [x, k] = b.dataset.view.split("|"); openDoc(x, k, true); }));
       $$("[data-a]", root).forEach((b) => (b.onclick = async () => {
         let note = "";

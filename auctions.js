@@ -100,7 +100,8 @@ function create(ctx) {
       hasReserve: !!a.reservePrice, reserveMet: a.reservePrice ? !!(top && top.amount >= a.reservePrice) : true,
       extended: a.extendedMin || 0, maxExtend: MAX_EXT_MIN, ext: EXT_MIN,
       docsVerified: !!a.docsVerified, payDays: PAY_DAYS,
-      marketValue: a.marketValue || 0, valueBasis: a.valueBasis || "", vatPct: a.vatPct || 0, deedPct: a.deedPct || 0, commissionPct: a.commissionPct || 0,
+      marketValue: a.verifiedValue || 0, valueVerified: !!a.verifiedValue, valueNote: a.valueNote || "", comps: a.comps || [],
+      valueBasis: a.valueBasis || "", vatPct: a.vatPct || 0, deedPct: a.deedPct || 0, commissionPct: a.commissionPct || 0,
       docLabels: DOC_DEFS(a.segment || (ctx.listing(a.listingId) || {}).segment).map((d) => d.label),
       serverNow: new Date().toISOString(),
     };
@@ -120,9 +121,27 @@ function create(ctx) {
       if (u && (u.uid === a.ownerId || u.role === "admin")) {
         out.docs = docState(a);
         out.docNote = a.docNote || "";
+        out.declaredValue = a.marketValue || 0;
       }
     }
     return out;
+  }
+
+  // EMSAL: aynı türde, aynı ilde (önce aynı ilçe) yayındaki benzer ilanlar — yalnız site verisi.
+  function comparables(a) {
+    const l = ctx.listing(a.listingId) || {};
+    const pool = ctx.listings().filter((x) => x.id !== l.id && x.status === "active" && x.price > 0 && x.segment === l.segment &&
+      x.kind === l.kind && x.city === l.city && x.category === l.category);
+    pool.sort((p, q) => (q.district === l.district) - (p.district === l.district) || new Date(q.date) - new Date(p.date));
+    const list = pool.slice(0, 10).map((x) => ({
+      id: x.id, title: x.title, price: x.price, m2: x.m2 || 0, district: x.district || "", sameDistrict: x.district === l.district,
+      perM2: x.m2 ? Math.round(x.price / x.m2) : 0,
+    }));
+    const per = list.filter((x) => x.perM2).map((x) => x.perM2);
+    const avgPerM2 = per.length ? Math.round(per.reduce((t, v) => t + v, 0) / per.length) : 0;
+    const sorted = list.map((x) => x.price).sort((p, q) => p - q);
+    const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+    return { list, avgPerM2, listingM2: l.m2 || 0, suggested: avgPerM2 && l.m2 ? Math.round(avgPerM2 * l.m2) : median };
   }
 
   function docState(a) {
@@ -138,7 +157,8 @@ function create(ctx) {
     state: a.state, ownerId: a.ownerId, ownerName: a.ownerName, reservePrice: a.reservePrice || 0, created: a.created,
     deposits: Object.keys(a.deposits).map((uid) => Object.assign({ uid }, a.deposits[uid])),
     winnerUid: a.result ? a.result.winnerUid : null,
-    docs: docState(a), docNote: a.docNote || "", sale: a.result ? a.result.sale : "", payDeadline: a.result ? a.result.payDeadline : "",
+    docs: docState(a), docNote: a.docNote || "", declaredValue: a.marketValue || 0,
+    comparables: a.state === "pending" ? comparables(a) : null, verifiedValue: a.verifiedValue || 0, sale: a.result ? a.result.sale : "", payDeadline: a.result ? a.result.payDeadline : "",
     declared: !!a.declaration,
   });
 
@@ -337,7 +357,19 @@ function create(ctx) {
         case "approve":
           if (a.state !== "pending") break;
           if (!docsComplete(a)) return sendJson(res, 400, { error: "Zorunlu belgelerin tümü yüklenmeden ihale onaylanamaz." });
+          if (!a.verifiedValue) return sendJson(res, 400, { error: "Önce gerçek değeri emsal ilanlara göre onaylayın." });
           a.state = "approved"; a.docsVerified = true; a.docNote = ""; break;
+        case "set-value": {
+          const v = intIn(b.value, 1000, 1e11);
+          if (!v) return sendJson(res, 400, { error: "Onaylanan gerçek değer geçersiz." });
+          const cands = comparables(a).list;
+          const ids = Array.isArray(b.ids) ? b.ids.slice(0, 10) : [];
+          a.comps = cands.filter((x) => ids.indexOf(x.id) >= 0).map((x) => ({ id: x.id, title: str(x.title, 90), price: x.price, m2: x.m2, district: x.district, perM2: x.perM2 }));
+          a.verifiedValue = v;
+          a.valueNote = str(b.note, 200);
+          a.valueVerifiedAt = new Date().toISOString();
+          break;
+        }
         case "reject-docs": a.docNote = str(b.note, 400) || "Belgeler yetersiz; lütfen yeniden yükleyin."; break;
         case "sale-paid":
           if (!a.result || a.result.sale !== "awaiting_payment") return sendJson(res, 400, { error: "Ödeme bekleyen satış yok." });

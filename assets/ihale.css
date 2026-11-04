@@ -66,3 +66,7 @@
 .auc-vrow { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); font-size: .94rem; }
 .auc-vrow.tot { font-size: 1.05rem; border-top: 2px solid var(--text); margin-top: 4px; }
 .auc-value h4 { margin: 12px 0 2px; font-size: .92rem; }
+.ok-badge { color: var(--deal); font-weight: 700; }
+.auc-value a { text-decoration: underline; }
+.auc-box .auc-form input[type="text"] { min-width: 0; }
+.auc-doc input[type="checkbox"] { width: auto; display: inline-block; margin: 0 8px 0 0; vertical-align: middle; }

@@ -578,3 +578,8 @@ Sayfalar: `ihaleler.html` (liste) · `ihale.html?id=` (canlı detay, 2,5 sn yokl
   güncel tekliften tahmini KDV+harç+komisyon ve toplam maliyeti gösterir; liste kartında indirim yüzdesi çıkar.
   Bunlar SATICI BEYANIDIR, doğrulanmaz — sayfada öyle yazılır; "piyasa fiyatı" diye kesin iddia etme. Oranlar için
   mevzuat bilgisi koda gömülmez (tapu harcı varsayılanı 2 yalnız form ön değeri, satıcı değiştirir).
+- DEĞER ONAYI (4 Kas 2026): satıcının girdiği değer yalnız BEYANDIR (`marketValue`, herkese gösterilmez). Yönetici
+  panelinde (ihale-yonetim) sitedeki aynı tür + aynı il (önce aynı ilçe) yayındaki emsal ilanlar, ortalama ₺/m² ve
+  öneri değer çıkar; yönetici emsalleri işaretleyip "Değeri onayla" der (`verifiedValue`, `comps` anlık görüntüsü).
+  Değer onaylanmadan ihale yayına girmez. Herkese "Gerçek değer ✓ Yönetici onaylı" + dayandığı emsal ilan bağlantıları
+  yayınlanır; indirim yüzdesi onaylı değerden hesaplanır. Emsal yoksa yönetici elle girer. Ekspertiz DEĞİLDİR.
