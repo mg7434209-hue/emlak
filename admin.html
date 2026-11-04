@@ -6,6 +6,7 @@
   <title>Yönetim Paneli | İlan AI</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="assets/style.css?v=afe1c2a8">
+  <link rel="stylesheet" href="assets/ihale.css?v=4f958ea0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
 <body data-page="admin">
@@ -87,6 +88,7 @@
         <button class="tab-btn" data-tab="messages" type="button">Mesajlar <span id="msgBadge"></span></button>
         <button class="tab-btn" data-tab="users" type="button">Üyeler <span id="userBadge"></span></button>
         <button class="tab-btn" data-tab="reports" type="button">🚩 Şikayetler <span id="repBadge"></span></button>
+        <button class="tab-btn" data-tab="auctions" type="button">🔨 İhaleler <span id="aucBadge"></span></button>
       </div>
 
       <!-- İlanlar sekmesi -->
@@ -156,6 +158,15 @@
         şikayet yoksa yeniden yayına girer); <b>Yayından Kaldır</b> ilanı kaldırır ve ilana ait tüm şikayetleri kapatır.</p>
       </div>
 
+      <!-- İhaleler sekmesi (assets/ihale.js doldurur): değer ve belge onayı, teminat, satış takibi -->
+      <div id="tabAuctions" style="display:none">
+        <div id="auctionAdmin" style="margin-top:12px"><div class="home-empty">Yükleniyor…</div></div>
+        <p class="notice" style="margin-top:14px">Satıcı ihale açınca ihale <b>Onay Bekliyor</b>a düşer. Yayına girmesi için
+        <b>gerçek değeri</b> emsal ilanlara göre onaylayın, <b>belgeleri</b> (tapu/ruhsat, takyidat, icra durumu) inceleyin, sonra
+        <b>Belgeleri onayla ve yayınla</b>’ya basın. Teminat ödemelerini <b>Ödeme alındı</b> ile işaretleyin; kazanan 10 gün içinde
+        kalan bedeli ödeyince <b>Kalan bedel ödendi</b> deyin.</p>
+      </div>
+
       <!-- Düzenleme penceresi (JS doldurur) -->
       <div id="editModal"></div>
     </div>
@@ -177,6 +188,7 @@
   <script src="assets/config.js?v=6356b561"></script>
   <script src="assets/data.js?v=1e511046"></script>
   <script src="assets/ai.js?v=ff246f47"></script>
-  <script src="assets/app.js?v=a9743ebd"></script>
+  <script src="assets/app.js?v=c4236f9b"></script>
+  <script src="assets/ihale.js?v=c62bc5cf"></script>
 </body>
 </html>

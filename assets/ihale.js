@@ -4,7 +4,7 @@
   const E = window.EMLAK || {};
   const A = E.auth;
   const page = document.body.dataset.page;
-  if (["ihaleler", "ihale", "ihale-olustur", "ihale-yonetim"].indexOf(page) < 0) return;
+  if (["ihaleler", "ihale", "ihale-olustur", "ihale-yonetim", "admin"].indexOf(page) < 0) return;
 
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -334,7 +334,11 @@
         (a.verifiedValue ? '<small class="muted">✓ Onaylanan değer: ' + money(a.verifiedValue) + "</small>" : "") + "</div>";
     }
     const draw = async () => {
+      const ae = document.activeElement;
+      if (ae && root.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.type !== "checkbox") return;   // yazarken ekran yenilenmesin
       const j = await api("api/admin/auctions", null, true);
+      const badge = $("#aucBadge");
+      if (badge) { const n = (j.auctions || []).filter((x) => x.state === "pending").length; badge.textContent = n ? "(" + n + ")" : ""; }
       if (!j.__ok) { root.innerHTML = '<div class="home-empty"><b>Yetki gerekli</b><span>Önce <a href="admin.html">yönetim panelinden</a> giriş yapın.</span></div>'; return; }
       root.innerHTML = (j.auctions || []).map((a) =>
         '<div class="auc-admin"><div class="auc-admin-h"><b>' + esc(a.title) + '</b> <span class="auc-badge ' + (PHASE[a.phase] || PHASE.ended)[1] + '">' + (PHASE[a.phase] || PHASE.ended)[0] + "</span> <small>" + esc(a.aid) + " · satıcı: " + esc(a.ownerName) + "</small></div>" +
@@ -372,7 +376,7 @@
     setInterval(draw, 20000);
   }
 
-  const boot = { ihaleler: pageList, ihale: pageDetail, "ihale-olustur": pageCreate, "ihale-yonetim": pageAdmin }[page];
+  const boot = { ihaleler: pageList, ihale: pageDetail, "ihale-olustur": pageCreate, "ihale-yonetim": pageAdmin, admin: pageAdmin }[page];
   const go = () => setTimeout(boot, 0);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
 })();

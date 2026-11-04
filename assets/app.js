@@ -3486,6 +3486,7 @@
       $("#tabMessages").style.display = b.dataset.tab === "messages" ? "" : "none";
       $("#tabUsers").style.display = b.dataset.tab === "users" ? "" : "none";
       $("#tabReports").style.display = b.dataset.tab === "reports" ? "" : "none";
+      if ($("#tabAuctions")) $("#tabAuctions").style.display = b.dataset.tab === "auctions" ? "" : "none";
     }));
     // ── Şikayetler
     function renderReports() {
