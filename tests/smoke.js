@@ -47,7 +47,7 @@ const daire = (over) => Object.assign({
 
 (async () => {
   const srv = spawn("node", ["server.js"], {
-    cwd: ROOT, env: Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA, ADMIN_PASS, FX_AUTO: "0" }),
+    cwd: ROOT, env: Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA, ADMIN_PASS, FX_AUTO: "0", AUCTION_EXT_MIN: "1", AUCTION_MIN_HOURS: "0.01" }),
     stdio: ["ignore", "pipe", "pipe"],
   });
   let log = "";
@@ -158,6 +158,34 @@ const daire = (over) => Object.assign({
     assert.strictEqual((await call("api/admin/reports")).s, 401);
     for (const r of reps) await post("api/admin/report", { rid: r.rid, action: "dismiss" }, hAdm);
     assert.ok((await call("api/listings")).text.includes(id1), "asılsız sonrası geri gelmedi");
+  });
+  await t("İHALE: teminat şart, adım/uzatma kuralları, kendi ihalene teklif yok, maskeli isim", async () => {
+    const soon = (m) => new Date(Date.now() + m * 60000).toISOString();
+    const base = { listingId: id1, startPrice: 1000000, minStep: 10000, depositPct: 5, startsAt: soon(0), endsAt: soon(0.8) };
+    assert.strictEqual((await post("api/auction/create", base, hA)).s, 403, "başkasının ilanı");
+    assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { depositPct: 3 }), hS)).s, 400, "teminat %5 altı");
+    assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { depositPct: 11 }), hS)).s, 400, "teminat %10 üstü");
+    const c = await post("api/auction/create", base, hS);
+    assert.strictEqual(c.s, 200, JSON.stringify(c.j)); assert.ok(c.j.pending);
+    const aid = c.j.aid;
+    assert.strictEqual((await call("api/auction?id=" + aid)).s, 404, "onaysız ihale herkese açık");
+    assert.strictEqual((await post("api/admin/auction", { aid, action: "approve" })).s, 401);
+    await post("api/admin/auction", { aid, action: "approve" }, hAdm);
+    assert.strictEqual((await post("api/auction/bid", { id: aid, amount: 1000000 }, hA)).s, 403, "teminatsız teklif");
+    const d = await post("api/auction/deposit", { id: aid }, hA);
+    assert.strictEqual(d.j.deposit.amount, 50000);
+    assert.strictEqual((await post("api/auction/bid", { id: aid, amount: 1000000 }, hA)).s, 403, "teminat onaysız");
+    await post("api/admin/auction", { aid, action: "deposit-paid", uid: JSON.parse(fs.readFileSync(path.join(DATA, "users.json"), "utf8")).find((x) => x.email.startsWith("alici")).uid }, hAdm);
+    assert.strictEqual((await post("api/auction/bid", { id: aid, amount: 900000 }, hA)).s, 400, "başlangıç altı");
+    const b1 = await post("api/auction/bid", { id: aid, amount: 1000000 }, hA);
+    assert.strictEqual(b1.s, 200, JSON.stringify(b1.j));
+    assert.ok(b1.j.extended, "bitişe 1 dk kala gelen teklif süreyi uzatmadı");
+    assert.strictEqual((await post("api/auction/bid", { id: aid, amount: 1010000 }, hA)).s, 400, "önde olan kendini artıramaz");
+    assert.strictEqual((await post("api/auction/bid", { id: aid, amount: 1010000 }, hS)).s, 400, "satıcı kendi ihalesine teklif veremez");
+    const det = (await call("api/auction?id=" + aid, {}, hA)).j;
+    assert.strictEqual(det.current, 1000000); assert.strictEqual(det.nextMin, 1010000);
+    assert.ok(det.bids[0].who.includes("***") && !det.bids[0].who.toLowerCase().includes("alici"), "teklif veren maskeli değil");
+    assert.ok(!JSON.stringify(det).includes("deposits") && !JSON.stringify(det).includes("ownerId"), "iç alan sızdı");
   });
   await t("yetkisiz yönetici uçları kapalı", async () => {
     assert.strictEqual((await call("api/admin/listings")).s, 401);

@@ -538,7 +538,17 @@ function readBody(req, limit) {
   });
 }
 
+// ── İhale (açık artırma) modülü: auctions.js ────────────────────────────
+const AUCTIONS = require("./auctions.js").create({
+  DATA_DIR, CONF, sendJson, readBody, currentUser, isAdminReq, rateLimit, str,
+  listing: (id) => LISTINGS.find((x) => x.id === id),
+});
+
 async function handleApi(req, res, urlPath) {
+  if (/^\/api\/(auctions?|my\/auctions|admin\/auctions?)(\/|$)/.test(urlPath)) {
+    const done = await AUCTIONS.handle(req, res, urlPath);
+    if (done !== false) return;
+  }
   // ── AI İlan Stüdyosu (ai-studio.js) ───────────────────────────────────
   // GET /api/ai/status — Claude görsel analizi açık mı (ANTHROPIC_API_KEY)
   if (urlPath === "/api/ai/status" && req.method === "GET") {
@@ -1867,7 +1877,7 @@ function seoRouteList() {
 // Dinamik sitemap: statik sayfalar + yayındaki ilanlar (SEO için kritik)
 function sitemapXml() {
   const base = (CONF.seo.siteUrl || "").replace(/\/$/, "");
-  const pages = ["", "/ilanlar.html", "/ilan-ver.html", "/rehber.html", "/favoriler.html",
+  const pages = ["", "/ilanlar.html", "/ihaleler.html", "/ilan-ver.html", "/rehber.html", "/favoriler.html",
     "/giris.html", "/kullanim-kosullari.html", "/kvkk.html", "/cerez-politikasi.html"];
   const esc = (u) => u.replace(/&/g, "&amp;");
   const shopUrls = [...new Set(LISTINGS.filter((l) => l.status === "active" && l.ownerId).map((l) => l.ownerId))]
