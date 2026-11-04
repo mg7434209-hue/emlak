@@ -69,7 +69,7 @@
     setInterval(draw, 15000);
   }
   function tickCountdowns() {
-    $$("[data-cd]").forEach((el) => {
+    $$(".auc-meta [data-cd]").forEach((el) => {
       const left = new Date(el.dataset.cd).getTime() - nowMs();
       el.textContent = el.dataset.phase === "ended" ? "" : (el.dataset.phase === "scheduled" ? "Açılışa " : "Kalan ") + cd(left);
     });
@@ -189,8 +189,8 @@
     if (!ls.length) { root.innerHTML = '<div class="home-empty"><b>Yayında ilanınız yok</b><span>İhaleye çıkarmak için önce bir ilan verin ve onaylanmasını bekleyin.</span><a class="btn" href="ilan-ver.html">İlan ver</a></div>'; return; }
     const pre = qs.get("ilan");
     const lt = (d) => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
-    const start0 = new Date(Date.now() + 24 * 3600000); start0.setMinutes(0, 0, 0);
-    const end0 = new Date(start0.getTime() + 3600000);
+    const start0 = new Date(Date.now() + 3600000); start0.setMinutes(0, 0, 0);
+    const end0 = new Date(start0.getTime() + 3 * 86400000);
     root.innerHTML =
       '<div class="form-grid">' +
       '<div class="full"><label for="aListing">İhaleye çıkacak ilan</label><select id="aListing">' + ls.map((l) => '<option value="' + esc(l.id) + '" data-price="' + (l.price || 0) + '"' + (l.id === pre ? " selected" : "") + ">" + esc(l.title) + " — " + money(l.price) + "</option>").join("") + "</select></div>" +
@@ -199,7 +199,8 @@
       '<div><label for="aPct">Teminat oranı</label><select id="aPct">' + [5, 6, 7, 8, 9, 10].map((p) => '<option value="' + p + '">%' + p + "</option>").join("") + "</select><small id=\"aDep\" class=\"muted\"></small></div>" +
       '<div><label for="aRes">Gizli asgari satış fiyatı (₺) <small>isteğe bağlı</small></label><input id="aRes" type="text" inputmode="numeric" placeholder="Boşsa en yüksek teklif kazanır"></div>' +
       '<div><label for="aFrom">Açılış tarihi ve saati</label><input id="aFrom" type="datetime-local" value="' + lt(start0) + '"></div>' +
-      '<div><label for="aTo">Kapanış tarihi ve saati</label><input id="aTo" type="datetime-local" value="' + lt(end0) + '"></div>' +
+      '<div><label for="aDur">İhale süresi</label><select id="aDur"><option value="3" selected>3 gün</option><option value="4">4 gün</option><option value="5">5 gün</option><option value="0">Özel tarih seç…</option></select>' +
+      '<input id="aTo" type="datetime-local" value="' + lt(end0) + '" hidden><small id="aEnd" class="muted"></small></div>' +
       '<div class="full"><p class="muted">Son 3 dakikada gelen teklifler süreyi uzatır (toplam en çok 1 saat). İhale yönetici onayından sonra yayınlanır. Teklif verenler başlangıç bedelinin seçtiğiniz oranı kadar iade edilebilir teminat yatırır.</p></div>' +
       '<div class="full"><div id="aErr" class="auc-flash" hidden></div><button class="btn" id="aSend">İhaleyi oluştur</button></div></div>';
     const num = (id) => parseInt(($(id).value || "").replace(/\D/g, ""), 10) || 0;
@@ -209,12 +210,23 @@
       dep();
     };
     const dep = () => { $("#aDep").textContent = "Teminat: " + money(num("#aStart") * (+$("#aPct").value) / 100); };
+    const endOf = () => {
+      const days = +$("#aDur").value;
+      const from = new Date($("#aFrom").value);
+      return days ? new Date(from.getTime() + days * 86400000) : new Date($("#aTo").value);
+    };
+    const showEnd = () => {
+      $("#aTo").hidden = !!+$("#aDur").value;
+      const e = endOf();
+      $("#aEnd").textContent = Number.isFinite(e.getTime()) ? "Kapanış: " + dt(e.toISOString()) : "";
+    };
+    $("#aDur").onchange = showEnd; $("#aFrom").onchange = showEnd; $("#aTo").onchange = showEnd; showEnd();
     $("#aListing").onchange = fill; $("#aPct").onchange = dep; $("#aStart").oninput = dep; fill();
     $("#aSend").onclick = async () => {
       const err = $("#aErr"); err.hidden = true;
       const r = await post("api/auction/create", {
         listingId: $("#aListing").value, startPrice: num("#aStart"), minStep: num("#aStep"), depositPct: +$("#aPct").value,
-        reservePrice: num("#aRes") || 0, startsAt: new Date($("#aFrom").value).toISOString(), endsAt: new Date($("#aTo").value).toISOString(),
+        reservePrice: num("#aRes") || 0, startsAt: new Date($("#aFrom").value).toISOString(), endsAt: endOf().toISOString(),
       });
       if (!r.__ok) { err.textContent = r.error || "İhale oluşturulamadı."; err.hidden = false; return; }
       root.innerHTML = '<div class="home-empty"><b>' + (r.pending ? "İhaleniz onaya gönderildi" : "İhaleniz yayında") + '</b><span>' + (r.pending ? "Yönetici onayladığında ihaleler sayfasında görünür." : "") + '</span><a class="btn" href="ihale.html?id=' + encodeURIComponent(r.aid) + '">İhaleyi aç</a></div>';
