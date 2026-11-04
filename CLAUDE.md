@@ -564,6 +564,7 @@ Sayfalar: `ihaleler.html` (liste) · `ihale.html?id=` (canlı detay, 2,5 sn yokl
   asgari fiyat (karşılandı/karşılanmadı gösterilir, tutar sızmaz); teklif verenler maskeli ("A***t").
   Yeni ihale yönetici onayına düşer (yönetici açarsa doğrudan yayında). İlan `active` olmalı.
 - Test için env: `AUCTION_EXT_MIN`, `AUCTION_MIN_HOURS` (yalnız tests/smoke.js kullanır).
+- YÖNETİM: ihale onayları artık admin.html içinde "🔨 İhaleler" sekmesindedir (ihale.js `admin` sayfası; ihale-yonetim.html aynı içerik, yedek). Bekleyen ihale sayısı sekme rozetinde.
 - İHALE BİÇİMİ + BELGELER (4 Kas 2026): ihale sayfasında "İhale biçimi ve satış koşulları" kutusu. Kazanan, ihale
   bitiminden itibaren `config.auction.payDays` (10) gün içinde kalan bedeli (tutar − teminat) öder ve tapu/devir
   yapılır; ödenmezse teminat irat (`sale`: awaiting_payment → paid | defaulted). Yönetici "Kalan bedel ödendi / tapu tamam".
