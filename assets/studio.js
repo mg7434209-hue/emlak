@@ -91,7 +91,10 @@
       DIST_INDEX = [];
       Object.keys(cities).forEach((c) => Object.keys(cities[c].districts).forEach((d) => DIST_INDEX.push({ c, d, re: wordRe(d) })));
     }
-    const cityHits = Object.keys(cities).filter((c) => wordRe(c).test(q));
+    // Metinde birden çok il adı geçebilir ("Sakarya Mahallesi" ≠ Sakarya ili):
+    // ilk geçen il esastır ("Afyonkarahisar İli …").
+    const pos = (c) => { const m = wordRe(c).exec(q); return m ? m.index : -1; };
+    const cityHits = Object.keys(cities).filter((c) => pos(c) >= 0).sort((a, b) => pos(a) - pos(b));
     const hits = DIST_INDEX.filter((x) => x.d !== "Merkez" && x.re.test(q));
     const inCity = hits.filter((x) => cityHits.indexOf(x.c) >= 0);
     const pool = inCity.length ? inCity : hits;
@@ -99,6 +102,9 @@
     const amb = (d) => DIST_INDEX.filter((x) => x.d === d).length > 1;
     const best = pool.find((x) => !amb(x.d) || cityHits.indexOf(x.c) >= 0);
     if (best && names.size >= 1) return { city: best.c, district: best.d };
+    // "Merkez" 51 ilde ortak ad olduğu için tek başına aranmaz; il bulunduysa ve
+    // metinde "Merkez" geçiyorsa o ilin Merkez ilçesi sayılır ("Afyonkarahisar / Merkez").
+    if (cityHits.length >= 1 && cities[cityHits[0]].districts.Merkez && wordRe("Merkez").test(q)) return { city: cityHits[0], district: "Merkez" };
     return { city: cityHits[0] || "", district: "" };
   }
 
