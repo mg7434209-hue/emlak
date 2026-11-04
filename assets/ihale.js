@@ -27,6 +27,18 @@
     j.__status = r.status; j.__ok = r.ok;
     return j;
   }
+  const toData = (file) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(file); });
+  // Belgeler yetki başlığı ister: indirip geçici adreste açılır
+  async function openDoc(aid, key, admin) {
+    const headers = {};
+    if (A && A.token && A.token()) headers["X-User-Token"] = A.token();
+    if (admin) { const t = sessionStorage.getItem("emlakai.adminToken"); if (t) headers["X-Admin-Token"] = t; }
+    const r = await fetch("api/auction/doc?id=" + encodeURIComponent(aid) + "&key=" + encodeURIComponent(key), { headers });
+    if (!r.ok) { alert("Belge açılamadı."); return; }
+    const url = URL.createObjectURL(await r.blob());
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
   const post = (path, body, admin) => api(path, { method: "POST", body: JSON.stringify(body) }, admin);
 
   function cd(ms) {
@@ -86,6 +98,27 @@
       if (!j.__ok) { root.innerHTML = '<div class="home-empty"><b>İhale bulunamadı</b><a class="btn" href="ihaleler.html">İhalelere dön</a></div>'; return false; }
       syncClock(j.serverNow); a = j; return true;
     };
+    function formatBox() {
+      return '<div class="auc-format"><h3>İhale biçimi ve satış koşulları</h3><ol>' +
+        '<li><b>Açık artırma:</b> Teklifler herkese açık, en yüksek teklif kazanır. Son ' + a.ext + ' dakikada gelen teklif süreyi uzatır.</li>' +
+        '<li><b>Teminat:</b> Teklif için başlangıç bedelinin %' + a.depositPct + '’i kadar iade edilebilir teminat yatırılır; kazanmazsanız iade edilir.</li>' +
+        '<li><b>Ödeme ve tapu:</b> Kazanan, ihale bitiminden itibaren <b>' + a.payDays + ' gün içinde</b> kalan bedeli (kazanılan tutar − teminat) öder ve tapu / devir işlemini tamamlar.</li>' +
+        '<li><b>Vazgeçme:</b> ' + a.payDays + ' gün içinde ödeme yapılmazsa teminat irat kaydedilir ve satış gerçekleşmez.</li>' +
+        '<li><b>Belgeler:</b> Satıcı, ' + (a.docLabels || []).map(esc).join("; ") + ' belgelerini yükler; yönetici inceler ve onaylamadan ihale yayına girmez. ' +
+        (a.docsVerified ? '<b class="auc-ok">✓ Bu ihalenin belgeleri incelenmiştir.</b>' : "") + '</li>' +
+        '<li><b>Sorumluluk:</b> Satıcı, konu üzerinde icra, haciz veya ihtiyati tedbir bulunmadığını beyan eder. İnceleme belge kontrolüdür; alıcı, tapu kaydını işlem öncesi ayrıca doğrulamalıdır.</li>' +
+        '</ol></div>';
+    }
+    function docsBox() {
+      if (!a.docs) return "";
+      if (a.phase !== "pending") return "";
+      const done = a.docs.every((d) => d.uploaded);
+      return '<div class="auc-box warn auc-docs"><b>Zorunlu belgeler</b><p>İhalenin yayına girmesi için belgelerin tümünü yükleyin (PDF, JPG, PNG · en çok 5 MB). Belgeleri yalnız siz ve yönetici görür.</p>' +
+        (a.docNote ? '<div class="auc-flash">Yönetici notu: ' + esc(a.docNote) + "</div>" : "") +
+        a.docs.map((d) => '<div class="auc-doc"><span>' + (d.uploaded ? "✓ " : "○ ") + esc(d.label) + (d.uploaded ? ' <small class="muted">(' + esc(d.name) + ")</small>" : "") + '</span>' +
+          '<label class="btn ghost auc-up">' + (d.uploaded ? "Değiştir" : "Yükle") + '<input type="file" data-doc="' + d.key + '" accept="application/pdf,image/jpeg,image/png,image/webp" hidden></label></div>').join("") +
+        '<small class="muted">' + (done ? "Tüm belgeler yüklendi. Yönetici incelemesi bekleniyor." : "Eksik belge var.") + '</small></div>';
+    }
     function depositBox() {
       const u = A && A.user && A.user();
       if (a.phase === "ended" || a.phase === "cancelled") return "";
@@ -119,7 +152,9 @@
         res = a.result.hasWinner
           ? '<div class="auc-box ' + (a.won ? "ok" : "") + '"><b>İhale sona erdi.</b> Kazanan teklif: <b>' + money(a.result.amount) + '</b> (' + esc(a.result.winner) + ')' +
             (a.hasReserve && !a.result.reserveMet ? '<p>Asgari satış fiyatına ulaşılmadığı için satıcı satışı onaylamak zorunda değildir.</p>' : "") +
-            (a.won ? '<p><b>Tebrikler!</b> Satın alma ve tapu/devir işlemleri için yöneticimiz sizinle iletişime geçecek. Teminatınız bedelden düşülecektir.</p>' : "") + "</div>"
+            (a.result.sale === "awaiting_payment" && a.result.payDeadline ? '<p>Kalan bedelin ödeme ve tapu için son tarih: <b>' + dt(a.result.payDeadline) + '</b></p>' : "") +
+            (a.result.sale === "paid" ? '<p><b>✓ Satış tamamlandı.</b></p>' : "") + (a.result.sale === "defaulted" ? "<p>Kazanan süresinde ödeme yapmadı; satış gerçekleşmedi.</p>" : "") +
+            (a.won ? '<p><b>Tebrikler!</b> Kalan bedel: <b>' + money(a.remaining) + '</b> (teminatınız düşüldü). ' + a.payDays + ' gün içinde ödemeyi yapıp tapu devrini tamamlayın; yöneticimiz sizinle iletişime geçecek.</p>' : "") + "</div>"
           : '<div class="auc-box"><b>İhale sona erdi.</b> Teklif gelmedi.</div>';
       }
       root.innerHTML = '<div class="auc-detail">' +
@@ -131,12 +166,13 @@
         '<li>Son ' + a.ext + ' dakikada gelen her teklif süreyi ' + a.ext + ' dakikaya tamamlar (toplam en çok ' + a.maxExtend + ' dk).</li>' +
         '<li>Teminat: başlangıç bedelinin %' + a.depositPct + '’i (' + money(a.depositAmount) + '), iade edilebilir.</li>' +
         (a.hasReserve ? '<li>Gizli asgari satış fiyatı vardır: ' + (a.reserveMet ? "karşılandı" : "henüz karşılanmadı") + '.</li>' : "") +
-        '<li>Teklifler bağlayıcıdır; kazanıp vazgeçenin teminatı irat kaydedilir.</li></ul></div></div>' +
+        '<li>Teklifler bağlayıcıdır; kazanıp vazgeçenin teminatı irat kaydedilir.</li></ul></div>' +
+        formatBox() + '</div>' +
         '<div class="auc-right"><div class="auc-panel"><span class="auc-badge ' + ph[1] + '">' + ph[0] + '</span>' +
         '<div class="auc-cdbox"><small>' + (a.phase === "scheduled" ? "Açılışa kalan" : a.phase === "live" ? "Kalan süre" : "") + '</small>' +
         '<div class="auc-cd" id="aucCd" data-cd="' + esc(target) + '" data-phase="' + a.phase + '"></div>' + (a.extended ? '<small class="muted">Toplam ' + Math.round(a.extended) + ' dk uzatıldı</small>' : "") + '</div>' +
         '<div class="auc-cur"><small>' + (a.bidCount ? "Güncel en yüksek teklif" : "Başlangıç bedeli") + '</small><b>' + money(a.current) + '</b><span class="muted">' + a.bidCount + ' teklif</span></div>' +
-        (flash ? '<div class="auc-flash">' + esc(flash) + "</div>" : "") + res + depositBox() + bidBox() +
+        (flash ? '<div class="auc-flash">' + esc(flash) + "</div>" : "") + docsBox() + res + depositBox() + bidBox() +
         (a.bids && a.bids.length ? '<div class="auc-bids"><h3>Teklifler</h3>' + a.bids.slice(0, 15).map((b) => '<div class="auc-bid' + (b.mine ? " mine" : "") + '"><span>' + esc(b.who) + (b.mine ? " (siz)" : "") + '</span><b>' + money(b.amount) + '</b><small>' + new Date(b.at).toLocaleTimeString("tr-TR") + "</small></div>").join("") + "</div>" : "") +
         '</div></div></div>';
       document.title = a.title + " — İhale | İlan AI";
@@ -150,6 +186,14 @@
       el.classList.toggle("hot", el.dataset.phase === "live" && left < 180000);
     }
     function bind() {
+      $$("[data-doc]").forEach((inp) => (inp.onchange = async () => {
+        const f = inp.files && inp.files[0]; if (!f) return;
+        if (f.size > 5 * 1048576) { flash = "Dosya 5 MB sınırını aşıyor."; render(); return; }
+        flash = "Yükleniyor…"; render();
+        const r = await post("api/auction/doc", { id, key: inp.dataset.doc, name: f.name, data: await toData(f) });
+        flash = r.__ok ? "Belge yüklendi." : (r.error || "Yüklenemedi.");
+        await load(); render();
+      }));
       const dep = $("#aucDep");
       if (dep) dep.onclick = async () => {
         dep.disabled = true;
@@ -202,6 +246,8 @@
       '<div><label for="aDur">İhale süresi</label><select id="aDur"><option value="3" selected>3 gün</option><option value="4">4 gün</option><option value="5">5 gün</option><option value="0">Özel tarih seç…</option></select>' +
       '<input id="aTo" type="datetime-local" value="' + lt(end0) + '" hidden><small id="aEnd" class="muted"></small></div>' +
       '<div class="full"><p class="muted">Son 3 dakikada gelen teklifler süreyi uzatır (toplam en çok 1 saat). İhale yönetici onayından sonra yayınlanır. Teklif verenler başlangıç bedelinin seçtiğiniz oranı kadar iade edilebilir teminat yatırır.</p></div>' +
+      '<div class="full"><label class="auc-check"><input type="checkbox" id="aDecl"> Konu üzerinde icra, haciz veya ihtiyati tedbir bulunmadığını ve satmaya yetkili olduğumu beyan ederim.</label>' +
+      '<p class="muted">İhale oluşturduktan sonra tapu/ruhsat, takyidat ve icra durumu belgelerini yükleyeceksiniz. Yönetici belgeleri inceleyip onaylamadan ihale yayına girmez. Kazanan, ihale bitiminden itibaren 10 gün içinde kalan bedeli öder ve tapu/devir yapılır.</p></div>' +
       '<div class="full"><div id="aErr" class="auc-flash" hidden></div><button class="btn" id="aSend">İhaleyi oluştur</button></div></div>';
     const num = (id) => parseInt(($(id).value || "").replace(/\D/g, ""), 10) || 0;
     const fill = () => {
@@ -226,10 +272,10 @@
       const err = $("#aErr"); err.hidden = true;
       const r = await post("api/auction/create", {
         listingId: $("#aListing").value, startPrice: num("#aStart"), minStep: num("#aStep"), depositPct: +$("#aPct").value,
-        reservePrice: num("#aRes") || 0, startsAt: new Date($("#aFrom").value).toISOString(), endsAt: endOf().toISOString(),
+        declare: $("#aDecl").checked, reservePrice: num("#aRes") || 0, startsAt: new Date($("#aFrom").value).toISOString(), endsAt: endOf().toISOString(),
       });
       if (!r.__ok) { err.textContent = r.error || "İhale oluşturulamadı."; err.hidden = false; return; }
-      root.innerHTML = '<div class="home-empty"><b>' + (r.pending ? "İhaleniz onaya gönderildi" : "İhaleniz yayında") + '</b><span>' + (r.pending ? "Yönetici onayladığında ihaleler sayfasında görünür." : "") + '</span><a class="btn" href="ihale.html?id=' + encodeURIComponent(r.aid) + '">İhaleyi aç</a></div>';
+      root.innerHTML = '<div class="home-empty"><b>İhaleniz oluşturuldu — şimdi belgeleri yükleyin</b><span>Zorunlu belgeler yüklenip yönetici onayladığında ihale yayına girer.</span><a class="btn" href="ihale.html?id=' + encodeURIComponent(r.aid) + '">Belgeleri yükle</a></div>';
     };
   }
 
@@ -242,17 +288,24 @@
       if (!j.__ok) { root.innerHTML = '<div class="home-empty"><b>Yetki gerekli</b><span>Önce <a href="admin.html">yönetim panelinden</a> giriş yapın.</span></div>'; return; }
       root.innerHTML = (j.auctions || []).map((a) =>
         '<div class="auc-admin"><div class="auc-admin-h"><b>' + esc(a.title) + '</b> <span class="auc-badge ' + (PHASE[a.phase] || PHASE.ended)[1] + '">' + (PHASE[a.phase] || PHASE.ended)[0] + "</span> <small>" + esc(a.aid) + " · satıcı: " + esc(a.ownerName) + "</small></div>" +
+        (a.state === "pending" ? '<div class="auc-box warn"><b>Belgeler' + (a.declared ? " (satıcı icra/haciz beyanı verdi)" : "") + '</b>' +
+          a.docs.map((d) => '<div class="auc-doc"><span>' + (d.uploaded ? "✓ " : "○ ") + esc(d.label) + "</span>" + (d.uploaded ? '<button class="btn ghost" data-view="' + a.aid + '|' + d.key + '">Görüntüle</button>' : "<small>yüklenmedi</small>") + "</div>").join("") +
+          (a.docNote ? "<small>Son not: " + esc(a.docNote) + "</small>" : "") + "</div>" : "") +
+        (a.sale === "awaiting_payment" ? '<div class="auc-box warn">Kazanan ödeme bekleniyor · son tarih ' + dt(a.payDeadline) + ' <button class="btn" data-a="sale-paid" data-id="' + a.aid + '">Kalan bedel ödendi / tapu tamam</button></div>' : (a.sale ? "<small>Satış: " + esc(a.sale) + "</small>" : "")) +
         "<div>Başlangıç " + money(a.startPrice) + " · güncel " + money(a.current) + " · teminat " + money(a.depositAmount) + " (%" + a.depositPct + ") · " + dt(a.startsAt) + " → " + dt(a.endsAt) + (a.reservePrice ? " · asgari " + money(a.reservePrice) : "") + "</div>" +
-        '<div class="auc-admin-act">' + (a.state === "pending" ? '<button class="btn" data-a="approve" data-id="' + a.aid + '">Onayla</button>' : "") +
+        '<div class="auc-admin-act">' + (a.state === "pending" ? '<button class="btn" data-a="approve" data-id="' + a.aid + '">Belgeleri onayla ve yayınla</button> <button class="btn ghost" data-a="reject-docs" data-id="' + a.aid + '">Belge eksik / yetersiz</button>' : "") +
         (a.state !== "cancelled" && a.phase !== "ended" ? '<button class="btn ghost" data-a="cancel" data-id="' + a.aid + '">İptal et</button>' : "") + "</div>" +
         (a.deposits.length ? '<table class="spec-table"><tr><th>Üye</th><th>Kod</th><th>Tutar</th><th>Durum</th><th></th></tr>' + a.deposits.map((d) =>
           "<tr><td>" + esc(d.name) + (d.uid === a.winnerUid ? " 🏆" : "") + "</td><td>" + esc(d.ref) + "</td><td>" + money(d.amount) + "</td><td>" + (DS[d.status] || esc(d.status)) + "</td><td>" +
           ({ requested: '<button class="btn" data-a="deposit-paid" data-id="' + a.aid + '" data-u="' + d.uid + '">Ödeme alındı</button>',
             refund_due: '<button class="btn" data-a="deposit-refunded" data-id="' + a.aid + '" data-u="' + d.uid + '">İade edildi</button>',
             applied_pending: '<button class="btn" data-a="deposit-applied" data-id="' + a.aid + '" data-u="' + d.uid + '">Bedele mahsup</button> <button class="btn ghost" data-a="deposit-forfeit" data-id="' + a.aid + '" data-u="' + d.uid + '">Vazgeçti: irat</button>' }[d.status] || "") + "</td></tr>").join("") + "</table>" : "<small class=\"muted\">Teminat talebi yok.</small>") + "</div>").join("") || '<div class="home-empty">İhale yok.</div>';
+      $$("[data-view]", root).forEach((b) => (b.onclick = () => { const [x, k] = b.dataset.view.split("|"); openDoc(x, k, true); }));
       $$("[data-a]", root).forEach((b) => (b.onclick = async () => {
-        if (!confirm("Bu işlemi onaylıyor musunuz?")) return;
-        const r = await post("api/admin/auction", { aid: b.dataset.id, action: b.dataset.a, uid: b.dataset.u }, true);
+        let note = "";
+        if (b.dataset.a === "reject-docs") { note = prompt("Satıcıya gösterilecek not (hangi belge eksik/yetersiz?)", "") || ""; if (!note) return; }
+        else if (!confirm("Bu işlemi onaylıyor musunuz?")) return;
+        const r = await post("api/admin/auction", { aid: b.dataset.id, action: b.dataset.a, uid: b.dataset.u, note }, true);
         if (!r.__ok) alert(r.error || "İşlem başarısız.");
         draw();
       }));

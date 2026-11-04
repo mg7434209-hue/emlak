@@ -51,3 +51,12 @@
   .auc-panel { position: static; }
   .auc-right { order: -1; }
 }
+
+.auc-format { margin-top: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 14px 18px; }
+.auc-format ol { margin: 8px 0 0 18px; display: grid; gap: 8px; color: var(--muted); }
+.auc-format b { color: var(--text); }
+.auc-ok { color: var(--deal) !important; }
+.auc-doc { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--border); font-size: .92rem; }
+.auc-up { cursor: pointer; padding: 6px 12px; white-space: nowrap; }
+.auc-check { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; }
+.auc-check input { margin-top: 4px; }

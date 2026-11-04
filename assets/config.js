@@ -927,6 +927,26 @@ EMLAK.config = {
     minDurationHours: 1,
     maxDurationDays: 30,
     depositInfo: "",         // havale/EFT bilgisi (IBAN, alıcı). Boşsa yönetici size iletir.
+    payDays: 10,             // kazanan, kalan bedeli bu kadar gün içinde öder; tapu/devir ödemeyle yapılır
+    docMaxMB: 5,             // yüklenen belge başına üst sınır (PDF, JPG, PNG, WEBP)
+    // Satıcıdan ZORUNLU belgeler: yönetici hepsini inceleyip onaylamadan ihale yayına girmez.
+    // Belgeler herkese AÇIK DEĞİLDİR; yalnız satıcı ve yönetici görür (KVKK).
+    docs: {
+      emlak: [
+        { key: "tapu", label: "Tapu senedi ya da tapu kayıt örneği" },
+        { key: "takyidat", label: "Takyidat belgesi (haciz, ipotek, şerh, ihtiyati tedbir kayıtları)" },
+        { key: "icra", label: "İcra / borç durumu belgesi (icra kaydı olmadığını gösteren belge)" },
+      ],
+      vasita: [
+        { key: "ruhsat", label: "Araç ruhsatı" },
+        { key: "takyidat", label: "Haciz / rehin kaydı belgesi" },
+        { key: "icra", label: "İcra / borç durumu belgesi (icra kaydı olmadığını gösteren belge)" },
+      ],
+      diger: [
+        { key: "mulkiyet", label: "Mülkiyet belgesi (fatura, sözleşme vb.)" },
+        { key: "icra", label: "İcra / haciz durumu belgesi" },
+      ],
+    },
   },
   moderation: {
     seedStatus: "pending",

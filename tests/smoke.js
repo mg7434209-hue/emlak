@@ -161,8 +161,9 @@ const daire = (over) => Object.assign({
   });
   await t("İHALE: teminat şart, adım/uzatma kuralları, kendi ihalene teklif yok, maskeli isim", async () => {
     const soon = (m) => new Date(Date.now() + m * 60000).toISOString();
-    const base = { listingId: id1, startPrice: 1000000, minStep: 10000, depositPct: 5, startsAt: soon(0), endsAt: soon(0.8) };
+    const base = { declare: true, listingId: id1, startPrice: 1000000, minStep: 10000, depositPct: 5, startsAt: soon(0), endsAt: soon(0.8) };
     assert.strictEqual((await post("api/auction/create", base, hA)).s, 403, "başkasının ilanı");
+    assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { declare: false }), hS)).s, 400, "beyan şart");
     assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { depositPct: 3 }), hS)).s, 400, "teminat %5 altı");
     assert.strictEqual((await post("api/auction/create", Object.assign({}, base, { depositPct: 11 }), hS)).s, 400, "teminat %10 üstü");
     const c = await post("api/auction/create", base, hS);
@@ -170,7 +171,16 @@ const daire = (over) => Object.assign({
     const aid = c.j.aid;
     assert.strictEqual((await call("api/auction?id=" + aid)).s, 404, "onaysız ihale herkese açık");
     assert.strictEqual((await post("api/admin/auction", { aid, action: "approve" })).s, 401);
-    await post("api/admin/auction", { aid, action: "approve" }, hAdm);
+    assert.strictEqual((await post("api/admin/auction", { aid, action: "approve" }, hAdm)).s, 400, "belgesiz onay");
+    const png = "data:image/png;base64," + Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]).toString("base64");
+    assert.strictEqual((await post("api/auction/doc", { id: aid, key: "tapu", name: "x.png", data: png }, hA)).s, 403, "başkası belge yükleyemez");
+    assert.strictEqual((await post("api/auction/doc", { id: aid, key: "tapu", name: "x.exe", data: "data:application/x-msdownload;base64,AAAA" }, hS)).s, 400, "türü yasak");
+    assert.strictEqual((await post("api/auction/doc", { id: aid, key: "tapu", name: "x.png", data: "data:image/png;base64," + Buffer.from("MZ...").toString("base64") }, hS)).s, 400, "imza uyuşmuyor");
+    for (const key of ["tapu", "takyidat", "icra"]) assert.strictEqual((await post("api/auction/doc", { id: aid, key, name: key + ".png", data: png }, hS)).s, 200);
+    assert.strictEqual((await call("api/auction/doc?id=" + aid + "&key=tapu", {}, hA)).s, 403, "belgeyi başkası indirdi");
+    assert.strictEqual((await call("api/auction/doc?id=" + aid + "&key=tapu", {}, hS)).s, 200);
+    assert.strictEqual((await post("api/admin/auction", { aid, action: "approve" }, hAdm)).s, 200);
+    assert.strictEqual((await post("api/auction/doc", { id: aid, key: "tapu", name: "x.png", data: png }, hS)).s, 400, "onaydan sonra belge değişmez");
     assert.strictEqual((await post("api/auction/bid", { id: aid, amount: 1000000 }, hA)).s, 403, "teminatsız teklif");
     const d = await post("api/auction/deposit", { id: aid }, hA);
     assert.strictEqual(d.j.deposit.amount, 50000);
@@ -186,6 +196,9 @@ const daire = (over) => Object.assign({
     assert.strictEqual(det.current, 1000000); assert.strictEqual(det.nextMin, 1010000);
     assert.ok(det.bids[0].who.includes("***") && !det.bids[0].who.toLowerCase().includes("alici"), "teklif veren maskeli değil");
     assert.ok(!JSON.stringify(det).includes("deposits") && !JSON.stringify(det).includes("ownerId"), "iç alan sızdı");
+    assert.ok(!det.docs, "belgeler başkasına görünüyor");
+    assert.strictEqual(det.docsVerified, true);
+    assert.ok((await call("api/auction/doc?id=" + aid + "&key=tapu", {}, { "X-Admin-Token": adm })).s === 200, "yönetici belgeyi göremiyor");
   });
   await t("yetkisiz yönetici uçları kapalı", async () => {
     assert.strictEqual((await call("api/admin/listings")).s, 401);
