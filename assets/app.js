@@ -2559,7 +2559,7 @@
           prog(100, "Hazır ✓ — aşağıdan kontrol edin.");
           if (!$("#stChatPanel").hidden) {
             convo.done = true;
-            const rd = ST.readiness(Object.assign(stDraft(), { desc: $("#stDesc").value }), stSelected());
+            const rd = ST.readiness(Object.assign(stDraft(), { desc: $("#stDesc").value, accountPhone: me && me.phone }), stSelected());
             bubble("bot", `İlanınız hazır ✓ Yayına hazırlık puanı ${rd.score}/100. Aşağıda başlığı, açıklamayı ve fotoğraf sırasını görebilirsiniz; uygunsa “Önizlemeye geç”e dokunun. Bir şey eklemek isterseniz buraya yazın ya da söyleyin.`);
           }
           $("#stResult").hidden = false;
@@ -2604,7 +2604,7 @@
         l.title = $("#stTitle").value; l.desc = $("#stDesc").value;
         const sel = stSelected();
         // Hazırlık puanı
-        const rd = ST.readiness(l, sel);
+        const rd = ST.readiness(Object.assign({}, l, { accountPhone: me && me.phone }), sel);
         const sc = $("#stScore");
         sc.querySelector("b").textContent = rd.score;
         sc.className = "st-score " + (rd.score >= 80 ? "good" : rd.score >= 55 ? "mid" : "low");
