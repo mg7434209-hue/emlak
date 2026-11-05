@@ -257,6 +257,17 @@ const daire = (over) => Object.assign({
     assert.ok(pubL.eids && pubL.eids.verified && pubL.eids.expires === future, "doğrulanmış eids herkese görünmeli");
     assert.ok(!JSON.stringify(pubL.eids).includes("file"), "belge yolu sızdı");
   });
+  await t("EİDS dönüş adresi /eids/callback: yetkiKodu varsa 200 bilgi sayfası, yoksa/bozuksa 400 geçersiz istek; kod günlükte maskeli", async () => {
+    const ok = await call("eids/callback?yetkiKodu=test-kod-123456789&durum=ok");
+    assert.strictEqual(ok.s, 200); assert.ok(ok.text.includes("Doğrulama işleminiz alındı"));
+    assert.strictEqual((await call("eids/callback/?yetkiKodu=abc&durum=ok")).s, 200, "sondaki / ile de çalışmalı");
+    for (const q of ["eids/callback", "eids/callback?durum=ok", "eids/callback?yetkiKodu=", "eids/callback?yetkiKodu=%3Cscript%3E"]) {
+      const r = await call(q); assert.strictEqual(r.s, 400, q); assert.ok(r.text.includes("Geçersiz istek"), q);
+    }
+    assert.strictEqual((await call("eids/callback?yetkiKodu=abc", { method: "POST" })).s, 405);
+    assert.ok(!/test-kod-123456789/.test(log), "yetkiKodu günlüğe açık yazıldı");
+    assert.ok(/EİDS callback/.test(log) && /te\*+89/.test(log), "maskeli günlük yok");
+  });
   await t("yetkisiz yönetici uçları kapalı", async () => {
     assert.strictEqual((await call("api/admin/listings")).s, 401);
     assert.strictEqual((await call("api/admin/users", {}, hS)).s, 401);
