@@ -17,14 +17,19 @@ EMLAK.config = {
     vasita: { label: "Araç" },
   },
   company: {
-    // Gerçek ticari unvan öğrenilince buraya yazılır; o zamana dek yalnız marka adı görünür.
+    // `title` görünen MARKA adıdır (İlan AI). Platformu İŞLETEN tüzel kişi aşağıdaki künyedir; footer, KVKK,
+    // kullanım koşulları, çerez politikası, JSON-LD ve llms dosyaları BURADAN beslenir (npm run build).
     title: "İlan AI",
+    legalName: "Gespa Enerji San. Tic. Ltd. Şti.",
+    taxOffice: "Manavgat",           // "Manavgat V.D."
+    taxNo: "3941259669",
+    mersis: "0394125966900001",
     // Şimdilik İLETİŞİM YALNIZCA E-POSTA. 0800 hattı alınınca şu satırı doldurmak yeterli:
     //   phone: { display: "0800 000 00 00", intl: "+908000000000", wa: "" }  (wa boşsa WhatsApp düğmesi çıkmaz)
     // Boş (null/"") alanlar sitede, JSON-LD'de ve llms.txt'te HİÇ görünmez.
     phone: null,
     email: "gesmarketim@gmail.com",
-    address: "",
+    address: "Örnek Mah. 1551 Sk. No:10/Z1 Manavgat/ANTALYA",
   },
 
   // ── SEO / AEO — canonical, sitemap, JSON-LD ve llms.txt buradan üretilir ─

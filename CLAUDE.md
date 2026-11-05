@@ -619,3 +619,10 @@ ilanlar `pending` (doğrudan yayına alma KALDIRILDI; `adminAutoPublish` artık 
 yerine pasif "⏳ EİDS entegrasyonu bekleniyor" + alt bilgi metni (`/api/admin/listings` → `publishEnabled`). Public liste/detay/sitemap/
 feed/SSR hâlâ yalnız `status==="active"` olanları gösterir; MEVCUT YAYINDAKİ ilanlar değişmez/silinmez (Yayından Kaldır ile
 geri çekilir). Kilidi açmak: Railway'de `LISTINGS_PUBLISH_ENABLED=true`. Test sunucusu bayrağı `true` verir; kilitli mod ayrı sunucuyla denenir.
+
+## İŞLETMECİ KÜNYESİ (6 Kas 2026)
+Platformu işleten: **Gespa Enerji San. Tic. Ltd. Şti.** (`config.company.legalName/address/taxOffice/taxNo/mersis`; `title` MARKA
+"İlan AI" kalır). Footer künye satırı (`<!-- COMPANY:START/END -->`), telif satırı, KVKK/kullanım koşulları/çerez sayfalarındaki
+`<span data-c-legal>` ve `<span data-c-idblock>…</span><!--/idblock-->` alanları, JSON-LD (`legalName`, `taxID`, adres) ve llms
+dosyaları BURADAN build ile (`build-seo.js hydrateCompany`) doldurulur — künyeyi HTML'de elle düzeltme. İletişim e-posta/telefon
+`config.company.email/phone` (tek kaynak; telefon boşsa hiçbir yerde görünmez). KVKK/koşul metinleri taslaktır, hukukçu onayı gerekir.
