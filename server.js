@@ -71,6 +71,10 @@ const EDATA = global.EMLAK.data;
 const MD = !!(CONF.marketData && CONF.marketData.enabled);
 // Yasal metinlerin sürümü (kvkk / kullanım koşulları güncellenince değiştir): üyenin onayı bu sürümle kaydedilir
 const LEGAL_VERSION = "2026-10-31";
+// YAYIN KİLİDİ: EİDS entegrasyonu tamamlanana kadar HİÇBİR ilan yayına alınamaz (yönetici dahil).
+// Varsayılan KİLİTLİ: ENV yoksa ya da "true" değilse kilit açılmaz. Açmak = LISTINGS_PUBLISH_ENABLED=true.
+const PUBLISH_ENABLED = String(process.env.LISTINGS_PUBLISH_ENABLED || "false").trim().toLowerCase() === "true";
+const PUBLISH_LOCK_MSG = "İlan yayınlama, EİDS entegrasyonu tamamlanana kadar kilitli.";
 
 // ── TAŞINMAZ NUMARASI (zorunlu; sahibinden.com ile aynı kural) ──────────────
 // Emlakta ilan, tapudaki taşınmaz numarası OLMADAN kabul edilmez. Numara herkese
@@ -809,9 +813,8 @@ async function handleApi(req, res, urlPath) {
     const tc = tapuConflict(l);
     if (tc.hard) return sendJson(res, 409, { error: "Bu taşınmaz numarasıyla zaten bir ilanınız var (" + tc.hard + "). Mevcut ilanı Hesabım › İlanlarım'dan düzenleyin." });
     if (tc.ids.length) l.dupOf = tc.ids;             // yönetici panelinde uyarı çıkar
-    // Yayın kararı yöneticinindir: yalnızca yöneticinin KENDİ girdiği ilan
-    // (config.moderation.adminAutoPublish) doğrudan yayına girer.
-    l.status = isAdmin && MOD.adminAutoPublish !== false ? "active" : "pending";
+    // Yönetici dahil HERKESİN ilanı Onay Bekliyor'a düşer; doğrudan yayına alma yok.
+    l.status = "pending";
     l.views = 0; l.favCount = 0;
     if (user) {
       // İlan sahibi hesaba bağlanır; ad ve telefon boş bırakılırsa hesaptan alınır
@@ -1132,6 +1135,7 @@ async function handleApi(req, res, urlPath) {
     // persistent=false → DATA_DIR ayarlı değil: dağıtımda veriler silinebilir
     return sendJson(res, 200, {
       listings: LISTINGS,
+      publishEnabled: PUBLISH_ENABLED,
       persistent: !!process.env.DATA_DIR,
       uploadsOk: UPLOADS_OK, uploadsError: UPLOADS_ERR, uploadDir: UPLOAD_DIR,
       storage: storageStats(),
@@ -1147,6 +1151,7 @@ async function handleApi(req, res, urlPath) {
     const l = LISTINGS[i];
     switch (b.action) {
       case "approve":
+        if (!PUBLISH_ENABLED) return sendJson(res, 403, { error: PUBLISH_LOCK_MSG, locked: true });
         if (isOfisEmlak(l)) {
           if (!l.eids || !l.eids.doc) return sendJson(res, 400, { error: "Emlak ofisi ilanı: taşınmaz sahibinin EİDS izin belgesi yok, yayınlanamaz." });
           if (eidsExpired(l.eids)) return sendJson(res, 400, { error: "EİDS izin süresi dolmuş; ofisten izni e-Devlet'ten uzatıp ilanı güncellemesini isteyin." });
@@ -1234,7 +1239,8 @@ async function handleApi(req, res, urlPath) {
     if (b.action === "dismiss") {
       r.status = "closed";
       const stillOpen = REPORTS.some((x) => x.listingId === r.listingId && x.status === "open");
-      if (l && l.reported && !stillOpen && l.status === "pending") { l.status = "active"; delete l.reported; saveListings(LISTINGS); }
+      // Kilit açıkken ilan geri yayına döner; kilitliyken Onay Bekliyor'da kalır (yayın yolu yok)
+      if (PUBLISH_ENABLED && l && l.reported && !stillOpen && l.status === "pending") { l.status = "active"; delete l.reported; saveListings(LISTINGS); }
     } else if (b.action === "reject") {
       REPORTS.forEach((x) => { if (x.listingId === r.listingId) x.status = "closed"; });
       if (l) { l.status = "rejected"; delete l.reported; saveListings(LISTINGS); }
@@ -1301,6 +1307,7 @@ async function handleApi(req, res, urlPath) {
       const l = NORMALIZE(raw);
       if (!l || !l.id || !l.title) return;
       l.status = ["active", "pending", "rejected"].includes(raw.status) ? raw.status : "pending";
+      if (l.status === "active" && !PUBLISH_ENABLED) l.status = "pending";   // kilitliyken yedekten de yayına alınamaz
       l.photos = persistPhotos(l.id, raw.photos, { ownerId: l.ownerId }).photos;
       if (Array.isArray(raw.priceHistory)) l.priceHistory = raw.priceHistory.slice(0, 10);
       fresh.push(l);

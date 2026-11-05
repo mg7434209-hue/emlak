@@ -47,7 +47,7 @@ const daire = (over) => Object.assign({
 
 (async () => {
   const srv = spawn("node", ["server.js"], {
-    cwd: ROOT, env: Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA, ADMIN_PASS, FX_AUTO: "0", AUCTION_EXT_MIN: "1", AUCTION_MIN_HOURS: "0.01" }),
+    cwd: ROOT, env: Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA, ADMIN_PASS, FX_AUTO: "0", AUCTION_EXT_MIN: "1", AUCTION_MIN_HOURS: "0.01", LISTINGS_PUBLISH_ENABLED: "true" }),
     stdio: ["ignore", "pipe", "pipe"],
   });
   let log = "";
@@ -267,6 +267,33 @@ const daire = (over) => Object.assign({
     assert.strictEqual((await call("eids/callback?yetkiKodu=abc", { method: "POST" })).s, 405);
     assert.ok(!/test-kod-123456789/.test(log), "yetkiKodu günlüğe açık yazıldı");
     assert.ok(/EİDS callback/.test(log) && /te\*+89/.test(log), "maskeli günlük yok");
+  });
+  await t("YAYIN KİLİDİ (LISTINGS_PUBLISH_ENABLED=false): yönetici dahil ilan Onay Bekliyor'a düşer, Yayınla 403, public yalnız yayındakini gösterir, ilan silinmez", async () => {
+    const port2 = PORT + 100, data2 = fs.mkdtempSync(path.join(os.tmpdir(), "emlak-lock-"));
+    const env2 = Object.assign({}, process.env, { PORT: String(port2), DATA_DIR: data2, ADMIN_PASS, FX_AUTO: "0" });
+    delete env2.LISTINGS_PUBLISH_ENABLED;                       // ENV yok → varsayılan KİLİTLİ olmalı
+    const srv2 = spawn("node", ["server.js"], { cwd: ROOT, env: env2, stdio: "ignore" });
+    try {
+      const B2 = `http://localhost:${port2}/`;
+      for (let i = 0; i < 60; i++) { try { if ((await fetch(B2 + "api/ai/status")).ok) break; } catch (e) { /* bekle */ } await new Promise((r) => setTimeout(r, 250)); }
+      const c2 = async (p, body, h) => { const r = await fetch(B2 + p, { method: body ? "POST" : "GET", headers: Object.assign({ "Content-Type": "application/json" }, h || {}), body: body ? JSON.stringify(body) : undefined }); let j = null, text = await r.text(); try { j = JSON.parse(text); } catch (e) { /* düz metin */ } return { s: r.status, j, text }; };
+      const adm2 = (await c2("api/login", { pass: ADMIN_PASS })).j.token, hAd2 = { "X-Admin-Token": adm2 };
+      const made = await c2("api/listings", daire({ title: "Kilit Testi Dairesi", details: { tasinmazNo: "9900112233" } }), hAd2);
+      assert.strictEqual(made.s, 200, JSON.stringify(made.j));
+      assert.strictEqual(made.j.status, "pending", "yönetici ilanı doğrudan yayına girdi");
+      const ap = await c2("api/admin/action", { id: made.j.id, action: "approve" }, hAd2);
+      assert.strictEqual(ap.s, 403, "kilitliyken Yayınla 403 dönmeli"); assert.ok(ap.j.locked);
+      const adminList = (await c2("api/admin/listings", null, hAd2)).j;
+      assert.strictEqual(adminList.publishEnabled, false);
+      assert.ok(adminList.listings.some((l) => l.id === made.j.id && l.status === "pending"), "ilan silinmiş ya da durum değişmiş");
+      assert.ok(!(await c2("api/listings")).text.includes(made.j.id), "bekleyen ilan public listede");
+      assert.ok(!(await c2("sitemap.xml")).text.includes(made.j.id), "bekleyen ilan sitemap'te");
+      assert.ok(!(await c2("veri/ilanlar.json")).text.includes(made.j.id), "bekleyen ilan feed'de");
+      // kilit açık sunucuda (ana test sunucusu) aynı onay çalışır: bayrak gerçekten kilidi yönetiyor
+      const made1 = await post("api/listings", daire({ title: "Kilit Açık Dairesi", details: { tasinmazNo: "9900112244" } }), hAdm);
+      assert.strictEqual(made1.j.status, "pending", "kilit açıkken de yönetici ilanı doğrudan yayına girmemeli");
+      assert.strictEqual((await post("api/admin/action", { id: made1.j.id, action: "approve" }, hAdm)).s, 200, "kilit açıkken Yayınla çalışmalı");
+    } finally { try { srv2.kill(); } catch (e) { /* kapalı */ } try { fs.rmSync(data2, { recursive: true, force: true }); } catch (e) { /* temizlik */ } }
   });
   await t("yetkisiz yönetici uçları kapalı", async () => {
     assert.strictEqual((await call("api/admin/listings")).s, 401);
