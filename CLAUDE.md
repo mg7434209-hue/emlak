@@ -611,3 +611,11 @@ Başlıkta ✉ Mesajlar (okunmamış rozeti) + hesap menüsü (`#userMenu`); sit
 (`https://www.ilanai.info/eids/callback`). SEO/statik/404 yönlendirmesinden ÖNCE yakalanır. yetkiKodu geçerliyse 200
 "Doğrulama işleminiz alındı", yoksa/bozuksa 400 "Geçersiz istek". Kod günlüğe YALNIZ maskeli yazılır, durum süzülür.
 `eidsGetKullaniciKodu()` TODO (GetKullaniciKodu dokümanla gelecek; şimdilik çağrı yok). robots'ta `/eids/` engelli.
+
+## YAYIN KİLİDİ — EİDS entegrasyonu bitene kadar (6 Kas 2026)
+`LISTINGS_PUBLISH_ENABLED` (varsayılan KİLİTLİ: ENV yoksa/`true` değilse kilit açılmaz). Kilitliyken: yönetici dahil TÜM yeni
+ilanlar `pending` (doğrudan yayına alma KALDIRILDI; `adminAutoPublish` artık okunmaz); `POST /api/admin/action approve` → 403
+(`locked:true`); şikayet "asılsız" ilanı geri yayına ALMAZ; yedekten yüklemede `active` → `pending`. Admin panelinde "✓ Yayınla"
+yerine pasif "⏳ EİDS entegrasyonu bekleniyor" + alt bilgi metni (`/api/admin/listings` → `publishEnabled`). Public liste/detay/sitemap/
+feed/SSR hâlâ yalnız `status==="active"` olanları gösterir; MEVCUT YAYINDAKİ ilanlar değişmez/silinmez (Yayından Kaldır ile
+geri çekilir). Kilidi açmak: Railway'de `LISTINGS_PUBLISH_ENABLED=true`. Test sunucusu bayrağı `true` verir; kilitli mod ayrı sunucuyla denenir.

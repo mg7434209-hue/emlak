@@ -3360,6 +3360,15 @@
       $("#loginWrap").style.display = logged ? "none" : "";
       $("#panelWrap").style.display = logged ? "" : "none";
     };
+    // Yayın kilidi (sunucu LISTINGS_PUBLISH_ENABLED): kilitliyken "✓ Yayınla" pasif, sunucu da 403 döner
+    let publishLocked = true;
+    const NOTE_LOCKED = `<b>İlan yayınlama şu an kilitli:</b> EİDS entegrasyonu tamamlanana kadar hiçbir ilan yayına alınamaz.
+      Yönetici girişiyle verilenler dahil <b>tüm yeni ilanlar Onay Bekliyor</b> durumuna düşer ve beklemede kalır.
+      Mevcut ilanlar silinmez; yayındaki bir ilanı <b>Yayından Kaldır</b> ile geri çekebilir, <b>Düzenle</b> ile güncelleyebilirsiniz.
+      Entegrasyon bitince sunucuda <code>LISTINGS_PUBLISH_ENABLED=true</code> yapılınca <b>✓ Yayınla</b> açılır.`;
+    const NOTE_OPEN = `Hiçbir ilan sizin onayınız olmadan yayına girmez: tüm ilanlar (yönetici girişiyle verilenler dahil)
+      <b>Onay Bekliyor</b> durumuna düşer, <b>✓ Yayınla</b> dediğinizde herkese görünür.
+      Yayındaki bir ilanı <b>Yayından Kaldır</b> ile geri çekebilir, <b>Düzenle</b> ile güncelleyebilirsiniz.`;
     async function api(pathname, opts) {
       // Yetki iki kaynaktan gelebilir: admin şifre jetonu ya da yönetici üye oturumu
       const r = await fetch(pathname, Object.assign({
@@ -3410,6 +3419,8 @@
     async function refresh() {
       const j = await api("api/admin/listings", { method: "GET" });
       rows = j.listings || [];
+      publishLocked = j.publishEnabled !== true;
+      { const note = $("#adminNote"); if (note) note.innerHTML = publishLocked ? NOTE_LOCKED : NOTE_OPEN; }
       // Kalıcılık uyarısı: Railway'de Volume + DATA_DIR yoksa her dağıtımda
       // ilanlar/mesajlar sıfırlanır — yedek almak şart.
       const warn = $("#persistWarn");
@@ -3480,7 +3491,9 @@
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
-              ${l.status !== "active" ? `<button class="btn sm" data-act="approve" data-id="${esc(l.id)}">✓ Yayınla</button>` : ""}
+              ${l.status !== "active" ? (publishLocked
+                ? `<button class="btn sm" disabled aria-disabled="true" title="EİDS entegrasyonu bekleniyor" style="opacity:.6;cursor:not-allowed">⏳ EİDS entegrasyonu bekleniyor</button>`
+                : `<button class="btn sm" data-act="approve" data-id="${esc(l.id)}">✓ Yayınla</button>`) : ""}
               ${l.status === "pending" ? `<button class="btn ghost sm" data-act="reject" data-id="${esc(l.id)}">Reddet</button>` : ""}
               ${l.status === "active" ? `<button class="btn ghost sm" data-act="reject" data-id="${esc(l.id)}">Yayından Kaldır</button>` : ""}
               ${l.status === "active" ? `<button class="btn ghost sm" data-act="${l.featured ? "unfeature" : "feature"}" data-id="${esc(l.id)}">${l.featured ? "⭐ Kaldır" : "⭐ Öne Çıkar"}</button>` : ""}

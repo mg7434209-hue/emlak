@@ -950,7 +950,7 @@ EMLAK.config = {
   },
   moderation: {
     seedStatus: "pending",
-    adminAutoPublish: true,
+    adminAutoPublish: false,   // KALDIRILDI: yönetici dahil hiçbir ilan doğrudan yayına girmez (kod bu ayarı artık okumaz)
     // İLAN ŞİKAYETİ: farklı kişilerden bu kadar açık şikayet gelince ilan
     // kendiliğinden yayından çekilip yönetici incelemesine ("pending") düşer.
     reportThreshold: 3,
