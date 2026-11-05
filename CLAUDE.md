@@ -605,3 +605,9 @@ yönetici `GET /api/listing/eids-doc` ile görür; `pub()` herkese yalnız {veri
 izni dolan ilan `pending`e düşer; sahip Hesabım › İlanlarım › "EİDS izni yenile" ile yeni tarih+belge gönderir.
 Rehber sayfası `eids.html` (taşınmaz sahibi ve emlakçı adımları). "Sahibinden" ilanda izin istenmez.
 Başlıkta ✉ Mesajlar (okunmamış rozeti) + hesap menüsü (`#userMenu`); site içi mesaj ilan sahibinin Hesabım › Mesajlar'ına düşer.
+
+## EİDS DÖNÜŞ ADRESİ (6 Kas 2026) — YOLU DEĞİŞTİRME
+`GET /eids/callback?yetkiKodu=…&durum=…` (server.js `handleEidsCallback`): Bakanlığa bildirilen return URL
+(`https://www.ilanai.info/eids/callback`). SEO/statik/404 yönlendirmesinden ÖNCE yakalanır. yetkiKodu geçerliyse 200
+"Doğrulama işleminiz alındı", yoksa/bozuksa 400 "Geçersiz istek". Kod günlüğe YALNIZ maskeli yazılır, durum süzülür.
+`eidsGetKullaniciKodu()` TODO (GetKullaniciKodu dokümanla gelecek; şimdilik çağrı yok). robots'ta `/eids/` engelli.

@@ -2086,6 +2086,51 @@ function safeJoin(base, target) {
 // yapılır (istemci kontrollü Host ile açık yönlendirme engellenir).
 const HOST_OK = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$|(^|\.)up\.railway\.app$|(^|\.)github\.io$/;
 
+// ── EİDS dönüş adresi: GET /eids/callback?yetkiKodu=…&durum=… ──────────────
+// Ticaret Bakanlığı EİDS, e-Devlet doğrulamasından sonra kullanıcıyı BURAYA yönlendirir.
+// Bakanlığa bildirilen adres olduğu için YOLU DEĞİŞTİRME. Route, SPA/404/SEO yönlendirmesinden ÖNCE yakalanır.
+const maskEidsCode = (v) => {
+  const s = String(v || "");
+  if (s.length <= 4) return "*".repeat(s.length);
+  return s.slice(0, 2) + "*".repeat(Math.min(s.length - 4, 12)) + s.slice(-2);
+};
+// TODO(EİDS): yetkiKodu ile kullanıcı kodunu al (GetKullaniciKodu). Uç adresi ve istek/yanıt biçimi
+// Bakanlık dokümanıyla gelecek; adres ve kimlik bilgisi ENV'den okunacak. Başarılı yanıtta kullanıcı kodu,
+// oturumdaki üyeye (state ile eşleştirilerek) kaydedilecek. Şimdilik çağrı YAPILMAZ.
+async function eidsGetKullaniciKodu(/* yetkiKodu */) {
+  return { ok: false, pending: true };
+}
+function eidsCallbackPage(ok) {
+  const title = ok ? "Doğrulama işleminiz alındı" : "Geçersiz istek";
+  const text = ok
+    ? "e-Devlet doğrulamanız alındı. Hesabınıza dönebilirsiniz; işlem tamamlandığında ilanlarınızda görünür."
+    : "Bu adres yalnızca e-Devlet (EİDS) doğrulamasından sonra yönlendirmeyle açılır.";
+  return '<!DOCTYPE html>\n<html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    "<title>" + title + " | " + htmlEsc(CONF.brand.name) + '</title><meta name="robots" content="noindex, nofollow">' +
+    '<link rel="stylesheet" href="/assets/style.css"></head><body data-page="eids-callback"><main class="container section" style="max-width:560px;padding-top:60px;text-align:center">' +
+    '<h1 style="font-size:1.5rem">' + (ok ? "✓ " : "⚠ ") + title + "</h1><p style=\"color:var(--muted);margin:14px 0 24px\">" + text + "</p>" +
+    '<a class="btn" href="/hesap.html">Hesabıma dön</a> <a class="btn ghost" href="/">Ana sayfa</a></main></body></html>';
+}
+function handleEidsCallback(req, res) {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.writeHead(405, { Allow: "GET, HEAD", "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("Method Not Allowed");
+  }
+  const code = req.__query.get("yetkiKodu");
+  const durum = String(req.__query.get("durum") || "").replace(/[^\w.-]/g, "").slice(0, 40);   // günlük enjeksiyonuna karşı
+  const valid = typeof code === "string" && code.length > 0 && code.length <= 256 && /^[\w.=~+\/-]+$/.test(code);
+  console.log("EİDS callback:", JSON.stringify({ gecerli: valid, durum: durum || null, yetkiKodu: code ? maskEidsCode(code) : null, uzunluk: code ? code.length : 0 }));
+  if (!valid) {
+    const html = eidsCallbackPage(false);
+    res.writeHead(400, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": CSP, "X-Frame-Options": "DENY" });
+    return res.end(req.method === "HEAD" ? undefined : html);
+  }
+  eidsGetKullaniciKodu(code).catch((e) => console.error("EİDS kullanıcı kodu alınamadı:", e && e.message));   // TODO: şimdilik yer tutucu
+  const html = eidsCallbackPage(true);
+  res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": CSP, "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer" });
+  return res.end(req.method === "HEAD" ? undefined : html);
+}
+
 const server = http.createServer((req, res) => {
   try {
     // HTTP → HTTPS (yalnızca proxy açıkça http dediğinde ve host bilinen bir
@@ -2104,6 +2149,9 @@ const server = http.createServer((req, res) => {
     const GONE = { "/degerleme.html": "/", "/degerleme": "/", "/asistan.html": "/", "/asistan": "/",
       "/bolge-fiyatlari.html": "/ilanlar.html", "/bolge-fiyatlari": "/ilanlar.html" };
     if (!MD && GONE[urlPath]) { res.writeHead(301, { Location: GONE[urlPath] }); return res.end(); }
+
+    // EİDS dönüş adresi (Bakanlığa bildirildi): SEO/statik/404 yönlendirmesinden ÖNCE
+    if (urlPath === "/eids/callback" || urlPath === "/eids/callback/") return handleEidsCallback(req, res);
 
     // Dinamik sitemap: yayındaki ilanları da içerir (statik dosyayı ezer)
     // AEO: yapay zekâ motorları için ayrıntılı, düz metin site özeti.
