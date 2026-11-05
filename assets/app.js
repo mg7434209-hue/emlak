@@ -705,6 +705,32 @@
     if (document.body.dataset.page === (u ? "hesap" : "giris")) a.classList.add("active");
     const cta = nav.querySelector("a.cta");
     nav.insertBefore(a, cta || null);
+    if (u) {
+      // Üst çubukta ✉ Mesajlar (okunmamış rozetli) + hesap menüsü (ilan sahibine giden site içi mesajlar buraya düşer)
+      const mi = document.createElement("a");
+      mi.id = "msgLink"; mi.href = "hesap.html#mesajlar"; mi.title = "Mesajlarım"; mi.setAttribute("aria-label", "Mesajlarım");
+      mi.innerHTML = "✉" + (A.unread > 0 ? ` <span class="nav-badge">${A.unread}</span>` : "");
+      nav.insertBefore(mi, a);
+      const menu = document.createElement("div");
+      menu.className = "user-menu"; menu.id = "userMenu"; menu.hidden = true;
+      menu.innerHTML = `<div class="um-head">${esc(u.name || "")}</div>
+        <a href="hesap.html">Hesabım</a><a href="hesap.html">İlanlarım</a>
+        <a href="hesap.html#mesajlar">Mesajlarım${A.unread > 0 ? ` <span class="nav-badge">${A.unread}</span>` : ""}</a>
+        <a href="favoriler.html">Favorilerim</a><a href="ihale-olustur.html">İlanımı ihaleye çıkar</a>
+        <a href="hesap.html#profil">Profil ve gizlilik</a>
+        <button type="button" id="umLogout">Çıkış yap</button>`;
+      document.body.appendChild(menu);
+      a.addEventListener("click", (ev) => {
+        if (window.innerWidth <= 860) return;           // mobilde doğrudan hesap sayfası
+        ev.preventDefault();
+        const r = a.getBoundingClientRect();
+        menu.style.top = Math.round(r.bottom + 8 + window.scrollY) + "px";
+        menu.style.right = Math.max(8, Math.round(document.documentElement.clientWidth - r.right)) + "px";
+        menu.hidden = !menu.hidden;
+      });
+      document.addEventListener("click", (ev) => { if (!menu.hidden && !menu.contains(ev.target) && ev.target !== a && !a.contains(ev.target)) menu.hidden = true; });
+      document.getElementById("umLogout").addEventListener("click", () => { A.logout(); location.href = "index.html"; });
+    }
     // Yönetici yetkili üyeye panel kısayolu (diğer ziyaretçilere görünmez)
     if (u && u.role === "admin" && !$("#adminLink")) {
       const ad = document.createElement("a");
@@ -1478,6 +1504,7 @@
             <div class="avatar">${l.seller.avatar ? `<img src="${esc(l.seller.avatar)}" alt="" width="40" height="40">` : esc(l.seller.name[0])}</div>
             <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small>
               ${l.seller.type === "ofis" && l.seller.license ? `<br><small class="license-line">🪪 Yetki Belge No: <b>${esc(l.seller.license)}</b></small>` : ""}
+              ${l.eids && l.eids.verified ? `<br><small class="license-line eids-ok">✓ Taşınmaz sahibi e-Devlet (EİDS) ile izin verdi · bitiş ${esc(new Date(l.eids.expires + "T12:00:00").toLocaleDateString("tr-TR"))}</small>` : ""}
               ${l.ownerId ? `<br><a href="magaza.html?u=${encodeURIComponent(l.ownerId)}" style="font-size:0.85rem">Mağazasındaki tüm ilanlar →</a>` : ""}</div>
           </div>
           ${contact ? `<a class="btn" id="callBtn" href="#" data-tel="${esc(contact.intl)}" data-tel-label="${esc(contact.display)}">📞 Telefonu Göster</a>` : ""}
@@ -1723,6 +1750,7 @@
       const on = $("#pSeg").value === "emlak" && $("#pSellerType").value === "ofis";
       $("#pLicenseWrap").hidden = !on;
       $("#licenseHint").hidden = !on;
+      $("#eidsBox").hidden = !on;
       if (on && !$("#pLicense").value) { try { $("#pLicense").value = localStorage.getItem("emlakai.license") || ""; } catch (e) { /* depolama kapalı */ } }
     }
     $("#pSellerType").addEventListener("change", syncLicense);
@@ -1912,6 +1940,16 @@
       if (d.tasinmazNo != null) { const c = D.cleanTapuNo(d.tasinmazNo); if (c) d.tasinmazNo = c; else delete d.tasinmazNo; }
       return d;
     }
+    // EİDS izin belgesi (emlak ofisi): tarayıcıda okunur, ilanla birlikte gönderilir
+    let eidsDoc = null;
+    $("#pEidsDoc").addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0]; eidsDoc = null; $("#eidsDocName").textContent = "";
+      if (!f) return;
+      if (f.size > 3 * 1048576) { $("#eidsDocName").textContent = "Dosya 3 MB sınırını aşıyor."; e.target.value = ""; return; }
+      const r = new FileReader();
+      r.onload = () => { eidsDoc = { data: r.result, name: f.name }; $("#eidsDocName").textContent = "✓ " + f.name; };
+      r.readAsDataURL(f);
+    });
     function collect() {
       const seg = $("#pSeg").value;
       const sellerType = $("#pSellerType").value;
@@ -1931,6 +1969,9 @@
           license: sellerType === "ofis" ? ($("#pLicense").value || "").replace(/\D/g, "") || undefined : undefined },
         phone: normPhone($("#pPhone").value),
         locality: ($("#pLocality").value || "").trim().slice(0, 120) || undefined,
+        eids: seg === "emlak" && sellerType === "ofis"
+          ? { confirmed: $("#pEidsOk").checked, expires: $("#pEidsExp").value, docData: eidsDoc ? eidsDoc.data : undefined, docName: eidsDoc ? eidsDoc.name : undefined }
+          : undefined,
       };
       if (seg === "vasita") {
         // Seçilen araç türü korunur (eskiden her araç "Otomobil" kaydediliyordu:
@@ -2007,6 +2048,11 @@
         // Taşınmaz Ticareti Hakkında Yönetmelik: emlak işletmesi ilanında yetki belgesi no zorunlu
         if (l.seller.type === "ofis" && !/^\d{5,12}$/.test(l.seller.license || "")) {
           return fail("Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur (yalnız rakam).", "#pLicense");
+        }
+        if (l.seller.type === "ofis") {
+          if (!$("#pEidsOk").checked) return fail("Emlak ofisi ilanı için taşınmaz sahibinin e-Devlet’ten (EİDS) ilan yayınlama izni verdiğini onaylayın.", "#pEidsOk");
+          if (!$("#pEidsExp").value) return fail("EİDS izin bitiş tarihini girin (e-Devlet izin ekranında yazar).", "#pEidsExp");
+          if (!eidsDoc) return fail("EİDS izin belgesini (e-Devlet izin ekranı görüntüsü ya da PDF) yükleyin.", "#pEidsDoc");
         }
       }
       if (soft) return null;
@@ -2175,6 +2221,7 @@
           // Sunucu doğrulaması (ör. taşınmaz numarası, yetki belgesi) → formda ilgili alanı göster
           if (r && r.error && /taşınmaz numarası/i.test(r.error)) { bad = "#kf_tasinmazNo"; setStep(2); showError(r.error); }
           else if (r && r.error && /yetki belgesi/i.test(r.error)) { bad = "#pLicense"; setStep(2); showError(r.error); }
+          else if (r && r.error && /EİDS/.test(r.error)) { bad = "#pEidsOk"; setStep(2); showError(r.error); }
           else e2((r && r.error) || "İlan gönderilemedi, lütfen tekrar deneyin.");
         } catch (e) {
           e2("Sunucuya ulaşılamadı, lütfen tekrar deneyin.");
@@ -2900,10 +2947,27 @@
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
+              ${l.seller && l.seller.type === "ofis" && (l.segment || "emlak") === "emlak" ? `<button class="btn ghost sm" data-my="eids" data-id="${esc(l.id)}">EİDS izni${l.eids && l.eids.expired ? " (süresi doldu) " : ""}yenile</button>` : ""}
               <button class="btn ghost sm" data-my="edit" data-id="${esc(l.id)}">Düzenle</button>
               <button class="btn ghost sm" data-my="remove" data-id="${esc(l.id)}" style="color:var(--over);border-color:var(--over)">Sil</button>
             </td></tr>`;
         }).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Henüz ilanınız yok. <a href="ilan-ver.html">İlk ilanınızı verin →</a></td></tr>');
+      $$("#myTable [data-my=eids]").forEach((b) => b.addEventListener("click", () => {
+        const inp = document.createElement("input"); inp.type = "file"; inp.accept = "application/pdf,image/jpeg,image/png,image/webp";
+        inp.onchange = async () => {
+          const f = inp.files && inp.files[0]; if (!f) return;
+          if (f.size > 3 * 1048576) { alert("Dosya 3 MB sınırını aşıyor."); return; }
+          const expires = prompt("e-Devlet izin ekranındaki yeni İZİN BİTİŞ TARİHİ (YYYY-AA-GG, örn. 2027-02-13):", "");
+          if (!expires) return;
+          const data = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(f); });
+          const res = await fetch("api/my/action", { method: "POST", headers: { "Content-Type": "application/json", "X-User-Token": A.token() },
+            body: JSON.stringify({ id: b.dataset.id, action: "edit", value: { eids: { confirmed: true, expires: expires.trim(), docData: data, docName: f.name } } }) });
+          const j = await res.json().catch(() => ({}));
+          alert(res.ok ? "İzin bilgisi gönderildi; yönetici onayından sonra ilan yeniden yayınlanır." : (j.error || "Gönderilemedi."));
+          refresh();
+        };
+        inp.click();
+      }));
       $$("#myTable [data-my]").forEach((btn) => btn.addEventListener("click", async () => {
         const l = listings.find((x) => x.id === btn.dataset.id);
         if (!l) return;
@@ -2998,7 +3062,8 @@
       $("#mySearchesTab").style.display = b.dataset.tab === "searches" ? "" : "none";
       $("#myProfileTab").style.display = b.dataset.tab === "profile" ? "" : "none";
     }));
-    if (location.hash === "#mesajlar") { const t = $('#myTabs [data-tab="messages"]'); if (t) t.click(); }
+    { const tabOf = { "#mesajlar": "messages", "#profil": "profile", "#aramalar": "searches" }[location.hash];
+      if (tabOf) { const t = $('#myTabs [data-tab="' + tabOf + '"]'); if (t) t.click(); } }
 
 
     // Kayıtlı aramalar tablosu
@@ -3408,7 +3473,10 @@
               <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${esc(ownerLabel(l))} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small>
               ${(l.details || {}).tasinmazNo ? `<br><small>🪪 Taşınmaz No: <b>${esc(l.details.tasinmazNo)}</b>${(l.seller || {}).license ? " · Yetki No: <b>" + esc(l.seller.license) + "</b>" : ""}</small>` : (l.segment || "emlak") === "emlak" ? '<br><small style="color:var(--over)">⚠ Taşınmaz numarası yok</small>' : ""}
               ${(l.dupOf || []).length ? `<br><small style="color:var(--over);font-weight:700">⚠ Aynı taşınmaz numarası başka ilanda: ${esc(l.dupOf.join(", "))} — onaylamadan önce kontrol edin</small>` : ""}
-              ${l.reported ? '<br><small style="color:var(--over);font-weight:700">🚩 Şikayetler nedeniyle incelemede</small>' : ""}</td>
+              ${l.reported ? '<br><small style="color:var(--over);font-weight:700">🚩 Şikayetler nedeniyle incelemede</small>' : ""}
+              ${l.seller && l.seller.type === "ofis" && (l.segment || "emlak") === "emlak" ? (l.eids
+                ? `<br><small>🏛 EİDS izni: bitiş <b>${esc(new Date(l.eids.expires + "T12:00:00").toLocaleDateString("tr-TR"))}</b>${l.eids.verified ? " · ✓ doğrulandı" : ""}${l.eids.expired ? ' · <b style="color:var(--over)">süresi doldu</b>' : ""} · <a href="#" data-eids-open="${esc(l.id)}">İzin belgesini aç</a> <small class="muted">(taşınmaz no ve yetki no ile karşılaştırın)</small></small>`
+                : '<br><small style="color:var(--over);font-weight:700">🏛 EİDS izin belgesi yok</small>') : ""}</td>
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
@@ -3420,6 +3488,12 @@
               <button class="btn ghost sm" data-act="remove" data-id="${esc(l.id)}" style="color:var(--over);border-color:var(--over)">Sil</button>
             </td></tr>`;
         }).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Bu durumda ilan yok.</td></tr>');
+      $$("#adminTable [data-eids-open]").forEach((a) => a.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const r = await fetch("api/listing/eids-doc?id=" + encodeURIComponent(a.dataset.eidsOpen), { headers: { "X-Admin-Token": adminToken(), "X-User-Token": A.token() } });
+        if (!r.ok) { alert("Belge açılamadı."); return; }
+        const url = URL.createObjectURL(await r.blob()); window.open(url, "_blank"); setTimeout(() => URL.revokeObjectURL(url), 60000);
+      }));
       $$("#adminTable [data-act]").forEach((b) => b.addEventListener("click", async () => {
         const act = b.dataset.act, id = b.dataset.id;
         if (act === "edit") {

@@ -113,6 +113,8 @@ function pub(l) {
     o = Object.assign({}, o, { seller, contact: { phone: !pv.hidePhone, email: pv.showEmail ? owner.email : "" } });
     if (pv.hidePhone) o.phone = null;
   }
+  // EİDS: herkese yalnız "doğrulandı + bitiş tarihi" görünür (belge yolu asla)
+  if (o.eids) o = Object.assign({}, o, { eids: o.eids.verified ? { verified: true, expires: o.eids.expires } : undefined });
   return o;
 }
 const ownerAlias = (owner, type) => str(owner.alias, 40) || (type === "ofis" ? "Emlak Ofisi" : "Bireysel Satıcı");
@@ -158,6 +160,53 @@ process.on("SIGINT", () => { flushListings(); process.exit(0); });
 // ── Fotoğraf deposu: base64 → dosya (DATA_DIR/uploads, /u/<dosya> ile servis) ─
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const AVATAR_DIR = path.join(DATA_DIR, "avatars");     // profil fotoğrafları (ilan fotoğrafı süpürücüsünden ayrı)
+const EIDS_DIR = path.join(DATA_DIR, "eids-docs");     // e-Devlet (EİDS) izin belgeleri — HERKESE AÇIK DEĞİL
+const EIDS_DOC_MAX = 3 * 1048576;
+const EIDS_BODY = 5 * 1048576;                          // ilan gövdesine eklenen belge payı (base64)
+const isOfisEmlak = (l) => (l.segment || "emlak") === "emlak" && !!(l.seller && l.seller.type === "ofis");
+const eidsExpired = (e) => !e || !(Date.parse(e.expires + "T23:59:59Z") > Date.now());
+// Emlak OFİSİ ilanı: taşınmaz sahibi e-Devlet'ten (Ticaret Bakanlığı EİDS) ofise ilan yayınlama izni verir.
+// İlan AI EİDS'e bağlı DEĞİLDİR: beyan + izin bitiş tarihi + izin ekranı belgesi alınır, yönetici inceler.
+function eidsFrom(raw, prev, id) {
+  raw = raw && typeof raw === "object" ? raw : {};
+  if (raw.confirmed !== true) return { error: "Emlak ofisi ilanı için taşınmaz sahibinin e-Devlet'ten (EİDS) ilan yayınlama izni verdiğini onaylamanız gerekir." };
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(raw.expires || ""));
+  const exp = m ? Date.parse(raw.expires + "T23:59:59Z") : NaN;
+  if (!Number.isFinite(exp) || exp < Date.now()) return { error: "EİDS izin bitiş tarihi geçerli ve ileri bir tarih olmalı (izin süresi dolmuşsa e-Devlet'ten uzatılmalı)." };
+  if (exp > Date.now() + 3 * 365 * 86400000) return { error: "EİDS izin bitiş tarihi en fazla 3 yıl sonrası olabilir." };
+  let doc = prev && prev.doc;
+  if (raw.docData) {
+    const dm = /^data:(application\/pdf|image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(raw.docData));
+    if (!dm) return { error: "EİDS izin belgesi PDF, JPG, PNG ya da WEBP olmalı." };
+    const buf = Buffer.from(dm[2], "base64");
+    if (!buf.length || buf.length > EIDS_DOC_MAX) return { error: "EİDS izin belgesi en fazla 3 MB olmalı." };
+    const sig = buf.slice(0, 4).toString("latin1");
+    const okSig = (dm[1] === "application/pdf" && sig.startsWith("%PDF")) || (dm[1] === "image/png" && buf[0] === 0x89 && sig.slice(1, 4) === "PNG") ||
+      (dm[1] === "image/jpeg" && buf[0] === 0xff && buf[1] === 0xd8) || (dm[1] === "image/webp" && sig === "RIFF");
+    if (!okSig) return { error: "EİDS izin belgesinin içeriği seçilen biçimle uyuşmuyor." };
+    try {
+      fs.mkdirSync(EIDS_DIR, { recursive: true });
+      const ext = { "application/pdf": ".pdf", "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp" }[dm[1]];
+      const file = id + "-eids-" + crypto.randomBytes(3).toString("hex") + ext;
+      fs.writeFileSync(path.join(EIDS_DIR, file), buf);
+      if (doc && doc.file) { try { fs.unlinkSync(path.join(EIDS_DIR, path.basename(doc.file))); } catch (e) { /* yok */ } }
+      doc = { file, mime: dm[1], name: str(raw.docName, 80) || file, at: new Date().toISOString() };
+    } catch (e) { return { error: "İzin belgesi kaydedilemedi, tekrar deneyin." }; }
+  }
+  if (!doc) return { error: "EİDS izin belgesini (e-Devlet izin ekranı görüntüsü ya da PDF) yükleyin." };
+  const same = !!(prev && prev.expires === raw.expires && prev.doc && prev.doc.file === doc.file);
+  return { eids: { confirmed: true, expires: raw.expires, doc, verified: same && !!prev.verified, at: new Date().toISOString() } };
+}
+// İzin süresi dolan emlak ofisi ilanı kendiliğinden yayından kalkar (yeniden onay bekler)
+function expireEids() {
+  let n = 0;
+  LISTINGS.forEach((l) => {
+    if (l.status === "active" && isOfisEmlak(l) && l.eids && eidsExpired(l.eids)) {
+      l.status = "pending"; l.eids.verified = false; l.eids.expired = true; n++;
+    }
+  });
+  if (n) { saveListings(LISTINGS); console.log("EİDS izni dolan ilan yayından alındı:", n); }
+}
 const DATA_URI = /^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/;
 const EXT_OF = { png: ".png", jpg: ".jpg", jpeg: ".jpg", webp: ".webp" };
 const UP = (CONF && CONF.upload) || {};
@@ -673,6 +722,17 @@ async function handleApi(req, res, urlPath) {
     return sendJson(res, 200, { ok: true, user: publicUser(u) });
   }
 
+  // GET /api/listing/eids-doc?id= — EİDS izin belgesini yalnız ilan sahibi ve yönetici açar
+  if (urlPath === "/api/listing/eids-doc" && req.method === "GET") {
+    const l = LISTINGS.find((x) => x.id === String(req.__query.get("id") || ""));
+    const me = currentUser(req);
+    if (!l || !((me && l.ownerId === me.uid) || isAdminReq(req))) return sendJson(res, 403, { error: "Yetkisiz." });
+    if (!l.eids || !l.eids.doc) return sendJson(res, 404, { error: "Belge yok." });
+    let data; try { data = fs.readFileSync(path.join(EIDS_DIR, path.basename(l.eids.doc.file))); } catch (e) { return sendJson(res, 404, { error: "Dosya bulunamadı." }); }
+    res.writeHead(200, { "Content-Type": l.eids.doc.mime, "Content-Length": data.length, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Disposition": "inline" });
+    return res.end(data);
+  }
+
   // POST /api/auth/avatar {data} | {remove:true} — profil fotoğrafı (isteğe bağlı, ilanlarda yalnız "göster" seçiliyse görünür)
   if (urlPath === "/api/auth/avatar" && req.method === "POST") {
     const u = currentUser(req);
@@ -726,7 +786,7 @@ async function handleApi(req, res, urlPath) {
     if (!isAdmin && !rateLimit(req, "post", 10, 60 * 60 * 1000)) {
       return sendJson(res, 429, { error: "Saatlik ilan sınırına ulaştınız. Daha sonra tekrar deneyin." });
     }
-    const b = await readBody(req, BODY_PHOTOS); // fotoğraflar base64 (kota kadar)
+    const b = await readBody(req, BODY_PHOTOS + EIDS_BODY); // fotoğraflar + EİDS belgesi base64
     const l = NORMALIZE(cleanTapuIn(b));
     if (!l) return sendJson(res, 400, { error: "Geçersiz ilan verisi." });
     if (!l.title || !l.price || !l.district) return sendJson(res, 400, { error: "Başlık, fiyat ve ilçe zorunludur." });
@@ -762,6 +822,12 @@ async function handleApi(req, res, urlPath) {
       l.seller = { name: rawName || user.name, type: rawSeller.type === "ofis" ? "ofis" : "sahibinden" };
       if (l.seller.type === "ofis" && rawSeller.license) l.seller.license = String(rawSeller.license).replace(/\D/g, "").slice(0, 12);
       if (!l.phone && user.phone) l.phone = user.phone;
+    }
+    delete l.eids;                                    // istemci "doğrulandı" gönderemez
+    if (!isAdmin && isOfisEmlak(l)) {
+      const er = eidsFrom(b.eids, null, l.id);
+      if (er.error) return sendJson(res, 400, { error: er.error });
+      l.eids = er.eids;
     }
     const ph = persistPhotos(l.id, b.photos, { ownerId: l.ownerId }); // base64 → DATA_DIR/uploads dosyaları
     l.photos = ph.photos;
@@ -1003,7 +1069,7 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/my/action" && req.method === "POST") {
     const u = currentUser(req);
     if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
-    const b = await readBody(req, BODY_PHOTOS);
+    const b = await readBody(req, BODY_PHOTOS + EIDS_BODY);
     const i = LISTINGS.findIndex((l) => l.id === b.id && l.ownerId === u.uid);
     if (i < 0) return sendJson(res, 404, { error: "İlan bulunamadı." });
     const l = LISTINGS[i];
@@ -1030,12 +1096,20 @@ async function handleApi(req, res, urlPath) {
         !/^\d{5,12}$/.test(merged.seller.license || "")) {
       return sendJson(res, 400, { error: "Emlak ofisi ilanlarında Yetki Belgesi Numarası zorunludur." });
     }
+    delete merged.eids;                                // istemci "doğrulandı" gönderemez
+    let newEids;
+    if (isOfisEmlak(merged)) {
+      const er = eidsFrom(patch.eids || (l.eids ? { confirmed: true, expires: l.eids.expires } : null), l.eids, l.id);
+      if (er.error) return sendJson(res, 400, { error: er.error });
+      newEids = er.eids;
+    }
     const ph = Array.isArray(patch.photos) ? persistPhotos(l.id, patch.photos, { ownerId: l.ownerId }) : null;
     const keptPhotos = ph ? ph.photos : l.photos;
     if (ph) dropPhotos((l.photos || []).filter((x) => keptPhotos.indexOf(x) < 0));
     pushPriceHistory(l, merged.price);
     const hist = l.priceHistory;
     Object.assign(l, merged, {
+      eids: newEids,
       dupOf: merged.dupOf,
       id: l.id, date: l.date, ownerId: l.ownerId, views: l.views || 0,
       favCount: l.favCount || 0, photos: keptPhotos, priceHistory: hist,
@@ -1072,7 +1146,13 @@ async function handleApi(req, res, urlPath) {
     if (i < 0) return sendJson(res, 404, { error: "İlan bulunamadı." });
     const l = LISTINGS[i];
     switch (b.action) {
-      case "approve": l.status = "active"; break;
+      case "approve":
+        if (isOfisEmlak(l)) {
+          if (!l.eids || !l.eids.doc) return sendJson(res, 400, { error: "Emlak ofisi ilanı: taşınmaz sahibinin EİDS izin belgesi yok, yayınlanamaz." });
+          if (eidsExpired(l.eids)) return sendJson(res, 400, { error: "EİDS izin süresi dolmuş; ofisten izni e-Devlet'ten uzatıp ilanı güncellemesini isteyin." });
+          l.eids.verified = true; delete l.eids.expired;
+        }
+        l.status = "active"; break;
       case "reject": l.status = "rejected"; break;
       case "remove": dropPhotos(l.photos); LISTINGS.splice(i, 1); break;
       case "feature": l.featured = true; break;
@@ -1101,6 +1181,7 @@ async function handleApi(req, res, urlPath) {
         pushPriceHistory(l, merged.price);
         const hist = l.priceHistory;
         Object.assign(l, merged, {
+          eids: l.eids,                                  // belge yolu ve doğrulama normalize ile ezilmesin
           dupOf: merged.dupOf,
           id: l.id, date: l.date, status: l.status, ownerId: l.ownerId, views: l.views || 0,
           favCount: l.favCount || 0, photos: keptPhotos, priceHistory: hist,
@@ -1927,7 +2008,7 @@ function seoRouteList() {
 // Dinamik sitemap: statik sayfalar + yayındaki ilanlar (SEO için kritik)
 function sitemapXml() {
   const base = (CONF.seo.siteUrl || "").replace(/\/$/, "");
-  const pages = ["", "/ilanlar.html", "/ihaleler.html", "/ilan-ver.html", "/rehber.html", "/favoriler.html",
+  const pages = ["", "/ilanlar.html", "/ihaleler.html", "/ilan-ver.html", "/rehber.html", "/eids.html", "/favoriler.html",
     "/giris.html", "/kullanim-kosullari.html", "/kvkk.html", "/cerez-politikasi.html"];
   const esc = (u) => u.replace(/&/g, "&amp;");
   const shopUrls = [...new Set(LISTINGS.filter((l) => l.status === "active" && l.ownerId).map((l) => l.ownerId))]
@@ -2276,6 +2357,8 @@ const server = http.createServer((req, res) => {
 
 sweepOrphanPhotos(); // boyut defterini kur + yetim fotoğrafları temizle
 
+expireEids();
+setInterval(expireEids, 60 * 60 * 1000).unref();
 server.listen(PORT, () => {
   console.log("İlan AI sunucusu çalışıyor: http://localhost:" + PORT);
 });

@@ -218,6 +218,7 @@ const staticPages = [
   ["ilanlar.html", "0.9", "daily"],
   ["ihaleler.html", "0.8", "daily"],
   ["rehber.html", "0.8", "weekly"],
+  ["eids.html", "0.6", "monthly"],
   ["ilan-ver.html", "0.7", "monthly"],
   ["giris.html", "0.4", "monthly"],
   ["magaza.html", "0.3", "weekly"],

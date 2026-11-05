@@ -133,6 +133,8 @@
         avatar: /^a\/[\w.-]+$/.test(seller.avatar || "") ? seller.avatar : undefined,
       },
       phone,
+      // EİDS (emlak ofisi): yalnız "doğrulandı + bitiş" taşınır; belge yolu/beyan hiçbir zaman istemciye çıkmaz
+      eids: l.eids && l.eids.verified === true && /^\d{4}-\d{2}-\d{2}$/.test(l.eids.expires || "") ? { verified: true, expires: l.eids.expires } : undefined,
       // Satıcı iletişim tercihi (sunucu pub() ekler): telefon açık mı, e-posta paylaşılıyor mu
       contact: l.contact && typeof l.contact === "object"
         ? { phone: l.contact.phone !== false, email: /^[^\s@]{1,64}@[^\s@]+$/.test(l.contact.email || "") ? String(l.contact.email).slice(0, 120) : "" } : undefined,

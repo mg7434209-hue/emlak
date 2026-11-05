@@ -594,3 +594,14 @@ mesajdır (satıcı Hesabım › Mesajlar'da görür, telefon paylaşmadan yanı
 yanıt verilemez. E-posta bildirimi (yeni mesaj) için SMTP YOK — okunmamış rozeti var. Gizli telefonda WhatsApp/arama
 düğmesi çıkmaz (`C.company.phone` tanımlıysa o site numarası görünür). Profil fotoğrafı `DATA_DIR/avatars/`, `/a/<dosya>`
 (ilan fotoğrafı süpürücüsüne girmez; ≤300 KB, istemci 256 px'e küçültür). Yeni public ilan çıktısı eklersen `pub()`'dan geçir.
+
+## EMLAK OFİSİ İZNİ — e-Devlet EİDS (5 Kas 2026)
+Emlak OFİSİ ilanında (segment emlak + seller.type "ofis") taşınmaz sahibinin e-Devlet'ten (Ticaret Bakanlığı EİDS
+"Taşınmaz İlanı Yayınlama İzni") ofisin Yetki Belgesi No'suna verdiği izin şarttır. İlan AI EİDS'e BAĞLI DEĞİL, otomatik
+sorgu YOK (iddia etme): form beyan kutusu + izin bitiş tarihi + izin ekranı belgesi (PDF/JPG/PNG/WEBP ≤ 3 MB, imza
+denetimli) ister; `listing.eids` = {confirmed, expires, doc, verified}. Doğrulama YALNIZ yönetici "Yayınla" derken
+(`approve` belgesiz/süresi dolmuşsa 400, istemci `verified` gönderemez). Belge `DATA_DIR/eids-docs/`, yalnız sahip ve
+yönetici `GET /api/listing/eids-doc` ile görür; `pub()` herkese yalnız {verified, expires} verir. `expireEids()` saatlik:
+izni dolan ilan `pending`e düşer; sahip Hesabım › İlanlarım › "EİDS izni yenile" ile yeni tarih+belge gönderir.
+Rehber sayfası `eids.html` (taşınmaz sahibi ve emlakçı adımları). "Sahibinden" ilanda izin istenmez.
+Başlıkta ✉ Mesajlar (okunmamış rozeti) + hesap menüsü (`#userMenu`); site içi mesaj ilan sahibinin Hesabım › Mesajlar'ına düşer.
