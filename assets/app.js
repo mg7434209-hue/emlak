@@ -749,7 +749,7 @@
     const url = C.seo.siteUrl;
     addJsonLd({
       "@context": "https://schema.org", "@type": "Organization",
-      name: C.brand.name, legalName: C.company.title, url,
+      name: C.brand.name, legalName: C.company.legalName || C.company.title, url,
       logo: url + C.seo.ogImage, email: C.company.email,
       ...(C.company.phone ? { telephone: C.company.phone.intl } : {}),
       ...(C.company.address ? { address: { "@type": "PostalAddress", streetAddress: C.company.address, addressCountry: "TR" } } : {}),

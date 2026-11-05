@@ -194,6 +194,28 @@ const stampAssets = (html) => html.replace(
     return `${attr}="${rel}${h ? "?v=" + h : ""}"`;
   });
 
+// ── Şirket künyesi: footer + hukuki sayfalardaki işaretli alanlar config.company'den DOLDURULUR ──
+const CO = C.company;
+const coEsc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const coMail = () => `<a href="mailto:${coEsc(CO.email)}">${coEsc(CO.email)}</a>`;
+const coTel = () => CO.phone ? `<a href="tel:${coEsc(CO.phone.intl)}">${coEsc(CO.phone.display)}</a>` : "";
+const coFooter = () => '<!-- COMPANY:START -->\n      <div class="footer-company"><b>' + coEsc(CO.legalName) + "</b> | " + coEsc(CO.address) + " | " +
+  coEsc(CO.taxOffice) + " V.D. " + coEsc(CO.taxNo) + " | MERSİS " + coEsc(CO.mersis) +
+  (CO.phone ? " | Tel: " + coTel() : "") + " | E-posta: " + coMail() + "</div>\n      <!-- COMPANY:END -->";
+const coIdBlock = () => "<b>Adres:</b> " + coEsc(CO.address) + "<br>\n        <b>Vergi Dairesi / No:</b> " + coEsc(CO.taxOffice) + " V.D. " + coEsc(CO.taxNo) +
+  "<br>\n        <b>MERSİS No:</b> " + coEsc(CO.mersis) + "<br>\n        <b>E-posta:</b> " + coMail() + (CO.phone ? " · <b>Telefon:</b> " + coTel() : "");
+const hydrateCompany = (html) => {
+  // footer künye satırı (işaretli blok varsa yenilenir, yoksa copyright'ın önüne eklenir)
+  if (/<!-- COMPANY:START -->/.test(html)) html = html.replace(/<!-- COMPANY:START -->[\s\S]*?<!-- COMPANY:END -->/, () => coFooter());
+  else html = html.replace(/<div class="copyright">/, () => coFooter() + '\n      <div class="copyright">');
+  // telif satırı: işletmeci tüzel kişi
+  html = html.replace(/<div class="copyright">© (\d{4}) (?:[^<·]*? · )?(İlan AI)/, (m, y, b) => `<div class="copyright">© ${y} ${coEsc(CO.legalName)} · ${b}`);
+  // hukuki sayfalardaki yer tutucular
+  html = html.replace(/(<span data-c-legal>)[^<]*(<\/span>)/g, (m, a, z) => a + coEsc(CO.legalName) + z)
+    .replace(/(<span data-c-idblock>)[\s\S]*?(<\/span><!--\/idblock-->)/g, (m, a, z) => a + coIdBlock() + z);
+  return html;
+};
+
 let synced = 0;
 fs.readdirSync(__dirname)
   .filter((f) => f.endsWith(".html"))
@@ -202,7 +224,7 @@ fs.readdirSync(__dirname)
     let html = fs.readFileSync(file, "utf8");
     const before = html;
     const pageUrl = URL0 + (f === "index.html" ? "/" : "/" + f);
-    html = stampAssets(html)
+    html = hydrateCompany(stampAssets(html))
       .replace(/(<link rel="canonical" href=")[^"]*(")/g, `$1${pageUrl}$2`)
       .replace(/(<meta property="og:url" content=")[^"]*(")/g, `$1${pageUrl}$2`)
       .replace(/(<meta property="og:image" content=")[^"]*(")/g, `$1${OG_ABS}$2`)
@@ -303,6 +325,7 @@ fs.writeFileSync(path.join(__dirname, "llms.txt"),
 
 ## İletişim
 
+- İşletmeci: ${C.company.legalName} — ${C.company.address} — ${C.company.taxOffice} V.D. ${C.company.taxNo} — MERSİS ${C.company.mersis}
 ${C.company.phone ? "- Telefon: " + C.company.phone.display + "\n" : ""}- E-posta: ${C.company.email}
 `);
 
@@ -321,6 +344,7 @@ fs.writeFileSync(path.join(__dirname, "llms-full.txt"),
 - Ne yapar: satılık ve kiralık taşınmaz (konut, iş yeri, arsa), araç ve diğer ilanları yayınlar.
 - İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.
 - Emlak ilanlarında tapudaki taşınmaz numarası zorunludur; emlak ofisleri yetki belgesi numarasını belirtir.
+- İşletmeci: ${C.company.legalName} (${C.company.taxOffice} V.D. ${C.company.taxNo} · MERSİS ${C.company.mersis})
 - İletişim: ${C.company.phone ? C.company.phone.display + " · " : ""}${C.company.email}${C.company.address ? "\n- Adres: " + C.company.address : ""}
 
 ## Sık sorulan sorular

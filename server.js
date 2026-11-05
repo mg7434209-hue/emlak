@@ -1508,12 +1508,13 @@ function siteJsonLd() {
   return jsonLdTag({
     "@context": "https://schema.org", "@type": "RealEstateAgent",
     "@id": SITE + "/#kurum",
-    name: CONF.brand.name, legalName: CONF.company.title, url: SITE,
+    name: CONF.brand.name, legalName: CONF.company.legalName || CONF.company.title, url: SITE,
+    ...(CONF.company.taxNo ? { taxID: CONF.company.taxNo } : {}),
     logo: SITE + CONF.seo.ogImage, image: SITE + CONF.seo.ogImage,
     description: CONF.brand.tagline,
     email: CONF.company.email,
     ...(CONF.company.phone ? { telephone: CONF.company.phone.intl } : {}),
-    ...(CONF.company.address ? { address: { "@type": "PostalAddress", streetAddress: CONF.company.address, addressCountry: "TR" } } : {}),
+    ...(CONF.company.address ? { address: { "@type": "PostalAddress", streetAddress: CONF.company.address, addressLocality: "Manavgat", addressRegion: "Antalya", addressCountry: "TR" } } : {}),
     areaServed: [{ "@type": "Country", name: "Türkiye" }]
       .concat(oneCikan.map((c) => ({ "@type": "City", name: c }))),
     knowsAbout: [
@@ -1706,6 +1707,7 @@ function llmsFullTxt() {
   L.push("- Ücretsiz araçlar: doğal dil arama; ilan verirken yapay zekâ metinden ve fotoğraflardan ilanı hazırlar.");
   L.push("- Emlak ilanlarında tapudaki taşınmaz numarası zorunludur; emlak ofisleri yetki belgesi numarasını belirtir.");
   L.push("- İlan vermek ÜCRETSİZDİR; ilanlar yayına alınmadan önce yönetici onayından geçer.");
+  if (CONF.company.legalName) L.push("- İşletmeci: " + CONF.company.legalName + " (" + CONF.company.taxOffice + " V.D. " + CONF.company.taxNo + " · MERSİS " + CONF.company.mersis + ")");
   L.push("- İletişim: " + (CONF.company.phone ? CONF.company.phone.display + " · " : "") + CONF.company.email);
   if (CONF.company.address) L.push("- Adres: " + CONF.company.address);
   L.push("");
