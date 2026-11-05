@@ -584,3 +584,13 @@ Sayfalar: `ihaleler.html` (liste) · `ihale.html?id=` (canlı detay, 2,5 sn yokl
   öneri değer çıkar; yönetici emsalleri işaretleyip "Değeri onayla" der (`verifiedValue`, `comps` anlık görüntüsü).
   Değer onaylanmadan ihale yayına girmez. Herkese "Gerçek değer ✓ Yönetici onaylı" + dayandığı emsal ilan bağlantıları
   yayınlanır; indirim yüzdesi onaylı değerden hesaplanır. Emsal yoksa yönetici elle girer. Ekspertiz DEĞİLDİR.
+
+## SATICI GİZLİLİĞİ (5 Kas 2026)
+Hesabım › Hesap Bilgileri › "İlanlarda nasıl görüneyim?": üye adını gizler (takma ad `alias`), telefonunu gizler,
+e-postasını gösterir, profil fotoğrafı yükler/gösterir. Tercihler `user.privacy` + `user.alias` + `user.avatar`; TEK
+uygulama noktası server.js `pub()` (herkese açık ilan çıktısı) ve `/api/seller`: gizli telefon `phone:null`,
+`contact:{phone,email}` eklenir. Sahibine (`/api/my/*`) ve yöneticiye ham veri gider. HER ZAMAN AÇIK kanal site içi
+mesajdır (satıcı Hesabım › Mesajlar'da görür, telefon paylaşmadan yanıtlar). Üye olmadan yazan ziyaretçiye site içinden
+yanıt verilemez. E-posta bildirimi (yeni mesaj) için SMTP YOK — okunmamış rozeti var. Gizli telefonda WhatsApp/arama
+düğmesi çıkmaz (`C.company.phone` tanımlıysa o site numarası görünür). Profil fotoğrafı `DATA_DIR/avatars/`, `/a/<dosya>`
+(ilan fotoğrafı süpürücüsüne girmez; ≤300 KB, istemci 256 px'e küçültür). Yeni public ilan çıktısı eklersen `pub()`'dan geçir.

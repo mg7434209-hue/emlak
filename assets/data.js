@@ -130,8 +130,12 @@
         name: str(seller.name, 80) || "Sahibinden", type: seller.type === "ofis" ? "ofis" : "sahibinden",
         // Emlakçı Yetki Belgesi No (Taşınmaz Ticareti Hakkında Yönetmelik): yalnız rakam, beyan
         license: seller.type === "ofis" ? (String(seller.license || "").replace(/\D/g, "").slice(0, 12) || undefined) : undefined,
+        avatar: /^a\/[\w.-]+$/.test(seller.avatar || "") ? seller.avatar : undefined,
       },
       phone,
+      // Satıcı iletişim tercihi (sunucu pub() ekler): telefon açık mı, e-posta paylaşılıyor mu
+      contact: l.contact && typeof l.contact === "object"
+        ? { phone: l.contact.phone !== false, email: /^[^\s@]{1,64}@[^\s@]+$/.test(l.contact.email || "") ? String(l.contact.email).slice(0, 120) : "" } : undefined,
       // İsteğe bağlı detay alanları (detay sayfası varsa gösterir)
       locality: str(l.locality, 120) || undefined,
       m2Net: num(l.m2Net) || undefined,
@@ -302,6 +306,11 @@
     },
     async update(payload) {
       const j = await authApi("api/auth/update", { method: "POST", body: JSON.stringify(payload) });
+      if (j && j.user) writeSession({ token: auth.token(), user: j.user });
+      return j;
+    },
+    async avatar(dataUrl) {
+      const j = await authApi("api/auth/avatar", { method: "POST", body: JSON.stringify(dataUrl ? { data: dataUrl } : { remove: true }) });
       if (j && j.user) writeSession({ token: auth.token(), user: j.user });
       return j;
     },

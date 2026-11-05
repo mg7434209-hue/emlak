@@ -209,6 +209,30 @@ const daire = (over) => Object.assign({
     assert.strictEqual(det.marketValue, 1200000); assert.strictEqual(det.valueVerified, true); assert.strictEqual(det.deedPct, 2); assert.strictEqual(det.commissionPct, 2);
     assert.ok((await call("api/auction/doc?id=" + aid + "&key=tapu", {}, { "X-Admin-Token": adm })).s === 200, "yönetici belgeyi göremiyor");
   });
+  await t("SATICI GİZLİLİĞİ: ad/telefon gizlenir, e-posta ve fotoğraf yalnız seçilirse görünür; sahibi hepsini görür", async () => {
+    const find = async () => (await call("api/listings")).j.listings.find((l) => l.id === id1);
+    let l = await find();
+    assert.ok(l.phone, "başlangıçta telefon açık olmalı"); assert.strictEqual(l.contact.phone, true); assert.strictEqual(l.contact.email, "");
+    const u = await post("api/auth/update", { alias: "Gizli Satıcı", privacy: { hideName: true, hidePhone: true, showEmail: false, showAvatar: false } }, hS);
+    assert.strictEqual(u.s, 200, JSON.stringify(u.j));
+    l = await find();
+    assert.strictEqual(l.seller.name, "Gizli Satıcı"); assert.ok(!l.phone, "telefon sızdı"); assert.strictEqual(l.contact.phone, false); assert.strictEqual(l.contact.email, "");
+    assert.ok(!(await call("api/listings")).text.includes("05321112233") && !(await call("api/listings")).text.includes("Üye satici"), "ad/telefon herkese açık yanıtta");
+    const sel = (await call("api/seller?u=" + l.ownerId)).j.seller;
+    assert.strictEqual(sel.name, "Gizli Satıcı"); assert.strictEqual(sel.phone, null); assert.strictEqual(sel.email, "");
+    const mine = (await call("api/my/listings", {}, hS)).j.listings.find((x) => x.id === id1);
+    assert.ok(mine.phone, "sahibi kendi telefonunu görmeli");
+    assert.strictEqual((await post("api/auth/avatar", { data: "data:image/png;base64," + Buffer.from("x".repeat(400 * 1024)).toString("base64") }, hS)).s, 413, "büyük avatar");
+    const png = "data:image/png;base64," + Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]).toString("base64");
+    const av = await post("api/auth/avatar", { data: png }, hS);
+    assert.strictEqual(av.s, 200); assert.ok(/^a\//.test(av.j.user.avatar));
+    l = await find(); assert.ok(!l.seller.avatar, "fotoğraf seçilmeden görünmemeli");
+    await post("api/auth/update", { privacy: { hideName: true, hidePhone: true, showEmail: true, showAvatar: true } }, hS);
+    l = await find();
+    assert.ok(/^a\//.test(l.seller.avatar)); assert.ok(l.contact.email.includes("@"));
+    assert.strictEqual((await call(l.seller.avatar)).s, 200, "avatar dosyası açılmıyor");
+    assert.strictEqual((await call("a/..%2Fusers.json")).s, 404, "avatar rotasından kaçış");
+  });
   await t("yetkisiz yönetici uçları kapalı", async () => {
     assert.strictEqual((await call("api/admin/listings")).s, 401);
     assert.strictEqual((await call("api/admin/users", {}, hS)).s, 401);
