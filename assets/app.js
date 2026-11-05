@@ -1475,14 +1475,16 @@
               <small style="color:var(--muted)">← ucuz | piyasa | pahalı →</small>
             </div>` : ""}
           <div class="seller">
-            <div class="avatar">${esc(l.seller.name[0])}</div>
+            <div class="avatar">${l.seller.avatar ? `<img src="${esc(l.seller.avatar)}" alt="" width="40" height="40">` : esc(l.seller.name[0])}</div>
             <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small>
               ${l.seller.type === "ofis" && l.seller.license ? `<br><small class="license-line">🪪 Yetki Belge No: <b>${esc(l.seller.license)}</b></small>` : ""}
               ${l.ownerId ? `<br><a href="magaza.html?u=${encodeURIComponent(l.ownerId)}" style="font-size:0.85rem">Mağazasındaki tüm ilanlar →</a>` : ""}</div>
           </div>
           ${contact ? `<a class="btn" id="callBtn" href="#" data-tel="${esc(contact.intl)}" data-tel-label="${esc(contact.display)}">📞 Telefonu Göster</a>` : ""}
           ${wa ? `<a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>` : ""}
-          ${!contact && D.hasServer() ? '<a class="btn" href="#msgCard">✉ Satıcıya mesaj gönder</a>' : ""}
+          ${l.contact && l.contact.email ? `<a class="btn ghost" href="mailto:${esc(l.contact.email)}?subject=${encodeURIComponent(l.id + " numaralı ilan")}">✉ E-posta gönder</a>` : ""}
+          ${D.hasServer() ? '<a class="btn' + (contact ? " ghost" : "") + '" href="#msgCard">✉ Satıcıya mesaj gönder</a>' : ""}
+          ${l.contact && l.contact.phone === false ? '<small style="color:var(--muted)">Satıcı telefonunu paylaşmıyor; site içi mesajla ulaşabilirsiniz.</small>' : ""}
           <button class="btn ghost" data-fav="${esc(l.id)}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
           <div style="display:flex;gap:8px">
             <button class="btn ghost sm" id="shareBtn" type="button" style="flex:1">Paylaş</button>
@@ -2878,6 +2880,10 @@
       renderSearches();
       $("#uName").value = u.name || "";
       $("#uPhone").value = (u.phone && u.phone.display) || "";
+      const pv = u.privacy || {};
+      $("#uAlias").value = u.alias || ""; $("#uHideName").checked = !!pv.hideName; $("#uHidePhone").checked = !!pv.hidePhone;
+      $("#uShowEmail").checked = !!pv.showEmail; $("#uShowAvatar").checked = !!pv.showAvatar;
+      $("#uAvatarImg").innerHTML = u.avatar ? `<img src="${esc(u.avatar)}" alt="" width="64" height="64">` : "👤";
       $("#uEmail").value = u.email || "";
     }
 
@@ -3018,11 +3024,32 @@
 
     $("#uSave").addEventListener("click", async () => {
       const out = $("#uOut");
-      const r = await A.update({ name: $("#uName").value.trim(), phone: $("#uPhone").value.trim() });
+      const r = await A.update({ name: $("#uName").value.trim(), phone: $("#uPhone").value.trim(),
+        alias: $("#uAlias").value.trim(),
+        privacy: { hideName: $("#uHideName").checked, hidePhone: $("#uHidePhone").checked, showEmail: $("#uShowEmail").checked, showAvatar: $("#uShowAvatar").checked } });
       out.innerHTML = r && r.ok
         ? '<b style="color:var(--deal)">Bilgileriniz güncellendi ✓</b>'
         : `<span style="color:var(--over)">${esc((r && r.error) || "Güncellenemedi.")}</span>`;
       if (r && r.ok) { const a = $("#authLink"); if (a) a.textContent = "👤 " + (r.user.name || "").split(" ")[0]; }
+    });
+    // Profil fotoğrafı: tarayıcıda 256 px'e küçültülüp yüklenir
+    $("#uAvatarFile").addEventListener("change", async (e) => {
+      const f = e.target.files && e.target.files[0]; e.target.value = "";
+      if (!f) return;
+      const out = $("#uOut");
+      try {
+        const bmp = await createImageBitmap(f);
+        const s = Math.min(1, 256 / Math.max(bmp.width, bmp.height));
+        const c = document.createElement("canvas"); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+        c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+        const r = await A.avatar(c.toDataURL("image/jpeg", 0.85));
+        if (r && r.ok) { $("#uAvatarImg").innerHTML = `<img src="${esc(r.user.avatar)}" alt="" width="64" height="64">`; out.innerHTML = '<b style="color:var(--deal)">Fotoğraf yüklendi ✓ (ilanlarda görünmesi için “Fotoğrafımı göster” kutusunu işaretleyin)</b>'; }
+        else out.innerHTML = `<span style="color:var(--over)">${esc((r && r.error) || "Yüklenemedi.")}</span>`;
+      } catch (err) { out.innerHTML = '<span style="color:var(--over)">Fotoğraf açılamadı.</span>'; }
+    });
+    $("#uAvatarDel").addEventListener("click", async () => {
+      const r = await A.avatar(null);
+      if (r && r.ok) $("#uAvatarImg").textContent = "👤";
     });
     $("#uPassSave").addEventListener("click", async () => {
       const out = $("#uPassOut");
@@ -3061,6 +3088,7 @@
     const ofis = sel.type === "ofis";
     document.title = `${sel.name} — ${ofis ? "Emlak Ofisi" : "Sahibinden"} | ${C.brand.name}`;
     $("#shopName").textContent = sel.name;
+    if (sel.avatar && /^a\/[\w.-]+$/.test(sel.avatar)) $("#shopName").insertAdjacentHTML("beforebegin", `<img class="shop-avatar" src="${esc(sel.avatar)}" alt="" width="56" height="56">`);
     $("#shopMeta").innerHTML = `${ofis ? "🏢 <b>Emlak Ofisi</b>" : "👤 <b>Bireysel Satıcı</b>"} · ` +
       `Üyelik: ${new Date(sel.since).toLocaleDateString("tr-TR")} · ${fmt(sel.count)} yayında ilan`;
     $("#shopCrumb").innerHTML = `<a href="index.html">Ana Sayfa</a> › <a href="ilanlar.html">İlanlar</a> › ${esc(sel.name)}`;

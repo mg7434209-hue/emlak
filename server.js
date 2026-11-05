@@ -97,9 +97,25 @@ function tapuConflict(l) {
 }
 // Herkese açık görünüm: taşınmaz numarası maskeli, iç alanlar yok
 function pub(l) {
-  if (!l || !l.details || !l.details.tasinmazNo) return l;
-  return Object.assign({}, l, { details: Object.assign({}, l.details, { tasinmazNo: EDATA.maskTapuNo(l.details.tasinmazNo) }) });
+  if (!l) return l;
+  let o = l;
+  if (l.details && l.details.tasinmazNo) {
+    o = Object.assign({}, l, { details: Object.assign({}, l.details, { tasinmazNo: EDATA.maskTapuNo(l.details.tasinmazNo) }) });
+  }
+  // SATICI GİZLİLİĞİ: ilan sahibi adını / telefonunu gizleyebilir, fotoğraf ve e-posta göstermeyi seçebilir.
+  // Her zaman açık kalan kanal site içi mesajdır. Sahibine ve yöneticiye giden yanıtlar pub()'dan geçmez.
+  const owner = l.ownerId ? USERS.find((x) => x.uid === l.ownerId) : null;
+  if (owner) {
+    const pv = owner.privacy || {};
+    const seller = Object.assign({}, o.seller);
+    if (pv.hideName) seller.name = ownerAlias(owner, seller.type);
+    if (pv.showAvatar && owner.avatar) seller.avatar = owner.avatar;
+    o = Object.assign({}, o, { seller, contact: { phone: !pv.hidePhone, email: pv.showEmail ? owner.email : "" } });
+    if (pv.hidePhone) o.phone = null;
+  }
+  return o;
 }
+const ownerAlias = (owner, type) => str(owner.alias, 40) || (type === "ofis" ? "Emlak Ofisi" : "Bireysel Satıcı");
 const SEED = global.EMLAK.data.all(); // Node ortamında yalnız REAL[]
 
 // ── İlan deposu (JSON dosyası; Railway'de kalıcılık için Volume + DATA_DIR) ─
@@ -141,6 +157,7 @@ process.on("SIGINT", () => { flushListings(); process.exit(0); });
 
 // ── Fotoğraf deposu: base64 → dosya (DATA_DIR/uploads, /u/<dosya> ile servis) ─
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
+const AVATAR_DIR = path.join(DATA_DIR, "avatars");     // profil fotoğrafları (ilan fotoğrafı süpürücüsünden ayrı)
 const DATA_URI = /^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/;
 const EXT_OF = { png: ".png", jpg: ".jpg", jpeg: ".jpg", webp: ".webp" };
 const UP = (CONF && CONF.upload) || {};
@@ -414,7 +431,9 @@ const currentUser = (req) => userFromToken(req.headers["x-user-token"] || "");
 // Panel yetkisi iki yoldan gelir: admin şifresiyle alınan jeton ya da rolü
 // "admin" olan üye oturumu (üyeler panelden yönetici yapılır).
 const isAdminReq = (req) => checkToken(req) || ((currentUser(req) || {}).role === "admin");
-const publicUser = (u) => ({ uid: u.uid, name: u.name, email: u.email, phone: u.phone || "", role: u.role || "user" });
+const publicUser = (u) => ({ uid: u.uid, name: u.name, email: u.email, phone: u.phone || "", role: u.role || "user",
+  privacy: { hideName: !!(u.privacy || {}).hideName, hidePhone: !!(u.privacy || {}).hidePhone, showEmail: !!(u.privacy || {}).showEmail, showAvatar: !!(u.privacy || {}).showAvatar },
+  alias: u.alias || "", avatar: u.avatar || "" });
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@.]+(\.[^\s@.]+)+$/;
 const normEmail = (v) => String(v || "").trim().toLowerCase().slice(0, 120);
 // Telefonu normalize eder: "05XX XXX XX XX" → {display, intl, wa} (yoksa null)
@@ -645,7 +664,35 @@ async function handleApi(req, res, urlPath) {
       if (!ph) return sendJson(res, 400, { error: "Geçerli bir telefon girin." });
       u.phone = ph;
     }
+    if (b.privacy && typeof b.privacy === "object") {
+      u.privacy = { hideName: b.privacy.hideName === true, hidePhone: b.privacy.hidePhone === true,
+        showEmail: b.privacy.showEmail === true, showAvatar: b.privacy.showAvatar === true };
+    }
+    if (b.alias != null) u.alias = str(b.alias, 40);
     saveUsers(USERS);
+    return sendJson(res, 200, { ok: true, user: publicUser(u) });
+  }
+
+  // POST /api/auth/avatar {data} | {remove:true} — profil fotoğrafı (isteğe bağlı, ilanlarda yalnız "göster" seçiliyse görünür)
+  if (urlPath === "/api/auth/avatar" && req.method === "POST") {
+    const u = currentUser(req);
+    if (!u) return sendJson(res, 401, { error: "Oturum geçersiz." });
+    if (!rateLimit(req, "avatar", 20, 60 * 60 * 1000)) return sendJson(res, 429, { error: "Çok fazla deneme." });
+    let b; try { b = await readBody(req, 600 * 1024); } catch (e) { return sendJson(res, 413, { error: "Fotoğraf çok büyük." }); }
+    const drop = () => { if (u.avatar) { try { fs.unlinkSync(path.join(AVATAR_DIR, path.basename(u.avatar))); } catch (e) { /* yok */ } u.avatar = ""; } };
+    if (b.remove === true) { drop(); saveUsers(USERS); return sendJson(res, 200, { ok: true, user: publicUser(u) }); }
+    const m = DATA_URI.exec(String(b.data || ""));
+    if (!m) return sendJson(res, 400, { error: "Yalnızca JPG, PNG ya da WEBP yükleyebilirsiniz." });
+    const buf = Buffer.from(m[2], "base64");
+    if (!buf.length || buf.length > 300 * 1024) return sendJson(res, 413, { error: "Fotoğraf en fazla 300 KB olmalı." });
+    try {
+      fs.mkdirSync(AVATAR_DIR, { recursive: true });
+      const name = u.uid + "-" + crypto.randomBytes(3).toString("hex") + (EXT_OF[m[1]] || ".jpg");
+      drop();
+      fs.writeFileSync(path.join(AVATAR_DIR, name), buf);
+      u.avatar = "a/" + name;
+      saveUsers(USERS);
+    } catch (e) { return sendJson(res, 500, { error: "Fotoğraf kaydedilemedi." }); }
     return sendJson(res, 200, { ok: true, user: publicUser(u) });
   }
 
@@ -753,10 +800,12 @@ async function handleApi(req, res, urlPath) {
     const type = listings.some((l) => (l.seller || {}).type === "ofis") ? "ofis" : "sahibinden";
     return sendJson(res, 200, {
       seller: {
-        uid: u.uid, name: u.name, type,
+        uid: u.uid, name: (u.privacy || {}).hideName ? ownerAlias(u, type) : u.name, type,
         since: u.created, count: listings.length,
+        avatar: (u.privacy || {}).showAvatar && u.avatar ? u.avatar : "",
+        email: (u.privacy || {}).showEmail ? u.email : "",
         views: listings.reduce((t, l) => t + (l.views || 0), 0),
-        phone: listings.length ? (listings[0].phone || u.phone || null) : null,
+        phone: (u.privacy || {}).hidePhone ? null : (listings.length ? (listings[0].phone || u.phone || null) : null),
       },
       listings: listings.map(pub),
     });
@@ -2030,6 +2079,13 @@ const server = http.createServer((req, res) => {
     }
 
     // Yüklenen ilan fotoğrafları: /u/<dosya> → DATA_DIR/uploads/<dosya>
+    if (urlPath.startsWith("/a/")) {
+      const name = path.basename(urlPath);
+      const f = path.join(AVATAR_DIR, name);
+      if (!/^[\w.-]+$/.test(name) || !fs.existsSync(f) || !fs.statSync(f).isFile()) { res.writeHead(404); return res.end("404"); }
+      res.writeHead(200, { "Content-Type": MIME[path.extname(name).toLowerCase()] || "application/octet-stream", "Cache-Control": "public, max-age=86400", "X-Content-Type-Options": "nosniff" });
+      return fs.createReadStream(f).pipe(res);
+    }
     if (urlPath.startsWith("/u/")) {
       const name = urlPath.slice(3);
       if (!/^[\w.-]+$/.test(name) || name.indexOf("..") >= 0) {
