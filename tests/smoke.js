@@ -233,6 +233,30 @@ const daire = (over) => Object.assign({
     assert.strictEqual((await call(l.seller.avatar)).s, 200, "avatar dosyası açılmıyor");
     assert.strictEqual((await call("a/..%2Fusers.json")).s, 404, "avatar rotasından kaçış");
   });
+  await t("EİDS: emlak ofisi ilanı izin beyanı + tarih + belge ister; yönetici onayıyla doğrulanır; belge herkese kapalı", async () => {
+    const hE = Object.assign({ "X-Forwarded-For": "8.8.4.4" }, hO);
+    const png = "data:image/png;base64," + Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]).toString("base64");
+    const future = new Date(Date.now() + 200 * 86400000).toISOString().slice(0, 10);
+    const ofis = (e) => daire({ details: { tasinmazNo: "310000" + String(Math.floor(Math.random() * 90000 + 10000)) }, seller: { name: "Ofis", type: "ofis", license: "0700123" }, eids: e });
+    assert.strictEqual((await post("api/listings", ofis(undefined), hE)).s, 400, "eids yok");
+    assert.ok(/EİDS/.test((await post("api/listings", ofis(undefined), hE)).j.error));
+    assert.strictEqual((await post("api/listings", ofis({ confirmed: true, expires: "2020-01-01", docData: png }), hE)).s, 400, "geçmiş tarih");
+    assert.strictEqual((await post("api/listings", ofis({ confirmed: true, expires: future }), hE)).s, 400, "belgesiz");
+    assert.strictEqual((await post("api/listings", ofis({ confirmed: true, expires: future, docData: "data:image/png;base64," + Buffer.from("MZ....").toString("base64") }), hE)).s, 400, "sahte içerik");
+    const ok = await post("api/listings", ofis({ confirmed: true, expires: future, docData: png, docName: "izin.png", verified: true }), hE);
+    assert.strictEqual(ok.s, 200, JSON.stringify(ok.j));
+    const lid = ok.j.id;
+    const raw = (await call("api/my/listings", {}, hO)).j.listings.find((x) => x.id === lid);
+    assert.strictEqual(raw.eids.verified, false, "istemci doğrulandı gönderebildi");
+    assert.ok(raw.eids.doc.file);
+    assert.strictEqual((await call("api/listing/eids-doc?id=" + lid, {}, hA)).s, 403, "belgeyi başkası açtı");
+    assert.strictEqual((await call("api/listing/eids-doc?id=" + lid, {}, hO)).s, 200);
+    assert.strictEqual((await call("api/listing/eids-doc?id=" + lid, {}, hAdm)).s, 200);
+    assert.strictEqual((await post("api/admin/action", { id: lid, action: "approve" }, hAdm)).s, 200);
+    const pubL = (await call("api/listings")).j.listings.find((x) => x.id === lid);
+    assert.ok(pubL.eids && pubL.eids.verified && pubL.eids.expires === future, "doğrulanmış eids herkese görünmeli");
+    assert.ok(!JSON.stringify(pubL.eids).includes("file"), "belge yolu sızdı");
+  });
   await t("yetkisiz yönetici uçları kapalı", async () => {
     assert.strictEqual((await call("api/admin/listings")).s, 401);
     assert.strictEqual((await call("api/admin/users", {}, hS)).s, 401);

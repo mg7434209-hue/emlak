@@ -14,7 +14,7 @@
   <meta property="og:image" content="https://emlak-production.up.railway.app/assets/img/og.png">
   <meta property="og:locale" content="tr_TR">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="assets/style.css?v=f04f23a1">
+  <link rel="stylesheet" href="assets/style.css?v=c74a8494">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
 <body data-page="ilan-ver">
@@ -253,6 +253,18 @@
             <div id="pLicenseWrap" hidden><label for="pLicense">Yetki Belgesi No <span class="req">*</span></label>
               <input id="pLicense" type="text" inputmode="numeric" maxlength="12" placeholder="örn. 0700123" autocomplete="off"></div>
           </div>
+          <div class="eids-box" id="eidsBox" hidden>
+            <b>Taşınmaz sahibinin e-Devlet (EİDS) ilan yayınlama izni</b>
+            <p>Taşınmazın sahibi değilseniz, ilanın yayınlanabilmesi için malik e-Devlet üzerinden <b>Ticaret Bakanlığı › EİDS Taşınmaz İlanı Yayınlama İzni İşlemleri › İlan Yayınlama İzni Ver</b> adımlarıyla, taşınmazı seçip <b>sizin Yetki Belgesi Numaranıza</b> izin vermelidir. İzin verilen taşınmaz numarası, aşağıdaki <b>Taşınmaz Numarası</b> ile aynı olmalıdır.
+              <a href="eids.html" target="_blank" rel="noopener">Adım adım anlatım →</a></p>
+            <label class="auc-check"><input type="checkbox" id="pEidsOk"> Taşınmaz sahibi e-Devlet’ten bu taşınmaz için ofisimize ilan yayınlama izni verdi.</label>
+            <div class="form-grid g4" style="margin-top:8px">
+              <div><label for="pEidsExp">İzin bitiş tarihi <span class="req">*</span></label><input id="pEidsExp" type="date"></div>
+              <div class="full"><label for="pEidsDoc">İzin belgesi <span class="req">*</span> <small style="font-weight:500">e-Devlet izin ekranı görüntüsü ya da PDF · en çok 3 MB</small></label>
+                <input id="pEidsDoc" type="file" accept="application/pdf,image/jpeg,image/png,image/webp"><small id="eidsDocName" class="muted"></small></div>
+            </div>
+            <small class="muted">Belgeyi yalnız siz ve yönetici görür. İzin süresi dolduğunda ilan kendiliğinden yayından kalkar; izni e-Devlet’ten uzattıktan sonra Hesabım › İlanlarım’dan yenileyin.</small>
+          </div>
           <small class="kf-hint" id="licenseHint" hidden>Taşınmaz Ticareti Hakkında Yönetmelik gereği emlak işletmeleri ilanlarında yetki belgesi numarasını belirtir.</small>
         </fieldset>
 
@@ -314,9 +326,9 @@
   </footer>
 
   <script src="assets/config.js?v=6356b561"></script>
-  <script src="assets/data.js?v=7b586c21"></script>
+  <script src="assets/data.js?v=f7d849a8"></script>
   <script src="assets/ai.js?v=ff246f47"></script>
   <script src="assets/studio.js?v=daf85608"></script>
-  <script src="assets/app.js?v=98cec4a1"></script>
+  <script src="assets/app.js?v=89349bf2"></script>
 </body>
 </html>
