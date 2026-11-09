@@ -486,7 +486,7 @@ const currentUser = (req) => userFromToken(req.headers["x-user-token"] || "");
 const isAdminReq = (req) => checkToken(req) || ((currentUser(req) || {}).role === "admin");
 const publicUser = (u) => ({ uid: u.uid, name: u.name, email: u.email, phone: u.phone || "", role: u.role || "user",
   privacy: { hideName: !!(u.privacy || {}).hideName, hidePhone: !!(u.privacy || {}).hidePhone, showEmail: !!(u.privacy || {}).showEmail, showAvatar: !!(u.privacy || {}).showAvatar },
-  alias: u.alias || "", avatar: u.avatar || "" });
+  alias: u.alias || "", avatar: u.avatar || "", userType: u.userType || "bireysel" });
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@.]+(\.[^\s@.]+)+$/;
 const normEmail = (v) => String(v || "").trim().toLowerCase().slice(0, 120);
 // Telefonu normalize eder: "05XX XXX XX XX" → {display, intl, wa} (yoksa null)
@@ -624,6 +624,10 @@ async function handleApi(req, res, urlPath) {
   }
   // ── AI İlan Stüdyosu (ai-studio.js) ───────────────────────────────────
   // GET /api/ai/status — Claude görsel analizi açık mı (ANTHROPIC_API_KEY)
+  // GET /api/site/status — herkese açık: ilan yayınlama kilitli mi? (üye çağrısı bandı ve ilan-ver uyarısı için)
+  if (urlPath === "/api/site/status" && req.method === "GET") {
+    return sendJson(res, 200, { publishEnabled: PUBLISH_ENABLED });
+  }
   if (urlPath === "/api/ai/status" && req.method === "GET") {
     return sendJson(res, 200, { vision: STUDIO.available() });
   }
@@ -665,6 +669,10 @@ async function handleApi(req, res, urlPath) {
       role: ADMIN_EMAIL && email === ADMIN_EMAIL ? "admin" : "user",
       created: new Date().toISOString(),
       consent: { at: new Date().toISOString(), v: LEGAL_VERSION },
+      // Hesap türü (EİDS hazırlığı): kullanıcı beyanıdır, yayın yetkisi VERMEZ
+      userType: ["bireysel", "emlak_isletmesi", "galeri"].includes(b.userType) ? b.userType : "bireysel",
+      // Yayınlama açıldığında haber verilsin izni (ticari ileti onayı): açık rıza, tarihli kayıt
+      ...(b.launchNotify === true ? { launchNotify: { at: new Date().toISOString() } } : {}),
     };
     USERS.push(u);
     saveUsers(USERS);

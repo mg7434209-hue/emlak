@@ -805,3 +805,10 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--over); out
 
 .footer-company { text-align: center; color: var(--muted); font-size: .8rem; line-height: 1.6; margin: 14px 0 4px; }
 .footer-company a { color: inherit; text-decoration: underline; }
+
+.launch-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 16px; padding: 9px 16px; background: var(--text); color: var(--surface); font-size: .9rem; text-align: center; }
+.launch-bar .lb-act { display: inline-flex; align-items: center; gap: 12px; }
+.launch-bar a:not(.btn) { color: var(--surface); text-decoration: underline; font-weight: 600; }
+.launch-bar .btn { background: var(--accent); color: var(--text); border-color: var(--accent); padding: 5px 14px; }
+.launch-bar .lb-x { background: none; border: 0; color: var(--surface); opacity: .7; cursor: pointer; font-size: 1rem; }
+.launch-notice { border: 1px solid var(--accent); margin-top: 12px; }

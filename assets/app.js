@@ -606,6 +606,33 @@
   }
 
   // ── Ortak başlık/menü/tema/FAB ─────────────────────────────────────────
+  // Yayın kilidi açıkken: emlakçı/galerici üye çağrısı bandı + ilan-ver uyarısı (sunucu durumuna göre)
+  async function initLaunchBar() {
+    const L = C.launch;
+    if (!L || L.enabled === false || !D.hasServer()) return;
+    const page = document.body.dataset.page;
+    if (["admin", "hesap", "eids-callback", "ihale", "ihale-yonetim"].indexOf(page) >= 0) return;
+    let st = null;
+    try { st = await (await fetch("api/site/status")).json(); } catch (e) { return; }
+    window.EMLAK_STATUS = st || {};
+    if (!st || st.publishEnabled !== false) return;
+    const u = A.user();
+    if (page === "ilan-ver") {
+      const head = document.querySelector("main .page-head, main .container");
+      if (head && !$("#launchNotice")) head.insertAdjacentHTML("afterend", `<div class="container"><div class="notice launch-notice" id="launchNotice">⏳ ${esc(L.notice)}</div></div>`);
+    }
+    try { if (localStorage.getItem("emlakai.launchBarClosed") === "1") return; } catch (e) { /* depolama kapalı */ }
+    if ($("#launchBar")) return;
+    const bar = document.createElement("div");
+    bar.className = "launch-bar"; bar.id = "launchBar"; bar.setAttribute("role", "note");
+    bar.innerHTML = `<span>📢 ${esc(u ? (L.textMember || L.text) : L.text)}</span>
+      <span class="lb-act">${u ? "" : '<a class="btn sm" href="giris.html?kayit=1">Üye ol</a>'}<a href="eids.html">Emlakçılar için rehber →</a>
+      <button type="button" class="lb-x" aria-label="Kapat">✕</button></span>`;
+    const hdr = document.querySelector(".site-header");
+    if (hdr) hdr.insertAdjacentElement("afterend", bar); else document.body.prepend(bar);
+    bar.querySelector(".lb-x").addEventListener("click", () => { bar.remove(); try { localStorage.setItem("emlakai.launchBarClosed", "1"); } catch (e) { /* depolama kapalı */ } });
+  }
+
   function initChrome() {
     const t = $("#themeToggle");
     if (t) {
@@ -2204,9 +2231,11 @@
             const warn = r.photoWarning ? `<p class="iv-error">⚠ ${esc(r.photoWarning)}</p>` : "";
             $("#ivDoneBody").innerHTML = `
               <div class="ivd-check" aria-hidden="true">✓</div>
-              <h2>${r.status === "active" ? "İlanınız yayında" : "İlanınız alındı"}</h2>
+              <h2>${r.status === "active" ? "İlanınız yayında" : (window.EMLAK_STATUS && window.EMLAK_STATUS.publishEnabled === false ? "İlanınız taslak olarak alındı" : "İlanınız alındı")}</h2>
               <p>İlan numaranız <b>${esc(r.id)}</b>${r.photosSaved ? ` · ${r.photosSaved} fotoğraf yüklendi` : ""}.</p>
-              ${r.status === "active" ? "" : "<p>Yönetici onayından sonra yayına girecek. Onay sürecinde Hesabım › İlanlarım'dan önizleyebilir, düzenleyebilirsiniz.</p>"}
+              ${r.status === "active" ? "" : (window.EMLAK_STATUS && window.EMLAK_STATUS.publishEnabled === false
+                ? "<p><b>İlanınız taslak olarak kaydedildi.</b> İlan yayınlama, EİDS entegrasyonu tamamlanana kadar kapalıdır; yayına alınabilir hâle gelince size ulaşılacaktır (yayın garantisi değildir). Hesabım › İlanlarım'dan önizleyebilir, düzenleyebilirsiniz.</p>"
+                : "<p>Yönetici onayından sonra yayına girecek. Onay sürecinde Hesabım › İlanlarım'dan önizleyebilir, düzenleyebilirsiniz.</p>")}
               ${warn}
               <div class="iv-actions" style="justify-content:center">
                 <a class="btn" href="hesap.html">İlanlarım</a>
@@ -2859,6 +2888,7 @@
       const payload = {
         name: $("#rName").value.trim(), email: $("#rEmail").value.trim(),
         phone: $("#rPhone").value.trim(), password: $("#rPass").value,
+        userType: $("#rType").value, launchNotify: $("#rNotify").checked,
       };
       const out = $("#registerOut");
       if (!payload.name || !payload.email || !payload.phone || !payload.password) {
@@ -3731,6 +3761,7 @@
     if (D.hasServer() && A.token()) await A.refresh();
     initChrome();
     const page = document.body.dataset.page;
+    initLaunchBar();
     const routes = {
       index: pageIndex, ilanlar: pageIlanlar, ilan: pageIlan,
       "ilan-ver": pageIlanVer, degerleme: pageDegerleme,
