@@ -626,3 +626,11 @@ Platformu işleten: **Gespa Enerji San. Tic. Ltd. Şti.** (`config.company.legal
 `<span data-c-legal>` ve `<span data-c-idblock>…</span><!--/idblock-->` alanları, JSON-LD (`legalName`, `taxID`, adres) ve llms
 dosyaları BURADAN build ile (`build-seo.js hydrateCompany`) doldurulur — künyeyi HTML'de elle düzeltme. İletişim e-posta/telefon
 `config.company.email/phone` (tek kaynak; telefon boşsa hiçbir yerde görünmez). KVKK/koşul metinleri taslaktır, hukukçu onayı gerekir.
+
+## ÜYE ÇAĞRISI BANDI (9 Kas 2026)
+Yayın kilidi açıkken (`GET /api/site/status` → `publishEnabled:false`) tüm herkese açık sayfalarda üstte "Emlakçılar ve galericiler:
+EİDS tamamlanınca ilan yayınlama başlayacak, şimdi ücretsiz üye olun" bandı (`initLaunchBar`, metin `config.launch`), ilan-ver'de
+"ilan yayınlama kapalı, taslak kaydedilir" uyarısı ve gönderim sonrası "taslak olarak alındı" metni. TARİH SÖZÜ YOK (EİDS onayı
+Bakanlığa bağlı). Kapatan kullanıcıda `emlakai.launchBarClosed`. Kayıtta `userType` (bireysel|emlak_isletmesi|galeri; beyan, yetki
+vermez) ve isteğe bağlı `launchNotify` (açık rıza + tarih) saklanır; e-posta GÖNDERİMİ YOK (SMTP yok) — duyuru için ticari ileti
+(İYS) kurallarına dikkat. Kilit açılınca (`LISTINGS_PUBLISH_ENABLED=true`) bant ve uyarı kendiliğinden kalkar.

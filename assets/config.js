@@ -953,6 +953,14 @@ EMLAK.config = {
       ],
     },
   },
+  // ÜYE ÇAĞRISI (emlakçı / galerici duyurusu): yalnız ilan yayınlama KİLİTLİyken (sunucu LISTINGS_PUBLISH_ENABLED=false) görünür.
+  // Tarih SÖZÜ VERİLMEZ: EİDS onayı Bakanlığa bağlıdır. Kapatmak: enabled:false.
+  launch: {
+    enabled: true,
+    text: "Emlakçılar ve galericiler: ilan yayınlama, Ticaret Bakanlığı EİDS entegrasyonu tamamlandığında başlayacak. Şimdi ücretsiz üye olun; hesabınızı ve yetki belgenizi hazırlayın.",
+    textMember: "İlan yayınlama, Ticaret Bakanlığı EİDS entegrasyonu tamamlandığında başlayacak. Hesabınız hazır; emlak ofisleri için hazırlık rehberine göz atın.",
+    notice: "İlan yayınlama şu an kapalı: ilanınız taslak olarak kaydedilir ve EİDS entegrasyonu tamamlanana kadar yayınlanamaz. Hazırlığınızı şimdiden yapabilirsiniz.",
+  },
   moderation: {
     seedStatus: "pending",
     adminAutoPublish: false,   // KALDIRILDI: yönetici dahil hiçbir ilan doğrudan yayına girmez (kod bu ayarı artık okumaz)

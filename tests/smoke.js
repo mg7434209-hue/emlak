@@ -285,10 +285,17 @@ const daire = (over) => Object.assign({
       assert.strictEqual(ap.s, 403, "kilitliyken Yayınla 403 dönmeli"); assert.ok(ap.j.locked);
       const adminList = (await c2("api/admin/listings", null, hAd2)).j;
       assert.strictEqual(adminList.publishEnabled, false);
+      assert.strictEqual((await c2("api/site/status")).j.publishEnabled, false, "kilitli sunucu durumu yanlış");
+      const reg = await c2("api/auth/register", { name: "Galerici Deneme", email: "gal" + Date.now() + "@ex.com", phone: "05321112233", password: "Sifre12345!", consent: true, userType: "galeri", launchNotify: true });
+      assert.strictEqual(reg.j.user.userType, "galeri");
+      const bad = await c2("api/auth/register", { name: "Tip Deneme", email: "tip" + Date.now() + "@ex.com", phone: "05321112233", password: "Sifre12345!", consent: true, userType: "admin" });
+      assert.strictEqual(bad.j.user.userType, "bireysel", "geçersiz hesap türü bireysel olmalı");
+      assert.ok(JSON.parse(fs.readFileSync(path.join(data2, "users.json"), "utf8")).some((x) => x.userType === "galeri" && x.launchNotify && x.launchNotify.at), "bildirim izni kaydı yok");
       assert.ok(adminList.listings.some((l) => l.id === made.j.id && l.status === "pending"), "ilan silinmiş ya da durum değişmiş");
       assert.ok(!(await c2("api/listings")).text.includes(made.j.id), "bekleyen ilan public listede");
       assert.ok(!(await c2("sitemap.xml")).text.includes(made.j.id), "bekleyen ilan sitemap'te");
       assert.ok(!(await c2("veri/ilanlar.json")).text.includes(made.j.id), "bekleyen ilan feed'de");
+      assert.strictEqual((await call("api/site/status")).j.publishEnabled, true, "kilit açık sunucu durumu yanlış");
       // kilit açık sunucuda (ana test sunucusu) aynı onay çalışır: bayrak gerçekten kilidi yönetiyor
       const made1 = await post("api/listings", daire({ title: "Kilit Açık Dairesi", details: { tasinmazNo: "9900112244" } }), hAdm);
       assert.strictEqual(made1.j.status, "pending", "kilit açıkken de yönetici ilanı doğrudan yayına girmemeli");
