@@ -615,6 +615,7 @@ const AUCTIONS = require("./auctions.js").create({
   DATA_DIR, CONF, sendJson, readBody, currentUser, isAdminReq, rateLimit, str,
   listing: (id) => LISTINGS.find((x) => x.id === id),
   listings: () => LISTINGS,
+  publishEnabled: () => PUBLISH_ENABLED,
 });
 
 async function handleApi(req, res, urlPath) {
@@ -861,6 +862,11 @@ async function handleApi(req, res, urlPath) {
       const mine = me && l.ownerId && l.ownerId === me.uid;
       if (!mine && !isAdminReq(req)) return sendJson(res, 403, { error: "Bu ilanı görüntüleme yetkiniz yok." });
       return sendJson(res, 200, { listing: l });
+    }
+    // Yayında olmayan ilanın varlığı/başlığı/fiyatı herkese açık DEĞİLDİR: yalnız sahibi ya da yönetici görür.
+    if (l.status !== "active") {
+      const me = currentUser(req);
+      if (!((me && l.ownerId && l.ownerId === me.uid) || isAdminReq(req))) return sendJson(res, 404, { error: "İlan bulunamadı." });
     }
     return sendJson(res, 200, {
       id: l.id, status: l.status, title: l.title, price: l.price,
@@ -1321,9 +1327,18 @@ async function handleApi(req, res, urlPath) {
       fresh.push(l);
     });
     if (!fresh.length) return sendJson(res, 400, { error: "Yedekte geçerli ilan yok." });
+    // Mevcut depo SİLİNMEZ: değiştirmeden önce zaman damgalı yedeği DATA_DIR/backups'a alınır.
+    let backup = "";
+    try {
+      const dir = path.join(DATA_DIR, "backups");
+      fs.mkdirSync(dir, { recursive: true });
+      backup = "listings-" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
+      fs.writeFileSync(path.join(dir, backup), JSON.stringify(LISTINGS));
+    } catch (e) { return sendJson(res, 500, { error: "Mevcut ilanların yedeği alınamadı; yükleme yapılmadı." }); }
+    const before = LISTINGS.length;
     LISTINGS = fresh;
     saveListings(LISTINGS);
-    return sendJson(res, 200, { ok: true, count: fresh.length });
+    return sendJson(res, 200, { ok: true, count: fresh.length, before, backup });
   }
 
   return sendJson(res, 404, { error: "Bulunamadı." });
@@ -1679,7 +1694,7 @@ function seoPageTexts(f, list) {
   const h1 = `${f.district || f.city ? (f.district || f.city) + " " : ""}${cat} ${tur} İlanları`;
   const intro = [
     `${yer} bölgesinde ${cat.toLocaleLowerCase("tr-TR")} ${tur.toLocaleLowerCase("tr-TR")} arayanlar için ` +
-    (list.length ? `şu anda <b>${list.length} ilan</b> yayında.` : "henüz yayında ilan bulunmuyor; ilk ilanı siz verebilirsiniz."),
+    (list.length ? `şu anda <b>${list.length} ilan</b> yayında.` : "henüz yayında ilan bulunmuyor."),
     med ? `Bu sayfadaki ilanların medyan fiyatı <b>${trNum(med)} ₺</b>${f.category === "kiralik" ? "/ay" : ""}.` : "",
     perM2 ? `Ortalama birim fiyat <b>${trNum(perM2)} ₺/m²</b>.` : "",
     bolge ? `${f.district} için piyasa ortalamamız <b>${trNum(bolge)} ₺/m²</b>; tahmini aylık kira ` +

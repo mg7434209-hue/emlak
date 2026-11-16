@@ -295,12 +295,30 @@ const daire = (over) => Object.assign({
       assert.ok(!(await c2("api/listings")).text.includes(made.j.id), "bekleyen ilan public listede");
       assert.ok(!(await c2("sitemap.xml")).text.includes(made.j.id), "bekleyen ilan sitemap'te");
       assert.ok(!(await c2("veri/ilanlar.json")).text.includes(made.j.id), "bekleyen ilan feed'de");
+      // yayında olmayan ilan: anonim 404 (başlık/fiyat sızmaz), yönetici 200
+      assert.strictEqual((await c2("api/listing?id=" + made.j.id)).s, 404, "pending ilan anonime açık");
+      assert.strictEqual((await c2("api/listing?id=" + made.j.id, null, hAd2)).s, 200, "yönetici pending ilanı görebilmeli");
+      // kilitliyken ihale açılamaz
+      const tokU = reg.j.token || (reg.j.user && reg.j.user.token);
+      const au = await c2("api/auction/create", { listingId: made.j.id }, tokU ? { "X-User-Token": tokU } : {});
+      assert.ok(au.s === 403 || au.s === 401, "kilitliyken ihale açma 403 olmalı, gelen: " + au.s);
+      if (tokU) assert.strictEqual(au.s, 403);
       assert.strictEqual((await call("api/site/status")).j.publishEnabled, true, "kilit açık sunucu durumu yanlış");
       // kilit açık sunucuda (ana test sunucusu) aynı onay çalışır: bayrak gerçekten kilidi yönetiyor
       const made1 = await post("api/listings", daire({ title: "Kilit Açık Dairesi", details: { tasinmazNo: "9900112244" } }), hAdm);
       assert.strictEqual(made1.j.status, "pending", "kilit açıkken de yönetici ilanı doğrudan yayına girmemeli");
       assert.strictEqual((await post("api/admin/action", { id: made1.j.id, action: "approve" }, hAdm)).s, 200, "kilit açıkken Yayınla çalışmalı");
     } finally { try { srv2.kill(); } catch (e) { /* kapalı */ } try { fs.rmSync(data2, { recursive: true, force: true }); } catch (e) { /* temizlik */ } }
+  });
+  await t("YEDEKTEN YÜKLEME: mevcut ilanlar önce backups/ klasörüne yedeklenir, sayı bildirilir", async () => {
+    const cur = (await call("api/admin/listings", null, hAdm)).j.listings;
+    assert.ok(cur.length > 0);
+    const r = await post("api/admin/import", { listings: cur }, hAdm);
+    assert.strictEqual(r.s, 200, JSON.stringify(r.j));
+    assert.ok(r.j.backup && r.j.before === cur.length, "yedek adı/önceki sayı dönmedi");
+    const f = path.join(DATA, "backups", r.j.backup);
+    assert.ok(fs.existsSync(f), "yedek dosyası yazılmadı");
+    assert.strictEqual(JSON.parse(fs.readFileSync(f, "utf8")).length, cur.length);
   });
   await t("yetkisiz yönetici uçları kapalı", async () => {
     assert.strictEqual((await call("api/admin/listings")).s, 401);

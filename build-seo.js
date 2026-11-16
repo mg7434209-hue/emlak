@@ -249,7 +249,8 @@ const staticPages = [
   ["cerez-politikasi.html", "0.2", "yearly"],
 ];
 // Repoya işlenen gerçek ilanlar (Node ortamında localStorage boş → yalnız REAL)
-const listingUrls = EMLAK.data.all().map((l) => `  <url><loc>${URL0}/ilan.html?id=${encodeURIComponent(l.id)}</loc><lastmod>${String(l.date).slice(0, 10)}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`);
+// Tohum ilanlar yayında DEĞİLSE (seedStatus "pending": onaysız yayın yok) site haritasına GİRMEZ.
+const listingUrls = (((EMLAK.config.moderation || {}).seedStatus || "pending") === "active" ? EMLAK.data.all() : []).map((l) => `  <url><loc>${URL0}/ilan.html?id=${encodeURIComponent(l.id)}</loc><lastmod>${String(l.date).slice(0, 10)}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`);
 fs.writeFileSync(path.join(__dirname, "sitemap.xml"),
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

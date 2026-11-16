@@ -201,6 +201,7 @@ function create(ctx) {
       if (!u) return sendJson(res, 401, { error: "İhale açmak için giriş yapın." });
       if (!rateLimit(req, "aucnew", 10, 60 * 60 * 1000)) return sendJson(res, 429, { error: "Çok fazla deneme. Biraz sonra tekrar deneyin." });
       const b = await readBody(req, 4096);
+      if (!ctx.publishEnabled()) return sendJson(res, 403, { locked: true, error: "İhale yayını, EİDS entegrasyonu tamamlanana kadar kapalıdır." });
       const l = ctx.listing(b.listingId);
       const admin = isAdminReq(req);
       if (!l || (l.ownerId !== u.uid && !admin)) return sendJson(res, 403, { error: "Yalnızca kendi ilanınızı ihaleye çıkarabilirsiniz." });
@@ -355,6 +356,7 @@ function create(ctx) {
       const dep = b.uid ? a.deposits[b.uid] : null;
       switch (b.action) {
         case "approve":
+          if (!ctx.publishEnabled()) return sendJson(res, 403, { locked: true, error: "İhale yayını, EİDS entegrasyonu tamamlanana kadar kapalıdır." });
           if (a.state !== "pending") break;
           if (!docsComplete(a)) return sendJson(res, 400, { error: "Zorunlu belgelerin tümü yüklenmeden ihale onaylanamaz." });
           if (!a.verifiedValue) return sendJson(res, 400, { error: "Önce gerçek değeri emsal ilanlara göre onaylayın." });

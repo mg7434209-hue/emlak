@@ -586,11 +586,16 @@
     let st = null;
     try { st = await (await fetch("api/site/status")).json(); } catch (e) { return; }
     window.EMLAK_STATUS = st || {};
+    if (st && st.publishEnabled === true) {
+      // Yayın açıkken ana sayfa karşılama paneli "yayına hazırla" diline döner (statik metin kilitli durumu anlatır)
+      const hw = $("#hwTitle");
+      if (hw) { hw.textContent = "İlanını dakikalar içinde yayına hazırla"; $("#hwText").textContent = "Fotoğrafları yükle, bilgileri yaz ya da söyle. Yapay zekâ metni ve fotoğrafları düzenleyip ilanı hazırlar. Ücretsiz."; $("#hwBtn").textContent = "+ Ücretsiz ilan ver"; }
+    }
     if (!st || st.publishEnabled !== false) return;
     const u = A.user();
     if (page === "ilan-ver") {
       const head = document.querySelector("main .page-head, main .container");
-      if (head && !$("#launchNotice")) head.insertAdjacentHTML("afterend", `<div class="container"><div class="notice launch-notice" id="launchNotice">⏳ ${esc(L.notice)}</div></div>`);
+      if (head && !$("#launchNotice")) head.insertAdjacentHTML("afterend", `<div class="container"><div class="notice launch-notice" id="launchNotice">${EMLAK.icon("info")} ${esc(L.notice)}</div></div>`);
     }
     try { if (localStorage.getItem("emlakai.launchBarClosed") === "1") return; } catch (e) { /* depolama kapalı */ }
     if ($("#launchBar")) return;
@@ -1207,7 +1212,7 @@
       renderChips();
       renderPager(pages);
       renderCards($("#grid"), slice, segCount === 0
-        ? (seg === "vasita" ? "Araç" : "Taşınmaz") + " segmentinde henüz yayında ilan yok. İlk ilanı siz verebilirsiniz — İlan Ver sayfası bir dakikanızı alır."
+        ? (seg === "vasita" ? "Araç" : "Taşınmaz") + " segmentinde henüz yayında ilan yok. Yayınlanan ilanlar geldikçe burada listelenir."
         : "Bu kriterlere uygun ilan bulunamadı. Filtreleri genişletmeyi deneyin.");
     }
     // Sayfalama düğmeleri: ‹ önceki · 1 2 3 … · sonraki ›
@@ -1843,7 +1848,7 @@
       };
       // Açılışta stüdyo görünür; sihirbaz "Formu kendim dolduracağım" ile açılır
       const ph0 = $(".page-head p");
-      if (ph0) ph0.textContent = "Bilgilerinizi karışık halde AI İlan Stüdyosu'na verin ya da formu adım adım kendiniz doldurun. İlanınız yönetici onayından sonra yayınlanır.";
+      if (ph0) ph0.textContent = "Bilgilerinizi karışık halde AI İlan Stüdyosu'na verin ya da formu adım adım kendiniz doldurun. İlanınız yönetici onayına gönderilir; ilan yayınlama kapalıyken taslak olarak bekler.";
       $("#wzGo").addEventListener("click", formaGec);
       $("#crumbChange").addEventListener("click", () => {
         form.style.display = "none";
@@ -3700,13 +3705,13 @@
       const file = e.target.files && e.target.files[0];
       e.target.value = "";
       if (!file) return;
-      if (!confirm("Yedekteki ilanlar mevcut ilan listesinin YERİNE yüklenecek. Devam edilsin mi?")) return;
+      if (!confirm("Yedekteki ilanlar mevcut ilan listesinin YERİNE yüklenecek (mevcut liste önce sunucuda yedeklenir). Devam edilsin mi?")) return;
       try {
         const parsed = JSON.parse(await file.text());
         const listings = Array.isArray(parsed) ? parsed : parsed.listings;
         const r = await api("api/admin/import", { method: "POST", body: JSON.stringify({ listings }) });
         if (r && r.error) alert(r.error);
-        else alert(r.count + " ilan geri yüklendi.");
+        else alert(r.count + " ilan geri yüklendi. Önceki " + r.before + " ilanın yedeği sunucuda saklandı (backups/" + r.backup + ").");
       } catch (err) { alert("Yedek dosyası okunamadı."); }
       refresh().catch(() => {});
     });

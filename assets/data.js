@@ -207,7 +207,10 @@
   // İlan takibi: gönderilen ilanın yayın durumunu sorgular (sunucu varsa).
   async function statusOf(id) {
     try {
-      const r = await fetch("api/listing?id=" + encodeURIComponent(id));
+      const headers = {};
+      const t = auth.token();
+      if (t) headers["X-User-Token"] = t;
+      const r = await fetch("api/listing?id=" + encodeURIComponent(id), { headers });
       return r.ok ? await r.json() : null;
     } catch (e) { return null; }
   }
