@@ -5,6 +5,7 @@
   const A = E.auth;
   const page = document.body.dataset.page;
   if (["ihaleler", "ihale", "ihale-olustur", "ihale-yonetim", "admin"].indexOf(page) < 0) return;
+  let LOCKED = false;   // yayın kilidi (api/site/status); kilitliyken ihale açılmaz
 
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -83,7 +84,7 @@
       const done = all.filter((a) => a.phase === "ended").sort((a, b) => new Date(b.endsAt) - new Date(a.endsAt));
       root.innerHTML = all.length
         ? group("Şu an canlı", live) + group("Yaklaşan ihaleler", soon) + group("Sona erenler", done)
-        : '<div class="home-empty"><b>Henüz ihale yok</b><span>İlk ihaleyi siz açabilirsiniz: yayındaki ilanınızı ihaleye çıkarın.</span><a class="btn" href="ihale-olustur.html">İlanımı ihaleye çıkar</a></div>';
+        : '<div class="home-empty"><b>Henüz ihale yok</b><span>' + (LOCKED ? "İhale yayını, EİDS entegrasyonu tamamlanana kadar kapalıdır." : "İlk ihaleyi siz açabilirsiniz: yayındaki ilanınızı ihaleye çıkarın.") + "</span>" + (LOCKED ? "" : '<a class="btn" href="ihale-olustur.html">İlanımı ihaleye çıkar</a>') + "</div>";
       tickCountdowns();
     };
     await draw();
@@ -254,6 +255,7 @@
   // ── İhale oluştur ──────────────────────────────────────────────────────
   async function pageCreate() {
     const root = $("#auctionForm");
+    if (LOCKED) { root.innerHTML = '<div class="home-empty"><b>İhale yayını şu an kapalı</b><span>İlan yayınlama gibi ihale açma da, Ticaret Bakanlığı EİDS entegrasyonu tamamlanana kadar kapalıdır. Üye olup hazırlığınızı yapabilirsiniz.</span></div>'; return; }
     const u = A && A.user && A.user();
     if (!u) { root.innerHTML = '<div class="home-empty"><b>İhale açmak için giriş yapın</b><a class="btn" href="giris.html?next=ihale-olustur.html">Giriş yap</a></div>'; return; }
     const j = await api("api/my/listings");
@@ -376,7 +378,12 @@
     setInterval(draw, 20000);
   }
 
-  const boot = { ihaleler: pageList, ihale: pageDetail, "ihale-olustur": pageCreate, "ihale-yonetim": pageAdmin, admin: pageAdmin }[page];
+  const boot0 = { ihaleler: pageList, ihale: pageDetail, "ihale-olustur": pageCreate, "ihale-yonetim": pageAdmin, admin: pageAdmin }[page];
+  const boot = async () => {
+    try { const st = await (await fetch("api/site/status")).json(); LOCKED = !!st && st.publishEnabled === false; } catch (e) { /* durum alınamadı: kilitsiz say */ }
+    if (LOCKED) document.querySelectorAll('a[href="ihale-olustur.html"].btn').forEach((b) => { b.insertAdjacentHTML("afterend", '<span class="muted">İhale yayını EİDS entegrasyonu tamamlanana kadar kapalıdır.</span>'); b.remove(); });
+    return boot0();
+  };
   const go = () => setTimeout(boot, 0);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
 })();

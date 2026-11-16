@@ -194,7 +194,7 @@
           const why = feed.tag.get(l.id);
           return card(l, { latest: why === "new", deal: why === "deal", drop: why === "drop", daily: why === "daily" });
         }).join("")
-      : emptyState("İlk ilanlar burada görünecek", "Yayınlanan ilanlar geldikçe bu akış kendiliğinden dolar — ilk ilanı siz verebilirsiniz.");
+      : emptyState("İlk ilanlar burada görünecek", "Yayınlanan ilanlar geldikçe bu akış kendiliğinden dolar.");
   }
 
   // Sağ vitrin: fotoğraflı en iyi ilan büyük kart olur; yoksa karşılama paneli kalır.
