@@ -34,36 +34,8 @@
   function thumb(l) {
     const photo = safePhoto(l && l.photos && l.photos[0]);
     if (photo) return '<img src="' + photo + '" alt="' + esc(l.title) + '" loading="lazy">';
-    // Türlere göre yer tutucu renk/simge — app.js PALETTES/GLYPHS ile AYNI
-    const palettes = {
-      daire: ["#2456d8", "#4d8bf5"], residence: ["#5b2ac9", "#9b6bff"],
-      villa: ["#0c8a54", "#3cc98a"], mustakil: ["#b06b12", "#e8a94b"],
-      yazlik: ["#0f7d8c", "#46c3d4"],
-      dukkan: ["#b3266b", "#ef6aa8"], ofis: ["#0e7d93", "#3fb9cf"],
-      depo: ["#5a5f6b", "#8e95a3"], fabrika: ["#4a4f63", "#7d84a0"],
-      arsa: ["#557a1f", "#93bf4e"], tarla: ["#6a7c22", "#a8c256"], bagbahce: ["#3f7a34", "#79bb62"],
-      bina: ["#3d4a63", "#6f80a3"], devremulk: ["#8a5a2b", "#c79355"], turistik: ["#1a6f8c", "#57b3cd"],
-      otomobil: ["#37415e", "#5f6f9e"], suv: ["#2f4858", "#5c7c8f"], elektrikli: ["#12796b", "#3fc0aa"],
-      klasik: ["#6b4b2a", "#a8804f"], motosiklet: ["#8c2f2f", "#cf6a6a"], atv: ["#7a4a1f", "#c08a4a"],
-      minivan: ["#41506b", "#7383a3"], ticari: ["#3a4a5c", "#6d8095"], kamyon: ["#4c4438", "#8a7c66"],
-      otobus: ["#2f5d72", "#5f96ab"], karavan: ["#57683a", "#93a86c"], deniz: ["#15546f", "#4f9cbc"],
-      hasarli: ["#6b3030", "#a86363"],
-      ikinciel: ["#4b3a75", "#8873bb"], yedekparca: ["#4a4a4a", "#828282"], antika: ["#6b5327", "#ab8c4c"],
-      hizmet: ["#1f6b5e", "#4fae9c"], ozelders: ["#2a5a8c", "#5f93c4"], isilani: ["#3f5a3a", "#7a9a72"],
-      ismakinesi: ["#8a6a12", "#cba33f"], tarim: ["#5a7a22", "#93b955"], hayvan: ["#7a4a6b", "#b481a5"],
-    };
-    const glyphs = {
-      daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", yazlik: "🏖️",
-      dukkan: "🏪", ofis: "🏛️", depo: "📦", fabrika: "🏭",
-      arsa: "🌳", tarla: "🌾", bagbahce: "🍇", bina: "🏬", devremulk: "🗓️", turistik: "🏨",
-      otomobil: "🚗", suv: "🚙", elektrikli: "⚡", klasik: "🚘", motosiklet: "🏍️", atv: "🛻",
-      minivan: "🚐", ticari: "🚚", kamyon: "🚛", otobus: "🚌", karavan: "🚙", deniz: "⛵", hasarli: "🔧",
-      ikinciel: "🛒", yedekparca: "🔩", antika: "🏺", hizmet: "🛠️", ozelders: "📚", isilani: "💼",
-      ismakinesi: "🚜", tarim: "🌱", hayvan: "🐾",
-    };
-
-    const colors = palettes[l.kind] || palettes.daire;
-    const glyph = glyphs[l.kind] || "🏠";
+    // Yer tutucu: düz lacivert zemin + tür çizgi ikonu (app.js thumbSVG ile aynı)
+    const gp = EMLAK.ICONS[EMLAK.kindIcon(l.kind)] || EMLAK.ICONS.tag;
     const seed = String(l.id || "home").split("").reduce((total, c) => total + c.charCodeAt(0), 0);
     let bars = "";
     for (let i = 0; i < 10; i += 1) {
@@ -72,9 +44,8 @@
       bars += '<rect x="' + (i * 50) + '" y="' + (270 - height) + '" width="' + width + '" height="' + height + '" fill="rgba(255,255,255,.13)" rx="4"/>';
     }
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 270" preserveAspectRatio="xMidYMid slice" role="img" aria-label="' + esc(l.kindLabel || "İlan görseli") + '">' +
-      '<defs><linearGradient id="hg' + seed + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + colors[0] + '"/><stop offset="1" stop-color="' + colors[1] + '"/></linearGradient></defs>' +
-      '<rect width="500" height="270" fill="url(#hg' + seed + ')"/>' + bars +
-      '<text x="250" y="125" font-size="70" text-anchor="middle" dominant-baseline="middle">' + glyph + '</text>' +
+      '<rect width="500" height="270" style="fill:var(--navy)"/>' + bars +
+      '<svg x="205" y="68" width="90" height="90" viewBox="0 0 24 24" fill="none" stroke="white" stroke-opacity="0.9" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">' + gp + '</svg>' +
       '<text x="250" y="246" font-size="15" font-weight="700" text-anchor="middle" fill="rgba(255,255,255,.92)" font-family="system-ui">' + esc(l.segment === "vasita" ? ((l.brand || "") + " " + (l.model || "")).trim() : (l.kindLabel || "Taşınmaz")) + '</text></svg>';
   }
 
@@ -127,11 +98,11 @@
     const date = dateInfo(l.date);
     const drop = priceDrop(l);
     const price = AI && typeof AI.priceBadge === "function" ? AI.priceBadge(l) : null;
-    if (options && options.daily) badges.push('<span class="home-card-badge ai">✦ Günün önerisi</span>');
+    if (options && options.daily) badges.push('<span class="home-card-badge ai">' + EMLAK.icon("sparkle") + ' Günün önerisi</span>');
     if (options && options.latest && date.today) badges.push('<span class="home-card-badge today">Bugün eklendi</span>');
     else if (options && options.latest && date.fresh) badges.push('<span class="home-card-badge new">Yeni ilan</span>');
     if (options && options.drop && drop) badges.push('<span class="home-card-badge drop">Fiyatı düştü · %' + drop.pct + '</span>');
-    if (l.featured) badges.push('<span class="home-card-badge featured">⭐ Öne çıkan</span>');
+    if (l.featured) badges.push('<span class="home-card-badge featured">' + EMLAK.icon("star") + ' Öne çıkan</span>');
     if (options && options.deal && price && price.key === "firsat") badges.push('<span class="home-card-badge ai">AI fırsat fiyatı</span>');
     return badges.join("");
   }
@@ -174,20 +145,20 @@
     return '<article class="home-card">' +
       '<div class="home-card-media">' + thumb(l) +
         (badges ? '<div class="home-card-badges">' + badges + '</div>' : "") +
-        '<button class="home-card-fav" type="button" data-home-fav="' + esc(l.id) + '" aria-label="Favorilere ekle" aria-pressed="' + fav + '">' + (fav ? "❤️" : "🤍") + '</button>' +
+        '<button class="home-card-fav" type="button" data-home-fav="' + esc(l.id) + '" aria-label="Favorilere ekle" aria-pressed="' + fav + '">' + EMLAK.icon("heart", fav ? "on" : "") + '</button>' +
       '</div>' +
       '<div class="home-card-body">' +
         '<div class="home-card-price">' + priceText(l) + oldPrice + '</div>' +
         '<div class="home-card-title">' + esc(l.title || "Başlıksız ilan") + '</div>' +
         '<div class="home-card-meta">' + meta.map(esc).join("<span>·</span>") + '</div>' +
-        '<div class="home-card-location">📍 ' + esc([l.city, l.district].filter(Boolean).join(" / ") || "Konum bilgisi belirtilmemiş") + '</div>' +
+        '<div class="home-card-location">' + EMLAK.icon("pin") + ' ' + esc([l.city, l.district].filter(Boolean).join(" / ") || "Konum bilgisi belirtilmemiş") + '</div>' +
       '</div>' +
       '<a class="home-card-link" href="ilan.html?id=' + encodeURIComponent(l.id) + '" aria-label="' + esc(l.title || "İlan detayı") + '"></a>' +
     '</article>';
   }
 
   function emptyState(title, text) {
-    return '<div class="home-empty"><span class="home-empty-icon">✦</span><b>' + esc(title) + '</b><span>' + esc(text) + '</span></div>';
+    return '<div class="home-empty"><span class="home-empty-icon">' + EMLAK.icon("sparkle") + '</span><b>' + esc(title) + '</b><span>' + esc(text) + '</span></div>';
   }
 
   // TEK AKIŞ (Google sadeliği): ayrı "AI seçkisi / fırsatlar / fiyatı düşenler /
@@ -238,7 +209,7 @@
     root.innerHTML = '<div class="h-feat">' +
       '<div class="h-feat-media">' + thumb(l) + '<span class="h-feat-tag">' + (l.featured ? "Öne çıkan ilan" : "Yeni ilan") + '</span></div>' +
       '<div class="h-feat-body"><div class="h-feat-title">' + esc(l.title || "İlan") + '</div>' +
-      '<div class="h-feat-loc">📍 ' + esc([l.city, l.district].filter(Boolean).join(", ") || "Konum belirtilmemiş") + '</div>' +
+      '<div class="h-feat-loc">' + EMLAK.icon("pin") + ' ' + esc([l.city, l.district].filter(Boolean).join(", ") || "Konum belirtilmemiş") + '</div>' +
       '<div class="h-feat-row"><span class="h-feat-price">' + priceText(l) + '</span><span class="h-feat-meta">' + esc(meta) + '</span></div></div>' +
       '<a class="h-feat-link" href="ilan.html?id=' + encodeURIComponent(l.id) + '" aria-label="' + esc(l.title || "İlan detayı") + '"></a></div>';
   }
@@ -249,7 +220,7 @@
     event.preventDefault();
     event.stopPropagation();
     const active = toggleFav(button.dataset.homeFav);
-    button.textContent = active ? "❤️" : "🤍";
+    button.innerHTML = EMLAK.icon("heart", active ? "on" : "");
     button.setAttribute("aria-pressed", active);
   });
 

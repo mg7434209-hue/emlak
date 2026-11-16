@@ -8,8 +8,8 @@
 .auc-noimg { display: grid; place-items: center; width: 100%; height: 100%; font-size: 3rem; color: var(--muted); }
 .auc-badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: .74rem; font-weight: 800; background: var(--surface-2); color: var(--text); }
 .auc-media .auc-badge { position: absolute; top: 10px; left: 10px; }
-.auc-badge.live { background: var(--over); color: var(--surface); }
-.auc-badge.soon { background: var(--accent); color: var(--surface); }
+.auc-badge.live { background: var(--over); color: var(--on-color); }
+.auc-badge.soon { background: var(--cta); color: var(--on-color); }
 .auc-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
 .auc-title { font-weight: 700; line-height: 1.3; }
 .auc-loc { color: var(--muted); font-size: .88rem; }

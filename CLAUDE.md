@@ -260,13 +260,19 @@ Yenişehir · Ereğli iki ilde geçer. Bu yüzden:
   (localStorage `emlakai.recent`, 8 kayıt). Detayda: fiyat geçmişi grafiği
   (`priceHistory` varsa), satıcının diğer ilanları ve mağaza bağlantısı.
 - `assets/style.css` — tasarım sistemi (CSS değişkenleri, açık/koyu tema).
-  **PALET TEK KAYNAKTAN**: renkler yalnız `:root` (açık) ve
-  `html[data-theme="dark"]` bloklarındadır — şu anki palet *Kum + Siyah*
-  (zemin #f2ede4, metin/vurgu #1a1a1a, altın detay #b08d3f). Açık paletin
-  sabitleri ayrıca `--l-*` olarak saklanır; ana sayfa **koyu temada da**
-  bu `--l-*` değerlerini kullanır (kullanıcı tercihi, `home.css` sonunda).
-  Sayfalara/`home.css`'e sabit renk (hex) YAZMA — `var(--…)` ve
-  `color-mix(in srgb, var(--…) …)` kullan; renk değişimi tek satırdan olsun.
+  **PALET TEK KAYNAKTAN — emlak ilan portalı teması (16 Kas 2026)**: renkler yalnız `style.css`
+  `:root` (açık) ve `html[data-theme="dark"]` bloklarındadır. Açık: ana #1554B8 · koyu lacivert
+  #0F2440 (`--navy`: üst bant, karşılama paneli) · CTA #D2450D (`--cta`; istenen #D9480F beyaz
+  yazıda 4,30:1 kaldığı için 4,57:1'e koyulaştırıldı) · doğrulama yeşili #15803D (`--verified`,
+  YALNIZ EİDS rozeti/başarı) · zemin #F5F7FA · kart #FFF · çizgi #E2E8F0 · ikincil metin #5B6B7F.
+  Koyu: zemin #0B1524 · kart #13233A · ana #5B9BFF · CTA #FF7A3D. Dolu renk üstü yazı `--on-color`
+  (açıkta beyaz, koyuda lacivert). `--accent` = `--primary` takma adıdır. KREM, ALTIN VE BRONZ
+  YOKTUR, geri ekleme; ana sayfa koyu temayı DA izler (eski "açık kalsın" tercihi kalktı).
+  "+ İlan Ver" / "Ücretsiz ilan ver" = `.btn.cta`; "İlanları bul" = ana renk. Sayfalara, JS'e ve
+  `home.css`'e sabit renk (hex) YAZMA — `var(--…)` kullan; WhatsApp düğmesi de `btn ghost`
+  (yeşil yalnız EİDS/başarıda). Yer tutucu ilan görseli düz `var(--navy)` + tür çizgi ikonu.
+  İKONLAR: emoji YOK; `EMLAK.icon("ad")` (config.js `EMLAK.ICONS`) satır içi SVG üretir,
+  yeni ikon = oraya bir satır. Kontrast taraması: 13 sayfa × 2 tema, metin ≥4,5:1 (büyük ≥3:1).
   Portal stilleri: `.hero-portal`, `.stat-strip`, `.portal-layout`, `.cat-tree`,
   `.portal-sec`, `.region-grid`, `.tool-grid`.
 - `.reveal` animasyonu: `observeReveals()` gözlemci yoksa içeriği doğrudan

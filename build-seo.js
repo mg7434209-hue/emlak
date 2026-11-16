@@ -42,7 +42,7 @@ function chrome(body, { title, desc, canonical, jsonld }) {
   <meta property="og:locale" content="${C.seo.locale}">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="assets/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
   ${ldTags}
 </head>
 <body data-page="bolge-fiyatlari">
@@ -56,8 +56,8 @@ function chrome(body, { title, desc, canonical, jsonld }) {
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta">+ İlan Ver</a>
       </nav>
-      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
-      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir" aria-label="Tema değiştir"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.500A8 8 0 0 1 9.500 4 8.500 8.500 0 1 0 20 14.500z"/></svg></button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü" aria-label="Menü"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
   </header>
   <main>${body}</main>

@@ -14,8 +14,8 @@
   <meta property="og:image" content="https://emlak-production.up.railway.app/assets/img/og.png">
   <meta property="og:locale" content="tr_TR">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="assets/style.css?v=91544cfb">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+  <link rel="stylesheet" href="assets/style.css?v=60e66d11">
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
 </head>
 <body data-page="ilan-ver">
   <header class="site-header">
@@ -28,8 +28,8 @@
         <a href="favoriler.html" style="position:relative">Favoriler<span class="fav-count" id="favCount">0</span></a>
         <a href="ilan-ver.html" class="cta active">+ İlan Ver</a>
       </nav>
-      <button class="icon-btn" id="themeToggle" title="Tema değiştir">🌙</button>
-      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü">☰</button>
+      <button class="icon-btn" id="themeToggle" title="Tema değiştir"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.500A8 8 0 0 1 9.500 4 8.500 8.500 0 1 0 20 14.500z"/></svg></button>
+      <button class="icon-btn menu-toggle" id="menuToggle" title="Menü"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
   </header>
 
@@ -63,13 +63,13 @@
     <div class="container section" id="studio" style="padding-top:18px">
       <div class="form-card studio-card">
         <div class="studio-head">
-          <span class="studio-pill">✦ AI İlan Stüdyosu</span>
+          <span class="studio-pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.500 13.800 9l5.700 1.800-5.700 1.800L12 18.300l-1.800-5.700L4.500 10.800 10.200 9z"/></svg> AI İlan Stüdyosu</span>
           <h2>Hızlı başlayın: yazın, söyleyin ya da fotoğraf çekin</h2>
           <p>Yapay zekâ bilgileri alanlara ayırır, fotoğrafları düzenler ve ilanı hazırlar.</p>
         </div>
         <div class="st-tabs" role="tablist" aria-label="İlan oluşturma yolu">
-          <button type="button" role="tab" id="stTabChat" data-mode="chat" aria-selected="false">💬 Sohbetle oluştur</button>
-          <button type="button" role="tab" id="stTabPaste" data-mode="paste" aria-selected="false">✍️ Metin yapıştır</button>
+          <button type="button" role="tab" id="stTabChat" data-mode="chat" aria-selected="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9.500L4 20.500z"/></svg> Sohbetle oluştur</button>
+          <button type="button" role="tab" id="stTabPaste" data-mode="paste" aria-selected="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4.500L16 4.500l3.500 3.500L8.500 19z"/><path d="m14 7 3.500 3.500"/></svg> Metin yapıştır</button>
         </div>
 
         <!-- SOHBET: asistan eksikleri tek tek sorar; yazarak ya da mikrofonla
@@ -77,17 +77,17 @@
         <div class="st-chat-panel" id="stChatPanel" role="tabpanel" aria-labelledby="stTabChat" hidden>
           <div class="st-chat" id="stChat" aria-live="polite"></div>
           <div class="st-chatbar">
-            <button type="button" class="st-mic" id="stMic" aria-label="Konuşarak cevapla">🎤</button>
-            <input id="stSay" type="text" autocomplete="off" enterkeyhint="send" placeholder="Yazın ya da 🎤 ile konuşun">
+            <button type="button" class="st-mic" id="stMic" aria-label="Konuşarak cevapla"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11.500a6 6 0 0 0 12 0M12 17.500V21"/></svg></button>
+            <input id="stSay" type="text" autocomplete="off" enterkeyhint="send" placeholder="Yazın ya da mikrofonla konuşun">
             <button type="button" class="btn sm" id="stSend">Gönder</button>
           </div>
           <div class="st-chat-tools">
-            <label class="btn st-cam-btn" for="stCam">📷 Fotoğraf Çek</label>
-            <label class="btn ghost" for="stPhotos">🖼 Galeriden Seç</label>
-            <button type="button" class="btn ghost" id="stTts" aria-pressed="false">🔇 Sesli soru: kapalı</button>
-            <button type="button" class="btn warn" id="stMake">✦ İlanı şimdi oluştur</button>
+            <label class="btn st-cam-btn" for="stCam"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.800-2.500h6.400L17 8h3v11H4z"/><circle cx="12" cy="13.500" r="3.500"/></svg> Fotoğraf Çek</label>
+            <label class="btn ghost" for="stPhotos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.500" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.600"/><path d="m4 17 5-4.500 4 3.500 3-2.500 4 3.500"/></svg> Galeriden Seç</label>
+            <button type="button" class="btn ghost" id="stTts" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.500h3.500L12 6v12l-4.500-3.500H4z"/><path d="m16 9.500 5 5M21 9.500l-5 5"/></svg> Sesli soru: kapalı</button>
+            <button type="button" class="btn warn" id="stMake"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.500 13.800 9l5.700 1.800-5.700 1.800L12 18.300l-1.800-5.700L4.500 10.800 10.200 9z"/></svg> İlanı şimdi oluştur</button>
           </div>
-          <p class="st-voice-note" id="stVoiceNote">🎤 Mikrofon, tarayıcınızın ses tanıma hizmetini kullanır; konuşmanız yazıya çevrilir, ses kaydı sitemizde saklanmaz.</p>
+          <p class="st-voice-note" id="stVoiceNote"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11.500a6 6 0 0 0 12 0M12 17.500V21"/></svg> Mikrofon, tarayıcınızın ses tanıma hizmetini kullanır; konuşmanız yazıya çevrilir, ses kaydı sitemizde saklanmaz.</p>
         </div>
 
         <!-- METİN YAPIŞTIR: karışık metin + fotoğraf bırakma alanı -->
@@ -102,7 +102,7 @@
               <b>Fotoğrafları seçin ya da buraya sürükleyin</b>
               <span>Sırasız ve fazla olabilir — en iyileri seçilir</span>
             </label>
-            <label class="btn st-cam-btn st-cam-inline" for="stCam">📷 Fotoğraf Çek</label>
+            <label class="btn st-cam-btn st-cam-inline" for="stCam"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.800-2.500h6.400L17 8h3v11H4z"/><circle cx="12" cy="13.500" r="3.500"/></svg> Fotoğraf Çek</label>
           </div>
         </div>
         <!-- Ortak dosya girişleri: galeri (çoklu) ve kamera (arka kamera) -->
@@ -111,7 +111,7 @@
         <div class="st-thumbs" id="stInThumbs"></div>
 
         <div class="studio-actions" id="stPasteActions">
-          <button class="btn" id="stRun" type="button">✦ Analiz Et ve İlanı Hazırla</button>
+          <button class="btn" id="stRun" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.500 13.800 9l5.700 1.800-5.700 1.800L12 18.300l-1.800-5.700L4.500 10.800 10.200 9z"/></svg> Analiz Et ve İlanı Hazırla</button>
           <button class="btn ghost" id="stSkip" type="button">Formu kendim dolduracağım →</button>
           <span class="st-mode" id="stMode"></span>
         </div>
@@ -238,7 +238,7 @@
           <div class="form-grid">
             <div class="full"><label for="pTitle">İlan Başlığı</label><input id="pTitle" type="text" maxlength="120" placeholder="Boş bırakırsanız yapay zekâ yazar"></div>
             <div class="full"><label for="pDesc">İlan Açıklaması</label><textarea id="pDesc" rows="6" placeholder="Boş bırakırsanız yapay zekâ yazar"></textarea></div>
-            <div class="full"><button class="btn ghost sm" id="writeBtn" type="button">✦ Başlık ve açıklamayı AI yazsın</button></div>
+            <div class="full"><button class="btn ghost sm" id="writeBtn" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.500 13.800 9l5.700 1.800-5.700 1.800L12 18.300l-1.800-5.700L4.500 10.800 10.200 9z"/></svg> Başlık ve açıklamayı AI yazsın</button></div>
           </div>
         </fieldset>
 
@@ -269,7 +269,7 @@
         </fieldset>
 
         <label class="iv-feat" id="pFeaturedWrap" hidden>
-          <input id="pFeatured" type="checkbox"> ⭐ <b>Öne çıkar</b> <small>(yönetici)</small>
+          <input id="pFeatured" type="checkbox"> <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.500 2.700 5.500 6 .9-4.400 4.200 1 6L12 17.300 6.700 20.100l1-6L3.300 9.900l6-.9z"/></svg> <b>Öne çıkar</b> <small>(yönetici)</small>
         </label>
 
         <div class="iv-actions">
@@ -328,10 +328,10 @@
     </div>
   </footer>
 
-  <script src="assets/config.js?v=b1eac782"></script>
+  <script src="assets/config.js?v=f466726c"></script>
   <script src="assets/data.js?v=f7d849a8"></script>
   <script src="assets/ai.js?v=ff246f47"></script>
-  <script src="assets/studio.js?v=daf85608"></script>
-  <script src="assets/app.js?v=3a1f3c1a"></script>
+  <script src="assets/studio.js?v=6dd18da7"></script>
+  <script src="assets/app.js?v=ea838050"></script>
 </body>
 </html>

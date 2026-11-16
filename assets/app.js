@@ -18,7 +18,7 @@
   function applyTheme(t) {
     document.documentElement.setAttribute("data-theme", t);
     const b = $("#themeToggle");
-    if (b) b.textContent = t === "dark" ? "☀️" : "🌙";
+    if (b) b.innerHTML = EMLAK.icon(t === "dark" ? "sun" : "moon");
   }
   applyTheme(localStorage.getItem(themeKey) || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
 
@@ -65,33 +65,6 @@
   }
 
   // ── SVG görsel üreteci (dış görsel yok; tür bazlı yer tutucu) ──────────
-  const PALETTES = {
-    daire: ["#2456d8", "#4d8bf5"], residence: ["#5b2ac9", "#9b6bff"],
-    villa: ["#0c8a54", "#3cc98a"], mustakil: ["#b06b12", "#e8a94b"],
-    yazlik: ["#0f7d8c", "#46c3d4"],
-    dukkan: ["#b3266b", "#ef6aa8"], ofis: ["#0e7d93", "#3fb9cf"],
-    depo: ["#5a5f6b", "#8e95a3"], fabrika: ["#4a4f63", "#7d84a0"],
-    arsa: ["#557a1f", "#93bf4e"], tarla: ["#6a7c22", "#a8c256"], bagbahce: ["#3f7a34", "#79bb62"],
-    bina: ["#3d4a63", "#6f80a3"], devremulk: ["#8a5a2b", "#c79355"], turistik: ["#1a6f8c", "#57b3cd"],
-    otomobil: ["#37415e", "#5f6f9e"], suv: ["#2f4858", "#5c7c8f"], elektrikli: ["#12796b", "#3fc0aa"],
-    klasik: ["#6b4b2a", "#a8804f"], motosiklet: ["#8c2f2f", "#cf6a6a"], atv: ["#7a4a1f", "#c08a4a"],
-    minivan: ["#41506b", "#7383a3"], ticari: ["#3a4a5c", "#6d8095"], kamyon: ["#4c4438", "#8a7c66"],
-    otobus: ["#2f5d72", "#5f96ab"], karavan: ["#57683a", "#93a86c"], deniz: ["#15546f", "#4f9cbc"],
-    hasarli: ["#6b3030", "#a86363"],
-    ikinciel: ["#4b3a75", "#8873bb"], yedekparca: ["#4a4a4a", "#828282"], antika: ["#6b5327", "#ab8c4c"],
-    hizmet: ["#1f6b5e", "#4fae9c"], ozelders: ["#2a5a8c", "#5f93c4"], isilani: ["#3f5a3a", "#7a9a72"],
-    ismakinesi: ["#8a6a12", "#cba33f"], tarim: ["#5a7a22", "#93b955"], hayvan: ["#7a4a6b", "#b481a5"],
-  };
-  const GLYPHS = {
-    daire: "🏢", residence: "🏙️", villa: "🏡", mustakil: "🏠", yazlik: "🏖️",
-    dukkan: "🏪", ofis: "🏛️", depo: "📦", fabrika: "🏭",
-    arsa: "🌳", tarla: "🌾", bagbahce: "🍇", bina: "🏬", devremulk: "🗓️", turistik: "🏨",
-    otomobil: "🚗", suv: "🚙", elektrikli: "⚡", klasik: "🚘", motosiklet: "🏍️", atv: "🛻",
-    minivan: "🚐", ticari: "🚚", kamyon: "🚛", otobus: "🚌", karavan: "🚙", deniz: "⛵", hasarli: "🔧",
-    ikinciel: "🛒", yedekparca: "🔩", antika: "🏺", hizmet: "🛠️", ozelders: "📚", isilani: "💼",
-    ismakinesi: "🚜", tarim: "🌱", hayvan: "🐾",
-  };
-
   // Fotoğraf kaynağı beyaz listesi: base64 görsel, repo içi yol ya da
   // sunucunun yazdığı yükleme dosyası (`u/<dosya>`).
   const SAFE_PHOTO = /^(data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+|assets\/img\/[\w./-]+|u\/[\w.-]+)$/;
@@ -106,8 +79,8 @@
     return thumbSVG(l, big);
   }
   function thumbSVG(l, big) {
-    const [c1, c2] = PALETTES[l.kind] || PALETTES.daire;
-    const g = GLYPHS[l.kind] || "🏠";
+    const gp = EMLAK.ICONS[EMLAK.kindIcon(l.kind)] || EMLAK.ICONS.tag;
+    const gs = big ? 112 : 84;
     const label = l.segment === "vasita" ? `${l.brand} ${l.model}` : `${l.kindLabel} · ${l.district}`;
     const seed = l.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
     const h = big ? 420 : 300;
@@ -119,10 +92,8 @@
       bars += `<rect x="${i * 55}" y="${h - bh}" width="${bw}" height="${bh}" fill="rgba(255,255,255,0.12)" rx="4"/>`;
     }
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 ${h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(l.kindLabel)}">
-      <defs><linearGradient id="g${seed}" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
-      <rect width="480" height="${h}" fill="url(#g${seed})"/>${bars}
-      <text x="240" y="${h / 2 + 6}" font-size="${big ? 84 : 64}" text-anchor="middle" dominant-baseline="middle">${g}</text>
+      <rect width="480" height="${h}" style="fill:var(--navy)"/>${bars}
+      <svg x="${240 - gs / 2}" y="${h / 2 - gs / 2 - 8}" width="${gs}" height="${gs}" viewBox="0 0 24 24" fill="none" stroke="white" stroke-opacity="0.9" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${gp}</svg>
       <text x="240" y="${h - 22}" font-size="17" font-weight="700" text-anchor="middle" fill="rgba(255,255,255,0.92)" font-family="system-ui">${esc(label)}</text>
     </svg>`;
   }
@@ -542,7 +513,7 @@
           btn.disabled = false; btn.textContent = "Değişiklikleri Kaydet";
           return;
         }
-        if (r && r.photoWarning) alert("⚠ " + r.photoWarning);
+        if (r && r.photoWarning) alert(r.photoWarning);
         close(); // kaydeden taraf (panel / hesabım) listeyi kendisi tazeler
       } catch (e) {
         const out = $("#eOut"); // pencere kapandıysa uyarı yazacak yer kalmaz
@@ -573,13 +544,13 @@
         ${l.featured ? `<span class="badge badge-feat">${C.featured.label}</span>` : ""}
         ${b ? `<span class="badge ${b.cls}" ${l.featured ? 'style="top:40px"' : ""}>${b.label}${b.pct ? " (%" + b.pct + ")" : ""}</span>` : ""}
         <span class="badge badge-cat">${l.category === "satilik" ? "Satılık" : "Kiralık"}</span>
-        <button class="fav-btn" data-fav="${esc(l.id)}" aria-label="Favorilere ekle" aria-pressed="${isFav}" style="z-index:3">${isFav ? "❤️" : "🤍"}</button>
+        <button class="fav-btn" data-fav="${esc(l.id)}" aria-label="Favorilere ekle" aria-pressed="${isFav}" style="z-index:3">${EMLAK.icon("heart", isFav ? "on" : "")}</button>
       </div>
       <div class="body">
         <div class="price">${fmtPrice(l)}</div>
         <h3>${esc(l.title)}</h3>
         <div class="meta">${meta.map(esc).join(" · ")}</div>
-        <div class="loc">📍 ${esc(l.city)} / ${esc(l.district)}</div>
+        <div class="loc">${EMLAK.icon("pin")} ${esc(l.city)} / ${esc(l.district)}</div>
       </div>
       <a class="overlay" href="ilan.html?id=${encodeURIComponent(l.id)}" aria-label="${esc(l.title)}"></a>
     </article>`;
@@ -589,7 +560,7 @@
       btn.addEventListener("click", (e) => {
         e.preventDefault(); e.stopPropagation();
         const on = toggleFav(btn.dataset.fav);
-        btn.textContent = on ? "❤️" : "🤍";
+        btn.innerHTML = EMLAK.icon("heart", on ? "on" : "");
         btn.setAttribute("aria-pressed", on);
         if (document.body.dataset.page === "favoriler") pageFavoriler();
       });
@@ -597,7 +568,7 @@
   }
   function renderCards(el, list, emptyMsg) {
     if (!list.length) {
-      el.innerHTML = `<div class="empty" style="grid-column:1/-1"><p style="font-size:2.4rem">🔍</p><p>${esc(emptyMsg || "Bu kriterlere uygun ilan bulunamadı.")}</p></div>`;
+      el.innerHTML = `<div class="empty" style="grid-column:1/-1"><p class="empty-ic">${EMLAK.icon("search")}</p><p>${esc(emptyMsg || "Bu kriterlere uygun ilan bulunamadı.")}</p></div>`;
       return;
     }
     el.innerHTML = list.map(cardHTML).join("");
@@ -625,7 +596,7 @@
     if ($("#launchBar")) return;
     const bar = document.createElement("div");
     bar.className = "launch-bar"; bar.id = "launchBar"; bar.setAttribute("role", "note");
-    bar.innerHTML = `<span>📢 ${esc(u ? (L.textMember || L.text) : L.text)}</span>
+    bar.innerHTML = `<span>${EMLAK.icon("info")} ${esc(u ? (L.textMember || L.text) : L.text)}</span>
       <span class="lb-act">${u ? "" : '<a class="btn sm" href="giris.html?kayit=1">Üye ol</a>'}<a href="eids.html">Emlakçılar için rehber →</a>
       <button type="button" class="lb-x" aria-label="Kapat">✕</button></span>`;
     const hdr = document.querySelector(".site-header");
@@ -708,7 +679,7 @@
     t.className = "toast";
     t.setAttribute("role", "status");
     const d = drops[0];
-    t.innerHTML = `🔔 <b>Favorinizin fiyatı düştü:</b> <a href="ilan.html?id=${encodeURIComponent(d.l.id)}">${esc(d.l.title)}</a> — ` +
+    t.innerHTML = `${EMLAK.icon("bell")} <b>Favorinizin fiyatı düştü:</b> <a href="ilan.html?id=${encodeURIComponent(d.l.id)}">${esc(d.l.title)}</a> — ` +
       `<s>${fmt(d.old)} ₺</s> → <b>${fmt(d.l.price)} ₺</b>` + (drops.length > 1 ? ` <a href="favoriler.html">(+${drops.length - 1} ilan)</a>` : "") +
       ` <button type="button" aria-label="Kapat">✕</button>`;
     document.body.appendChild(t);
@@ -723,7 +694,7 @@
     const a = document.createElement("a");
     a.id = "authLink";
     a.href = u ? "hesap.html" : "giris.html";
-    a.textContent = u ? "👤 " + (u.name || "Hesabım").split(" ")[0] : "Giriş Yap";
+    a.innerHTML = u ? EMLAK.icon("user") + " " + esc((u.name || "Hesabım").split(" ")[0]) : "Giriş Yap";
     // Okunmamış mesaj rozeti (sahibinden "Mesajlarım" sayacı karşılığı)
     if (u && A.unread > 0) {
       a.href = "hesap.html#mesajlar";
@@ -736,7 +707,7 @@
       // Üst çubukta ✉ Mesajlar (okunmamış rozetli) + hesap menüsü (ilan sahibine giden site içi mesajlar buraya düşer)
       const mi = document.createElement("a");
       mi.id = "msgLink"; mi.href = "hesap.html#mesajlar"; mi.title = "Mesajlarım"; mi.setAttribute("aria-label", "Mesajlarım");
-      mi.innerHTML = "✉" + (A.unread > 0 ? ` <span class="nav-badge">${A.unread}</span>` : "");
+      mi.innerHTML = EMLAK.icon("mail") + (A.unread > 0 ? ` <span class="nav-badge">${A.unread}</span>` : "");
       nav.insertBefore(mi, a);
       const menu = document.createElement("div");
       menu.className = "user-menu"; menu.id = "userMenu"; menu.hidden = true;
@@ -763,7 +734,7 @@
       const ad = document.createElement("a");
       ad.id = "adminLink";
       ad.href = "admin.html";
-      ad.textContent = "🛡 Yönetim";
+      ad.innerHTML = EMLAK.icon("shield") + " Yönetim";
       if (document.body.dataset.page === "admin") ad.classList.add("active");
       nav.insertBefore(ad, a);
     }
@@ -1286,7 +1257,7 @@
         const qs = AI.filtersToQS(g);
         ssBtn.disabled = true; ssBtn.textContent = "Kaydediliyor…";
         const r = await A.saveSearch(name, qs);
-        ssBtn.textContent = r && r.ok ? "🔔 Kaydedildi ✓" : "🔔 Aramayı Kaydet";
+        ssBtn.innerHTML = EMLAK.icon("bell") + (r && r.ok ? " Kaydedildi" : " Aramayı Kaydet");
         if (r && r.error) alert(r.error);
         ssBtn.disabled = !(r && r.error);
       });
@@ -1316,7 +1287,7 @@
       const nx = document.createElement("meta");
       nx.name = "robots"; nx.content = "noindex";
       document.head.appendChild(nx);
-      root.innerHTML = '<div class="empty"><p style="font-size:2.4rem">😕</p><p>İlan bulunamadı ya da yayından kaldırılmış.</p><p style="margin-top:14px"><a class="btn" href="ilanlar.html">Tüm İlanlara Dön</a></p></div>';
+      root.innerHTML = '<div class="empty"><p class="empty-ic">' + EMLAK.icon("info") + '</p><p>İlan bulunamadı ya da yayından kaldırılmış.</p><p style="margin-top:14px"><a class="btn" href="ilanlar.html">Tüm İlanlara Dön</a></p></div>';
       return;
     }
     document.title = l.title + " — " + C.brand.name;
@@ -1433,7 +1404,7 @@
     // İstatistikler: sunucu varsa görüntülenme sunucuda sayılır (IP başına
     // 12 saatte bir); statik yayında cihaz içi sayaç ilanın tabanına eklenir.
     let totalViews = (l.views || 0) + (D.hasServer() ? 0 : bumpViews(l.id));
-    const statHTML = () => `👁 ${fmt(totalViews)} görüntülenme &nbsp;·&nbsp; ❤️ ${fmt((l.favCount || 0) + (favs().includes(l.id) ? 1 : 0))} favori`;
+    const statHTML = () => `${EMLAK.icon("eye")} ${fmt(totalViews)} görüntülenme &nbsp;·&nbsp; ${EMLAK.icon("heart")} ${fmt((l.favCount || 0) + (favs().includes(l.id) ? 1 : 0))} favori`;
     // Fiyat geçmişi: son değişiklikte fiyat düştüyse rozet göster (sahibinden mantığı)
     const prevPrice = (l.priceHistory || []).length ? l.priceHistory[l.priceHistory.length - 1].price : null;
     const priceDrop = prevPrice && prevPrice > l.price
@@ -1479,7 +1450,7 @@
             if (!an) return "";
             const li = (arr, sym, color) => arr.map((x) => `<li><span style="color:${color}">${sym}</span> ${esc(x)}</li>`).join("");
             return `<div class="detail-card ai-analysis">
-            <h2>🤖 AI Analizi</h2>
+            <h2>${EMLAK.icon("sparkle")} AI Analizi</h2>
             <p>${esc(an.summary)}</p>
             <div class="ai-cols">
               <div><b>Artılar</b><ul class="ai-list">${li(an.pros, "✓", "var(--deal)")}</ul></div>
@@ -1530,25 +1501,25 @@
           <div class="seller">
             <div class="avatar">${l.seller.avatar ? `<img src="${esc(l.seller.avatar)}" alt="" width="40" height="40">` : esc(l.seller.name[0])}</div>
             <div><b>${esc(l.seller.name)}</b><br><small style="color:var(--muted)">${l.seller.type === "sahibinden" ? "Bireysel Satıcı" : l.segment === "vasita" ? "Galeri" : "Emlak Ofisi"}</small>
-              ${l.seller.type === "ofis" && l.seller.license ? `<br><small class="license-line">🪪 Yetki Belge No: <b>${esc(l.seller.license)}</b></small>` : ""}
+              ${l.seller.type === "ofis" && l.seller.license ? `<br><small class="license-line">${EMLAK.icon("idcard")} Yetki Belge No: <b>${esc(l.seller.license)}</b></small>` : ""}
               ${l.eids && l.eids.verified ? `<br><small class="license-line eids-ok">✓ Taşınmaz sahibi e-Devlet (EİDS) ile izin verdi · bitiş ${esc(new Date(l.eids.expires + "T12:00:00").toLocaleDateString("tr-TR"))}</small>` : ""}
               ${l.ownerId ? `<br><a href="magaza.html?u=${encodeURIComponent(l.ownerId)}" style="font-size:0.85rem">Mağazasındaki tüm ilanlar →</a>` : ""}</div>
           </div>
-          ${contact ? `<a class="btn" id="callBtn" href="#" data-tel="${esc(contact.intl)}" data-tel-label="${esc(contact.display)}">📞 Telefonu Göster</a>` : ""}
-          ${wa ? `<a class="btn" style="background:#25d366" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>` : ""}
-          ${l.contact && l.contact.email ? `<a class="btn ghost" href="mailto:${esc(l.contact.email)}?subject=${encodeURIComponent(l.id + " numaralı ilan")}">✉ E-posta gönder</a>` : ""}
-          ${D.hasServer() ? '<a class="btn' + (contact ? " ghost" : "") + '" href="#msgCard">✉ Satıcıya mesaj gönder</a>' : ""}
+          ${contact ? `<a class="btn" id="callBtn" href="#" data-tel="${esc(contact.intl)}" data-tel-label="${esc(contact.display)}">${EMLAK.icon("phone")} Telefonu Göster</a>` : ""}
+          ${wa ? `<a class="btn ghost" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp ile Sor</a>` : ""}
+          ${l.contact && l.contact.email ? `<a class="btn ghost" href="mailto:${esc(l.contact.email)}?subject=${encodeURIComponent(l.id + " numaralı ilan")}">${EMLAK.icon("mail")} E-posta gönder</a>` : ""}
+          ${D.hasServer() ? '<a class="btn' + (contact ? " ghost" : "") + '" href="#msgCard">' + EMLAK.icon("mail") + ' Satıcıya mesaj gönder</a>' : ""}
           ${l.contact && l.contact.phone === false ? '<small style="color:var(--muted)">Satıcı telefonunu paylaşmıyor; site içi mesajla ulaşabilirsiniz.</small>' : ""}
-          <button class="btn ghost" data-fav="${esc(l.id)}">${favs().includes(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle"}</button>
+          <button class="btn ghost" data-fav="${esc(l.id)}">${EMLAK.icon("heart", favs().includes(l.id) ? "on" : "")} ${favs().includes(l.id) ? "Favorilerde" : "Favorilere Ekle"}</button>
           <div style="display:flex;gap:8px">
             <button class="btn ghost sm" id="shareBtn" type="button" style="flex:1">Paylaş</button>
             <button class="btn ghost sm" id="printBtn" type="button" style="flex:1">Yazdır / PDF</button>
           </div>
           ${l.user ? `<button class="btn ghost" id="removeBtn" style="color:var(--over);border-color:var(--over)">İlanı Kaldır</button>` : ""}
           <div class="safety-box">
-            <b>🛡 Güvenli alışveriş</b>
+            <b>${EMLAK.icon("shield")} Güvenli alışveriş</b>
             <ul>${((C.safety || {})[l.segment || "emlak"] || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
-            ${D.hasServer() && !preview ? `<button class="link-btn" id="reportOpen" type="button">🚩 Bu ilanı şikayet et</button>` : ""}
+            ${D.hasServer() && !preview ? `<button class="link-btn" id="reportOpen" type="button">${EMLAK.icon("flag")} Bu ilanı şikayet et</button>` : ""}
           </div>
           <div class="report-box" id="reportBox" hidden>
             <b>İlanı şikayet et</b>
@@ -1637,7 +1608,7 @@
     }));
     const favBtn = $(".side-card [data-fav]", root);
     favBtn.addEventListener("click", () => {
-      favBtn.textContent = toggleFav(l.id) ? "❤️ Favorilerde" : "🤍 Favorilere Ekle";
+      { const favOn = toggleFav(l.id); favBtn.innerHTML = EMLAK.icon("heart", favOn ? "on" : "") + (favOn ? " Favorilerde" : " Favorilere Ekle"); }
       $("#statLine").innerHTML = statHTML();
     });
     const rmBtn = $("#removeBtn", root);
@@ -1652,10 +1623,10 @@
     const shareBtn = $("#shareBtn", root);
     shareBtn.addEventListener("click", async () => {
       const summary = l.segment === "vasita"
-        ? `${l.title}\n${fmtPrice(l)} · ${l.year} · ${fmt(l.km)} km · ${l.fuel} · ${l.gear}\n📍 ${l.city} / ${l.district}`
+        ? `${l.title}\n${fmtPrice(l)} · ${l.year} · ${fmt(l.km)} km · ${l.fuel} · ${l.gear}\nKonum: ${l.city} / ${l.district}`
         : l.segment === "diger"
-        ? `${l.title}\n${fmtPrice(l)} · ${l.kindLabel || ""}\n📍 ${l.city} / ${l.district}`
-        : `${l.title}\n${fmtPrice(l)}${l.rooms ? " · " + l.rooms : ""} · ${fmt(l.m2)} m²\n📍 ${l.city} / ${l.district}${l.locality ? " · " + l.locality : ""}`;
+        ? `${l.title}\n${fmtPrice(l)} · ${l.kindLabel || ""}\nKonum: ${l.city} / ${l.district}`
+        : `${l.title}\n${fmtPrice(l)}${l.rooms ? " · " + l.rooms : ""} · ${fmt(l.m2)} m²\nKonum: ${l.city} / ${l.district}${l.locality ? " · " + l.locality : ""}`;
       const url = canon.href;
       try {
         if (navigator.share) { await navigator.share({ title: l.title, text: summary, url }); return; }
@@ -1672,7 +1643,7 @@
       e.preventDefault();
       callBtn.dataset.shown = "1";
       callBtn.href = "tel:" + callBtn.dataset.tel;
-      callBtn.textContent = "📞 " + callBtn.dataset.telLabel;
+      callBtn.innerHTML = EMLAK.icon("phone") + " " + esc(callBtn.dataset.telLabel);
     });
     // Şikayet
     const rOpen = $("#reportOpen", root);
@@ -1941,7 +1912,7 @@
          <button type="button" class="po-rm" data-rm="${i}" aria-label="Fotoğraf ${i + 1}'i kaldır">✕</button>
          <div class="po-bar">
            <button type="button" data-mv="${i}" data-d="-1" aria-label="Sola taşı"${i === 0 ? " disabled" : ""}>◀</button>
-           ${i ? `<button type="button" data-cv="${i}" aria-label="Kapak yap">★</button>` : ""}
+           ${i ? `<button type="button" data-cv="${i}" aria-label="Kapak yap">${EMLAK.icon("star")}</button>` : ""}
            <button type="button" data-mv="${i}" data-d="1" aria-label="Sağa taşı"${i === photos.length - 1 ? " disabled" : ""}>▶</button>
          </div></figure>`).join("");
       $$("#photoPreview [data-rm]").forEach((b) => b.addEventListener("click", () => {
@@ -2228,7 +2199,7 @@
           if (r && r.ok) {
             if (r.status === "active" && !r.photoWarning) { location.href = "ilan.html?id=" + encodeURIComponent(r.id); return; }
             // Sunucu bazı fotoğrafları kaydedemediyse SESSİZ kalma, söyle
-            const warn = r.photoWarning ? `<p class="iv-error">⚠ ${esc(r.photoWarning)}</p>` : "";
+            const warn = r.photoWarning ? `<p class="iv-error">${EMLAK.icon("warn")} ${esc(r.photoWarning)}</p>` : "";
             $("#ivDoneBody").innerHTML = `
               <div class="ivd-check" aria-hidden="true">✓</div>
               <h2>${r.status === "active" ? "İlanınız yayında" : (window.EMLAK_STATUS && window.EMLAK_STATUS.publishEnabled === false ? "İlanınız taslak olarak alındı" : "İlanınız alındı")}</h2>
@@ -2300,7 +2271,7 @@
       $("#stPhotoRule").textContent = `— en fazla ${MAXIN} adet · ${UP_LABEL}`;
       const setMode = () => {
         $("#stMode").textContent = stVision
-          ? "✦ Görsel AI açık: fotoğraflar ayrıca yapay zekâyla incelenir"
+          ? "Görsel AI açık: fotoğraflar ayrıca yapay zekâyla incelenir"
           : "Analiz tarayıcınızda yapılır; fotoğraflarınız siz yayınlayana dek hiçbir yere gönderilmez.";
       };
       setMode();
@@ -2395,7 +2366,7 @@
         ttsOn = on && canTts;
         const b = $("#stTts");
         b.setAttribute("aria-pressed", String(ttsOn));
-        b.textContent = ttsOn ? "🔊 Sesli soru: açık" : "🔇 Sesli soru: kapalı";
+        b.innerHTML = EMLAK.icon(ttsOn ? "volume" : "mute") + (ttsOn ? " Sesli soru: açık" : " Sesli soru: kapalı");
       };
       if (!canTts) $("#stTts").hidden = true;
       $("#stTts").addEventListener("click", () => { setTts(!ttsOn); if (!ttsOn && canTts) window.speechSynthesis.cancel(); });
@@ -2410,7 +2381,7 @@
       function startChat() {
         if (convo.started) return;
         convo.started = true;
-        bubble("bot", "Ben ilan asistanınız. Birkaç soru soracağım; yazarak ya da 🎤 düğmesiyle konuşarak cevaplayabilirsiniz. İsterseniz her şeyi tek seferde de anlatabilirsiniz.");
+        bubble("bot", "Ben ilan asistanınız. Birkaç soru soracağım; yazarak ya da mikrofon düğmesiyle konuşarak cevaplayabilirsiniz. İsterseniz her şeyi tek seferde de anlatabilirsiniz.");
         askNext();
       }
       function finishChat() {
@@ -2478,7 +2449,7 @@
         clearTimeout(photoNoteT);
         photoNoteT = setTimeout(() => {
           const n = stIn.length;
-          bubble("bot", `📷 ${n} fotoğraf hazır.` + (n >= MINP
+          bubble("bot", `${n} fotoğraf hazır.` + (n >= MINP
             ? " Daha fazla çekebilir ya da “tamam” diyebilirsiniz."
             : ` En az ${MINP} fotoğraf öneririm; çekmeye devam edin.`));
         }, 400);
@@ -2526,7 +2497,7 @@
       }
       if (!SR) {
         $("#stMic").hidden = true;
-        $("#stVoiceNote").textContent = "Bu tarayıcı sesle cevaplamayı desteklemiyor; telefon klavyenizdeki 🎤 dikte tuşuyla konuşarak da yazabilirsiniz.";
+        $("#stVoiceNote").textContent = "Bu tarayıcı sesle cevaplamayı desteklemiyor; telefon klavyenizdeki mikrofon dikte tuşuyla konuşarak da yazabilirsiniz.";
       }
       $("#stMic").addEventListener("click", () => {
         if (listening) { stopListening(); return; }
@@ -2714,7 +2685,7 @@
           return `<figure class="st-ph${it.selected ? "" : " off"}${it.cover ? " cover" : ""}">
             <div class="st-ph-img"><img src="${src}" alt="${esc(label)}">
               ${it.cover ? '<span class="st-tag cover">Kapak</span>' : ""}
-              ${it.useFixed ? '<span class="st-tag fix">✨ Düzeltildi</span>' : ""}
+              ${it.useFixed ? '<span class="st-tag fix">${EMLAK.icon("sparkle")} Düzeltildi</span>' : ""}
               <span class="st-q ${q >= 75 ? "good" : q >= 50 ? "mid" : "low"}">${q}</span></div>
             <figcaption><b>${esc(label)}</b>
               ${it.ai && it.ai.caption ? `<span>${esc(it.ai.caption)}</span>` : ""}
@@ -2722,10 +2693,10 @@
             </figcaption>
             <div class="st-ph-bar">
               ${it.selected ? `<button type="button" data-a="mv" data-d="-1" data-id="${it.id}"${i <= 0 ? " disabled" : ""} aria-label="Öne al">◀</button>
-              ${it.cover ? "" : `<button type="button" data-a="cv" data-id="${it.id}">★ Kapak</button>`}
+              ${it.cover ? "" : `<button type="button" data-a="cv" data-id="${it.id}">${EMLAK.icon("star")} Kapak</button>`}
               <button type="button" data-a="mv" data-d="1" data-id="${it.id}"${i === sel.length - 1 ? " disabled" : ""} aria-label="Geri al">▶</button>` : ""}
               ${it.fixed ? `<button type="button" data-a="ba" data-id="${it.id}">${it.useFixed ? "Önce" : "Sonra"}</button>`
-                : it.selected ? `<button type="button" data-a="fx" data-id="${it.id}">✨ Düzelt</button>` : ""}
+                : it.selected ? `<button type="button" data-a="fx" data-id="${it.id}">${EMLAK.icon("sparkle")} Düzelt</button>` : ""}
               <button type="button" data-a="tg" data-id="${it.id}">${it.selected ? "Çıkar" : "Dahil et"}</button>
             </div></figure>`;
         }).join("");
@@ -2834,7 +2805,7 @@
         $("#toPreview").click();
         return;
       }
-      ivNote(`<b>✦ Stüdyodan aktarıldı.</b> Bilgileri ve fotoğraf sırasını kontrol edin; eksik alanları tamamlayıp <b>Önizleme</b>'ye geçin.` +
+      ivNote(`<b>${EMLAK.icon("sparkle")} Stüdyodan aktarıldı.</b> Bilgileri ve fotoğraf sırasını kontrol edin; eksik alanları tamamlayıp <b>Önizleme</b>'ye geçin.` +
         (l.price ? "" : " Fiyat girilmedi — “AI fiyat önerisi al” ile bant görebilirsiniz."));
     }
   }
@@ -2960,7 +2931,7 @@
       const pv = u.privacy || {};
       $("#uAlias").value = u.alias || ""; $("#uHideName").checked = !!pv.hideName; $("#uHidePhone").checked = !!pv.hidePhone;
       $("#uShowEmail").checked = !!pv.showEmail; $("#uShowAvatar").checked = !!pv.showAvatar;
-      $("#uAvatarImg").innerHTML = u.avatar ? `<img src="${esc(u.avatar)}" alt="" width="64" height="64">` : "👤";
+      $("#uAvatarImg").innerHTML = u.avatar ? `<img src="${esc(u.avatar)}" alt="" width="64" height="64">` : EMLAK.icon("user");
       $("#uEmail").value = u.email || "";
     }
 
@@ -2973,7 +2944,7 @@
             <td>${l.status === "active"
               ? `<a href="ilan.html?id=${encodeURIComponent(l.id)}"><b>${esc(l.title)}</b></a>`
               : `<b>${esc(l.title)}</b> <a href="ilan.html?id=${encodeURIComponent(l.id)}" style="font-size:0.85rem">(önizle)</a>`}<br>
-              <small style="color:var(--muted)">${esc(l.id)} · ${esc(l.city)}/${esc(l.district)} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐" : ""}</small></td>
+              <small style="color:var(--muted)">${esc(l.id)} · ${esc(l.city)}/${esc(l.district)} · ${new Date(l.date).toLocaleDateString("tr-TR")} · ${EMLAK.icon("eye")} ${fmt(l.views || 0)}${(l.photos || []).length ? " · " + EMLAK.icon("camera") + " " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · " + EMLAK.icon("star") : ""}</small></td>
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
@@ -3031,7 +3002,7 @@
       const list = convos();
       $("#convoList").innerHTML = list.length ? list.map(({ m, role, unread }) => `
         <button type="button" class="convo-item${unread ? " unread" : ""}${m.mid === openMid ? " on" : ""}" data-mid="${esc(m.mid)}">
-          <span class="convo-who">${role === "seller" ? "📥 " + esc(m.name || "Ziyaretçi") : "📤 Satıcıya"}${unread ? ' <i class="dot"></i>' : ""}</span>
+          <span class="convo-who">${role === "seller" ? EMLAK.icon("inbox") + " " + esc(m.name || "Ziyaretçi") : EMLAK.icon("send") + " Satıcıya"}${unread ? ' <i class="dot"></i>' : ""}</span>
           <span class="convo-title">${esc(m.listingTitle || m.listingId)}</span>
           <span class="convo-last">${esc(String(lastText(m)).slice(0, 80))}</span>
           <small>${new Date(lastAt(m)).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}</small>
@@ -3055,7 +3026,7 @@
         ${canReply ? `<div class="convo-reply"><textarea id="convoText" rows="2" maxlength="1200" placeholder="Yanıtınızı yazın…"></textarea>
           <button class="btn sm" id="convoSend" type="button">Gönder</button></div>`
           : `<p class="notice">Bu kişi üye olmadan yazdı; telefon ya da WhatsApp ile dönebilirsiniz.
-             ${m.phone ? `<a class="btn sm" style="background:#25d366;margin-top:8px" target="_blank" rel="noopener" href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}">WhatsApp</a>` : ""}</p>`}`;
+             ${m.phone ? `<a class="btn sm ghost" style="margin-top:8px" target="_blank" rel="noopener" href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}">WhatsApp</a>` : ""}</p>`}`;
       const msgsEl = $("#convoMsgs");
       msgsEl.scrollTop = msgsEl.scrollHeight;
       const send = $("#convoSend");
@@ -3106,7 +3077,7 @@
             <a class="btn sm" href="ilanlar.html?${esc(x.qs)}" data-seen="${esc(x.sid)}">Sonuçları Aç</a>
             <button class="btn ghost sm" data-search="${esc(x.sid)}" style="color:var(--over);border-color:var(--over)">Sil</button>
           </td></tr>`).join("")
-          : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">Kayıtlı aramanız yok. <a href="ilanlar.html">İlanlar</a> sayfasında filtreleyip “🔔 Aramayı Kaydet” deyin.</td></tr>');
+          : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">Kayıtlı aramanız yok. <a href="ilanlar.html">İlanlar</a> sayfasında filtreleyip “Aramayı Kaydet” deyin.</td></tr>');
       $$("#mySearchTable [data-seen]").forEach((a2) => a2.addEventListener("click", () => {
         A.searchAction(a2.dataset.seen, "seen"); // sonuçlar açıldı → "yeni" sayacı sıfırlanır
       }));
@@ -3125,7 +3096,7 @@
       out.innerHTML = r && r.ok
         ? '<b style="color:var(--deal)">Bilgileriniz güncellendi ✓</b>'
         : `<span style="color:var(--over)">${esc((r && r.error) || "Güncellenemedi.")}</span>`;
-      if (r && r.ok) { const a = $("#authLink"); if (a) a.textContent = "👤 " + (r.user.name || "").split(" ")[0]; }
+      if (r && r.ok) { const a = $("#authLink"); if (a) a.innerHTML = EMLAK.icon("user") + " " + esc((r.user.name || "").split(" ")[0]); }
     });
     // Profil fotoğrafı: tarayıcıda 256 px'e küçültülüp yüklenir
     $("#uAvatarFile").addEventListener("change", async (e) => {
@@ -3144,7 +3115,7 @@
     });
     $("#uAvatarDel").addEventListener("click", async () => {
       const r = await A.avatar(null);
-      if (r && r.ok) $("#uAvatarImg").textContent = "👤";
+      if (r && r.ok) $("#uAvatarImg").innerHTML = EMLAK.icon("user");
     });
     $("#uPassSave").addEventListener("click", async () => {
       const out = $("#uPassOut");
@@ -3184,7 +3155,7 @@
     document.title = `${sel.name} — ${ofis ? "Emlak Ofisi" : "Sahibinden"} | ${C.brand.name}`;
     $("#shopName").textContent = sel.name;
     if (sel.avatar && /^a\/[\w.-]+$/.test(sel.avatar)) $("#shopName").insertAdjacentHTML("beforebegin", `<img class="shop-avatar" src="${esc(sel.avatar)}" alt="" width="56" height="56">`);
-    $("#shopMeta").innerHTML = `${ofis ? "🏢 <b>Emlak Ofisi</b>" : "👤 <b>Bireysel Satıcı</b>"} · ` +
+    $("#shopMeta").innerHTML = `${ofis ? EMLAK.icon("office") + " <b>Emlak Ofisi</b>" : EMLAK.icon("user") + " <b>Bireysel Satıcı</b>"} · ` +
       `Üyelik: ${new Date(sel.since).toLocaleDateString("tr-TR")} · ${fmt(sel.count)} yayında ilan`;
     $("#shopCrumb").innerHTML = `<a href="index.html">Ana Sayfa</a> › <a href="ilanlar.html">İlanlar</a> › ${esc(sel.name)}`;
     $("#shopStats").innerHTML = [
@@ -3198,7 +3169,7 @@
       const btn = $("#shopCall");
       btn.style.display = "";
       btn.href = "tel:" + sel.phone.intl;
-      btn.textContent = "📞 " + sel.phone.display;
+      btn.innerHTML = EMLAK.icon("phone") + " " + esc(sel.phone.display);
     }
     if (!list.length) $("#shopEmpty").style.display = "";
     renderCards(grid, AI.rank(list.slice()), "Bu satıcının yayında ilanı bulunmuyor.");
@@ -3321,7 +3292,7 @@
               ? `${l.year} · ${fmt(l.km)} km${l.fuel ? " · " + l.fuel : ""}`
               : `${fmt(l.m2)} m²${l.rooms ? " · " + l.rooms : ""}`;
             return `<a class="mini-card" href="ilan.html?id=${encodeURIComponent(l.id)}">
-            <b>${fmtPrice(l)}</b> — ${esc(l.title)}<br><small>📍 ${esc(l.city)} / ${esc(l.district)} · ${esc(info)}</small></a>`;
+            <b>${fmtPrice(l)}</b> — ${esc(l.title)}<br><small>${EMLAK.icon("pin")} ${esc(l.city)} / ${esc(l.district)} · ${esc(info)}</small></a>`;
           }).join("");
         }
         if (r.action) html += `<a class="mini-card" style="text-align:center;font-weight:700;color:var(--primary)" href="${r.action.href}">${esc(r.action.label)} →</a>`;
@@ -3511,13 +3482,13 @@
           const [sl, sc] = STATUS[l.status] || ["—", "var(--muted)"];
           return `<tr>
             <td><a href="ilan.html?id=${encodeURIComponent(l.id)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b></a><br>
-              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${esc(ownerLabel(l))} · ${new Date(l.date).toLocaleDateString("tr-TR")} · 👁 ${fmt(l.views || 0)}${(l.photos || []).length ? " · 📷 " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · ⭐ Öne Çıkan" : ""}</small>
-              ${(l.details || {}).tasinmazNo ? `<br><small>🪪 Taşınmaz No: <b>${esc(l.details.tasinmazNo)}</b>${(l.seller || {}).license ? " · Yetki No: <b>" + esc(l.seller.license) + "</b>" : ""}</small>` : (l.segment || "emlak") === "emlak" ? '<br><small style="color:var(--over)">⚠ Taşınmaz numarası yok</small>' : ""}
-              ${(l.dupOf || []).length ? `<br><small style="color:var(--over);font-weight:700">⚠ Aynı taşınmaz numarası başka ilanda: ${esc(l.dupOf.join(", "))} — onaylamadan önce kontrol edin</small>` : ""}
-              ${l.reported ? '<br><small style="color:var(--over);font-weight:700">🚩 Şikayetler nedeniyle incelemede</small>' : ""}
+              <small style="color:var(--muted)">${esc(l.id)} · ${l.segment === "vasita" ? "Araç" : "Taşınmaz"} · ${esc(l.city)}/${esc(l.district)} · ${esc(ownerLabel(l))} · ${new Date(l.date).toLocaleDateString("tr-TR")} · ${EMLAK.icon("eye")} ${fmt(l.views || 0)}${(l.photos || []).length ? " · " + EMLAK.icon("camera") + " " + l.photos.length : " · fotoğrafsız"}${l.featured ? " · " + EMLAK.icon("star") + " Öne Çıkan" : ""}</small>
+              ${(l.details || {}).tasinmazNo ? `<br><small>${EMLAK.icon("idcard")} Taşınmaz No: <b>${esc(l.details.tasinmazNo)}</b>${(l.seller || {}).license ? " · Yetki No: <b>" + esc(l.seller.license) + "</b>" : ""}</small>` : (l.segment || "emlak") === "emlak" ? '<br><small style="color:var(--over)">' + EMLAK.icon("warn") + ' Taşınmaz numarası yok</small>' : ""}
+              ${(l.dupOf || []).length ? `<br><small style="color:var(--over);font-weight:700">${EMLAK.icon("warn")} Aynı taşınmaz numarası başka ilanda: ${esc(l.dupOf.join(", "))} — onaylamadan önce kontrol edin</small>` : ""}
+              ${l.reported ? '<br><small style="color:var(--over);font-weight:700">' + EMLAK.icon("flag") + ' Şikayetler nedeniyle incelemede</small>' : ""}
               ${l.seller && l.seller.type === "ofis" && (l.segment || "emlak") === "emlak" ? (l.eids
-                ? `<br><small>🏛 EİDS izni: bitiş <b>${esc(new Date(l.eids.expires + "T12:00:00").toLocaleDateString("tr-TR"))}</b>${l.eids.verified ? " · ✓ doğrulandı" : ""}${l.eids.expired ? ' · <b style="color:var(--over)">süresi doldu</b>' : ""} · <a href="#" data-eids-open="${esc(l.id)}">İzin belgesini aç</a> <small class="muted">(taşınmaz no ve yetki no ile karşılaştırın)</small></small>`
-                : '<br><small style="color:var(--over);font-weight:700">🏛 EİDS izin belgesi yok</small>') : ""}</td>
+                ? `<br><small>${EMLAK.icon("shield")} EİDS izni: bitiş <b>${esc(new Date(l.eids.expires + "T12:00:00").toLocaleDateString("tr-TR"))}</b>${l.eids.verified ? " · ✓ doğrulandı" : ""}${l.eids.expired ? ' · <b style="color:var(--over)">süresi doldu</b>' : ""} · <a href="#" data-eids-open="${esc(l.id)}">İzin belgesini aç</a> <small class="muted">(taşınmaz no ve yetki no ile karşılaştırın)</small></small>`
+                : '<br><small style="color:var(--over);font-weight:700">' + EMLAK.icon("shield") + ' EİDS izin belgesi yok</small>') : ""}</td>
             <td><b>${fmt(l.price)} ₺${priceSuffix(l)}</b></td>
             <td><span style="color:${sc};font-weight:700">${sl}</span></td>
             <td style="text-align:right;white-space:nowrap">
@@ -3526,7 +3497,7 @@
                 : `<button class="btn sm" data-act="approve" data-id="${esc(l.id)}">✓ Yayınla</button>`) : ""}
               ${l.status === "pending" ? `<button class="btn ghost sm" data-act="reject" data-id="${esc(l.id)}">Reddet</button>` : ""}
               ${l.status === "active" ? `<button class="btn ghost sm" data-act="reject" data-id="${esc(l.id)}">Yayından Kaldır</button>` : ""}
-              ${l.status === "active" ? `<button class="btn ghost sm" data-act="${l.featured ? "unfeature" : "feature"}" data-id="${esc(l.id)}">${l.featured ? "⭐ Kaldır" : "⭐ Öne Çıkar"}</button>` : ""}
+              ${l.status === "active" ? `<button class="btn ghost sm" data-act="${l.featured ? "unfeature" : "feature"}" data-id="${esc(l.id)}">${EMLAK.icon("star")} ${l.featured ? "Kaldır" : "Öne Çıkar"}</button>` : ""}
               <button class="btn ghost sm" data-act="edit" data-id="${esc(l.id)}">Düzenle</button>
               <button class="btn ghost sm" data-act="remove" data-id="${esc(l.id)}" style="color:var(--over);border-color:var(--over)">Sil</button>
             </td></tr>`;
@@ -3571,7 +3542,7 @@
             <br><small style="color:var(--muted)">${new Date(m.date).toLocaleString("tr-TR")}</small></td>
           <td>${esc(m.message)}<br><small style="color:var(--muted)">İlan: <a href="ilan.html?id=${encodeURIComponent(m.listingId)}" target="_blank" rel="noopener">${esc(m.listingTitle || m.listingId)}</a></small></td>
           <td style="text-align:right;white-space:nowrap">
-            <a class="btn sm" href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}" target="_blank" rel="noopener" style="background:#25d366">WhatsApp</a>
+            <a class="btn sm ghost" href="https://wa.me/${esc(String(m.phone).replace(/\D/g, "").replace(/^0/, "90"))}" target="_blank" rel="noopener">WhatsApp</a>
             <button class="btn ghost sm" data-msg="${esc(m.mid)}" data-mact="${m.read ? "unread" : "read"}">${m.read ? "Okunmadı" : "Okundu"}</button>
             <button class="btn ghost sm" data-msg="${esc(m.mid)}" data-mact="remove" style="color:var(--over);border-color:var(--over)">Sil</button>
           </td></tr>`).join("")
