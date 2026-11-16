@@ -63,10 +63,10 @@
     const target = a.phase === "scheduled" ? a.startsAt : a.endsAt;
     const photo = safePhoto(a.photo);
     return '<a class="auc-card" href="ihale.html?id=' + encodeURIComponent(a.aid) + '">' +
-      '<div class="auc-media">' + (photo ? '<img src="' + photo + '" alt="' + esc(a.title) + '" loading="lazy">' : '<div class="auc-noimg">🔨</div>') +
+      '<div class="auc-media">' + (photo ? '<img src="' + photo + '" alt="' + esc(a.title) + '" loading="lazy">' : '<div class="auc-noimg">' + EMLAK.icon("gavel") + '</div>') +
       '<span class="auc-badge ' + ph[1] + '">' + ph[0] + '</span></div>' +
       '<div class="auc-body"><div class="auc-title">' + esc(a.title) + '</div>' +
-      '<div class="auc-loc">📍 ' + esc([a.city, a.district].filter(Boolean).join(" / ") || "—") + '</div>' +
+      '<div class="auc-loc">' + EMLAK.icon("pin") + ' ' + esc([a.city, a.district].filter(Boolean).join(" / ") || "—") + '</div>' +
       (a.marketValue ? '<div class="auc-disc">' + discText(a, a.startPrice) + "</div>" : "") +
       '<div class="auc-price"><small>' + (a.bidCount ? "Güncel teklif" : "Başlangıç bedeli") + '</small><b>' + money(a.current) + '</b></div>' +
       '<div class="auc-meta"><span>' + a.bidCount + ' teklif</span><span data-cd="' + esc(target) + '" data-phase="' + a.phase + '"></span></div></div></a>';
@@ -186,8 +186,8 @@
           : '<div class="auc-box"><b>İhale sona erdi.</b> Teklif gelmedi.</div>';
       }
       root.innerHTML = '<div class="auc-detail">' +
-        '<div class="auc-left">' + (photo ? '<img class="auc-hero" src="' + photo + '" alt="' + esc(a.title) + '">' : '<div class="auc-hero auc-noimg">🔨</div>') +
-        '<h1>' + esc(a.title) + '</h1><div class="auc-loc">📍 ' + esc([a.city, a.district].filter(Boolean).join(" / ") || "—") + '</div>' +
+        '<div class="auc-left">' + (photo ? '<img class="auc-hero" src="' + photo + '" alt="' + esc(a.title) + '">' : '<div class="auc-hero auc-noimg">' + EMLAK.icon("gavel") + '</div>') +
+        '<h1>' + esc(a.title) + '</h1><div class="auc-loc">' + EMLAK.icon("pin") + ' ' + esc([a.city, a.district].filter(Boolean).join(" / ") || "—") + '</div>' +
         '<p><a href="ilan.html?id=' + encodeURIComponent(a.listingId) + '">İlan ayrıntıları ve fotoğraflar →</a></p>' +
         '<div class="auc-rules"><h3>İhale kuralları</h3><ul>' +
         '<li>Açılış: ' + dt(a.startsAt) + '</li><li>Kapanış: ' + dt(a.endsAt) + '</li>' +
@@ -351,7 +351,7 @@
         '<div class="auc-admin-act">' + (a.state === "pending" ? '<button class="btn" data-a="approve" data-id="' + a.aid + '">Belgeleri onayla ve yayınla</button> <button class="btn ghost" data-a="reject-docs" data-id="' + a.aid + '">Belge eksik / yetersiz</button>' : "") +
         (a.state !== "cancelled" && a.phase !== "ended" ? '<button class="btn ghost" data-a="cancel" data-id="' + a.aid + '">İptal et</button>' : "") + "</div>" +
         (a.deposits.length ? '<table class="spec-table"><tr><th>Üye</th><th>Kod</th><th>Tutar</th><th>Durum</th><th></th></tr>' + a.deposits.map((d) =>
-          "<tr><td>" + esc(d.name) + (d.uid === a.winnerUid ? " 🏆" : "") + "</td><td>" + esc(d.ref) + "</td><td>" + money(d.amount) + "</td><td>" + (DS[d.status] || esc(d.status)) + "</td><td>" +
+          "<tr><td>" + esc(d.name) + (d.uid === a.winnerUid ? " " + EMLAK.icon("trophy") : "") + "</td><td>" + esc(d.ref) + "</td><td>" + money(d.amount) + "</td><td>" + (DS[d.status] || esc(d.status)) + "</td><td>" +
           ({ requested: '<button class="btn" data-a="deposit-paid" data-id="' + a.aid + '" data-u="' + d.uid + '">Ödeme alındı</button>',
             refund_due: '<button class="btn" data-a="deposit-refunded" data-id="' + a.aid + '" data-u="' + d.uid + '">İade edildi</button>',
             applied_pending: '<button class="btn" data-a="deposit-applied" data-id="' + a.aid + '" data-u="' + d.uid + '">Bedele mahsup</button> <button class="btn ghost" data-a="deposit-forfeit" data-id="' + a.aid + '" data-u="' + d.uid + '">Vazgeçti: irat</button>' }[d.status] || "") + "</td></tr>").join("") + "</table>" : "<small class=\"muted\">Teminat talebi yok.</small>") + "</div>").join("") || '<div class="home-empty">İhale yok.</div>';

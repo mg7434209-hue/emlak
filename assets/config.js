@@ -4,6 +4,70 @@
  * YALNIZCA burada tutulur. Sayfalara/JS'e elle gömülmez.
  */
 window.EMLAK = window.EMLAK || {};
+// ── Çizgi ikonlar (emoji YOK): EMLAK.icon("ad", "ek-sınıf") → satır içi SVG.
+// Renk currentColor'dan gelir; boyut CSS'te .ic (1.1em). Yeni ikon = yalnız buraya satır.
+EMLAK.ICONS = {
+  home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5.5h4V20"/>',
+  building: '<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7.5h2M13 7.5h2M9 11.5h2M13 11.5h2M9 15.5h2M13 15.5h2"/>',
+  store: '<path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5 12.5V20h14v-7.5M10 20v-4.5h4V20"/>',
+  land: '<path d="M12 21v-7"/><path d="M12 14c-3.5 0-5.5-2.5-5.5-5.5S9 3 12 3s5.5 2.5 5.5 5.5S15.500 14 12 14z"/><path d="M5 21h14"/>',
+  car: '<path d="M5 16.5V12l1.8-4.5h10.4L19 12v4.5"/><path d="M3.5 12h17M5 16.5h14v2.5h-3v-2M8 16.500v2.500H5"/><circle cx="8" cy="14" r=".6"/><circle cx="16" cy="14" r=".6"/>',
+  truck: '<path d="M3 6.5h11V16H3zM14 10h4l3 3v3h-7"/><circle cx="7.500" cy="17.500" r="1.800"/><circle cx="17" cy="17.500" r="1.800"/>',
+  tag: '<path d="M3.500 12.500 12 4h7.500v7.500L11 20z"/><circle cx="15.500" cy="8.500" r="1.200"/>',
+  sparkle: '<path d="M12 3.500 13.800 9l5.700 1.800-5.700 1.800L12 18.300l-1.800-5.700L4.500 10.800 10.200 9z"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11.500a6 6 0 0 0 12 0M12 17.500V21"/>',
+  moon: '<path d="M20 14.500A8 8 0 0 1 9.500 4 8.500 8.500 0 1 0 20 14.500z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.500v2.200M12 19.300v2.200M2.500 12h2.200M19.300 12h2.200M5.200 5.200l1.600 1.600M17.200 17.200l1.600 1.600M5.200 18.800l1.600-1.600M17.200 6.800l1.600-1.600"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  pin: '<path d="M12 21s7-6 7-11.500a7 7 0 0 0-14 0C5 15 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.500"/>',
+  heart: '<path d="M12 20.500S4.500 16 4.500 10A4.300 4.300 0 0 1 12 7.300 4.300 4.300 0 0 1 19.500 10c0 6-7.500 10.500-7.500 10.500z"/>',
+  bell: '<path d="M6 16.500V11a6 6 0 0 1 12 0v5.500l1.500 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.500 7.500 8.500 6 8.500-6"/>',
+  phone: '<path d="M5 4h4l2 5-2.500 1.500a11 11 0 0 0 5 5L15 13l5 2v3.500a2 2 0 0 1-2 2A15.500 15.500 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  camera: '<path d="M4 8h3l1.800-2.500h6.400L17 8h3v11H4z"/><circle cx="12" cy="13.500" r="3.500"/>',
+  star: '<path d="m12 3.500 2.700 5.500 6 .9-4.400 4.200 1 6L12 17.300 6.700 20.100l1-6L3.300 9.900l6-.9z"/>',
+  eye: '<path d="M2.500 12S6 5.500 12 5.500 21.500 12 21.500 12 18 18.500 12 18.500 2.500 12 2.500 12z"/><circle cx="12" cy="12" r="3"/>',
+  shield: '<path d="M12 3 19.500 6v6c0 4.500-3.200 7.500-7.500 9-4.300-1.500-7.500-4.500-7.500-9V6z"/><path d="m9 12 2.200 2.200L15.500 10"/>',
+  flag: '<path d="M5.500 21V4M5.500 4.500h11l-2 3.700 2 3.800h-11"/>',
+  gavel: '<path d="m14 4.500 6 6-3.500 3.500-6-6z"/><path d="m12.500 9.500-8 8a1.500 1.500 0 0 0 2.100 2.100l8-8"/><path d="M12 21h8"/>',
+  trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3M12 13v4M8.500 20.500h7M10 17h4"/>',
+  search: '<circle cx="11" cy="11" r="6.500"/><path d="m16 16 4.500 4.500"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.500M12 7.800v.2"/>',
+  idcard: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6.500 16c.5-1.800 1.500-2.500 2.500-2.500s2 .7 2.500 2.500M14 10h4M14 13.500h3"/>',
+  warn: '<path d="M12 4 21 19.500H3z"/><path d="M12 10v4.500M12 17v.2"/>',
+  check: '<path d="m5 12.500 4.500 4.500L19 7.500"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  volume: '<path d="M4 9.500h3.500L12 6v12l-4.500-3.500H4z"/><path d="M15.500 9a4 4 0 0 1 0 6M18 6.500a7.500 7.500 0 0 1 0 11"/>',
+  mute: '<path d="M4 9.500h3.500L12 6v12l-4.500-3.500H4z"/><path d="m16 9.500 5 5M21 9.500l-5 5"/>',
+  inbox: '<path d="M4 13.500 6.500 5h11L20 13.500V19H4z"/><path d="M4 13.500h4.500a3.500 3.500 0 0 0 7 0H20"/>',
+  send: '<path d="m21 3.500-9.500 17-2.500-7.500L1.500 10.500z"/><path d="M21 3.500 9 13"/>',
+  bot: '<rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 4v4M9 13.500v.2M15 13.500v.2"/>',
+  upload: '<path d="M12 16V5M7.500 9.500 12 5l4.500 4.500M5 19.500h14"/>',
+  office: '<path d="M3.500 21h17M5 21V8l7-4 7 4v13M9 12h.2M12 12h.2M15 12h.2M9 16h.2M12 16h.2M15 16h.2"/>',
+  ban: '<circle cx="12" cy="12" r="9"/><path d="m5.600 5.600 12.800 12.800"/>',
+  chat: '<path d="M4 5h16v11H9.500L4 20.500z"/>',
+  pencil: '<path d="M4 20l1-4.500L16 4.500l3.500 3.500L8.500 19z"/><path d="m14 7 3.500 3.500"/>',
+  image: '<rect x="3.500" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.600"/><path d="m4 17 5-4.500 4 3.500 3-2.500 4 3.500"/>',
+  calendar: '<rect x="4" y="5.500" width="16" height="14.500" rx="2"/><path d="M4 10h16M8.500 3.500v4M15.500 3.500v4"/>'
+};
+EMLAK.icon = function (name, cls) {
+  var p = EMLAK.ICONS[name];
+  if (!p) return "";
+  return '<svg class="ic' + (cls ? " " + cls : "") + '" viewBox="0 0 24 24" aria-hidden="true">' + p + "</svg>";
+};
+// Yer tutucu görsellerde tür → ikon (emoji yok)
+EMLAK.kindIcon = function (kind) {
+  var m = {
+    daire: "building", residence: "building", bina: "building", ofis: "office", devremulk: "building", turistik: "building",
+    villa: "home", mustakil: "home", yazlik: "home",
+    dukkan: "store", depo: "store", fabrika: "office",
+    arsa: "land", tarla: "land", bagbahce: "land", tarim: "land",
+    otomobil: "car", suv: "car", elektrikli: "car", klasik: "car", motosiklet: "car", atv: "car", hasarli: "car", karavan: "car", deniz: "car",
+    minivan: "truck", ticari: "truck", kamyon: "truck", otobus: "truck", ismakinesi: "truck"
+  };
+  return m[kind] || "tag";
+};
 EMLAK.config = {
   brand: {
     name: "İlan AI",

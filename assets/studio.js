@@ -833,7 +833,7 @@
         : "Eklemek istediğiniz özellik var mı? Site, havuz, otopark, manzara, tapu durumu, aidat, krediye uygunluk… Yoksa “yok” deyin.",
       has: () => false },
     { key: "foto", photo: true,
-      ask: () => "Şimdi fotoğraf zamanı: 📷 düğmesine basıp çekin. Dış cephe, salon, mutfak, odalar, banyo ve manzara iyi bir sıradır. Bitince “tamam” deyin.",
+      ask: () => "Şimdi fotoğraf zamanı: “Fotoğraf Çek” düğmesine basıp çekin. Dış cephe, salon, mutfak, odalar, banyo ve manzara iyi bir sıradır. Bitince “tamam” deyin.",
       has: (r, c) => c.photos >= c.minPhotos },
   ];
   // Sıradaki soru: cevaplanmamış ve daha önce geçilmemiş ilk uygun soru.
